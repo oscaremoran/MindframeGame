@@ -55,6 +55,12 @@
     letter-spacing:.16em; font-size:clamp(10px,1.2vw,12.5px); cursor:pointer; margin-top:20px;
     display:inline-block; transition:color .15s, border-color .15s}
   a.storylink:hover{color:#4d9dff; border-color:#4d9dff}
+  .links{display:flex; gap:26px; flex-wrap:wrap; justify-content:center}
+  input{font-family:inherit; font-size:clamp(11px,1.4vw,14px); letter-spacing:.07em;
+    background:#0a0e1c; color:#dfe9ff; border:1px solid #263050; border-radius:2px;
+    padding:11px 14px; width:min(580px,84vw); text-align:center; margin-top:12px;}
+  input:focus{outline:none; border-color:#4d9dff}
+  #codeMsg{min-height:1.7em}
   .legend{display:flex; gap:26px; margin-top:22px; flex-wrap:wrap; justify-content:center; font-size:clamp(10px,1.2vw,12.5px)}
   .legend div{display:flex; align-items:center; gap:9px; color:#7d8bb0}
   .dot{width:11px; height:11px; border-radius:2px; transform:rotate(45deg)}
@@ -96,6 +102,9 @@
       <div><span class="dot" style="background:#4d9dff"></span>ITERATION fires blue pulses. The basic enemy unit.</div>
       <div><span class="dot" style="background:#46e39b"></span>WATCHER is fast but weak. Tries to ram you.</div>
       <div><span class="dot" style="background:#ff4d5e"></span>PRIMARY is the enemy's elite. Strong tanks that will fire large bombs at you.</div>
+      <div><span class="dot" style="background:#ffb44d"></span>TRACKER hangs back and launches homing seekers. Outrun them.</div>
+      <div><span class="dot" style="background:#3fd8e0"></span>OVERSEER carries a spinning shield arc. Shoot it from behind.</div>
+      <div><span class="dot" style="background:#d9c6ff"></span>SPLINTER bursts into two Watchers when it dies.</div>
       <div><span class="dot" style="background:#000;box-shadow:0 0 9px #9d86e8;border:1px solid #9d86e8"></span>THE RULER is the enemy leader. Extremely powerful and can kill you in a few hits.</div>
     </div>
     <div class="row">
@@ -103,7 +112,25 @@
       <button id="btnTreeMenu" class="ghost" style="display:none">SKILL TREE</button>
     </div>
     <p id="menuMeta" style="margin-top:18px"></p>
-    <a class="storylink" id="linkStory">READ THE STORY — “MINDFRAME” BY OSCAR MORAN &rsaquo;</a>
+    <div class="links">
+      <a class="storylink" id="linkStory">READ THE STORY — “MINDFRAME” BY OSCAR MORAN &rsaquo;</a>
+      <a class="storylink" id="linkCode">SAVE CODE &rsaquo;</a>
+    </div>
+  </div>
+
+  <div id="code" class="overlay">
+    <h1 style="font-size:clamp(20px,3.2vw,34px)">SAVE CODE</h1>
+    <p>Copy this to carry your points, skills and records to another browser or
+       machine. Loading a code replaces whatever is saved here.</p>
+    <input id="codeOut" readonly>
+    <div class="row" style="margin-top:12px"><button id="btnCopy">COPY</button></div>
+    <p style="margin-top:24px">Load a code</p>
+    <input id="codeIn" placeholder="MF1-...">
+    <div class="row" style="margin-top:12px">
+      <button id="btnLoadCode">LOAD</button>
+      <button id="btnCodeBack" class="ghost">BACK</button>
+    </div>
+    <p id="codeMsg"></p>
   </div>
 
   <div id="brief" class="overlay">
@@ -166,6 +193,9 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  until you fill them in. Blank lines separate paragraphs. A line     ║
    ║  wrapped in [SQUARE BRACKETS] renders as green terminal output.      ║
    ║                                                                      ║
+   ║  `adds` names the new enemy that system introduces (it stays in     ║
+   ║  every later system): 'tracker', 'overseer' or 'splinter'.           ║
+   ║                                                                      ║
    ║  Add a sixth system by copying a block — waves, scaling, scoring     ║
    ║  and the campaign ending all adapt on their own.                     ║
    ╚══════════════════════════════════════════════════════════════════════╝ */
@@ -176,21 +206,23 @@ const SYSTEMS=[
 Hello, cadet. You have been selected to operate our most advanced spaceship to fight off the Iterations. They are AIs that escaped from humanity's control and now serve an alien called the Ruler. You are our last hope. All of Earth is counting on you. Good luck, cadet. - Commander`,
     clear:`You have fended off the Iterations besieging Earth, but more remain. The Ruler was defeated, but it has grown stronger and is creating stronger Iterations. Prepare and continue.` },
 
-  { id:'002', name:'SYSTEM 002', hp:1.32, spd:1.05, extra:1,
+  { id:'002', name:'SYSTEM 002', hp:1.32, spd:1.05, extra:1, adds:'tracker',
     brief:``,
     clear:`` },
 
-  { id:'003', name:'SYSTEM 003', hp:1.70, spd:1.10, extra:2,
+  { id:'003', name:'SYSTEM 003', hp:1.70, spd:1.10, extra:2, adds:'overseer',
     brief:``,
     clear:`` },
 
-  { id:'004', name:'SYSTEM 004', hp:2.15, spd:1.16, extra:3,
+  { id:'004', name:'SYSTEM 004', hp:2.15, spd:1.16, extra:3, adds:'splinter',
     brief:``,
     clear:`` },
 ];
 /* ═══════════════ end of the text block — code below ═══════════════ */
 
 const SYS=()=>SYSTEMS[Math.min(sysIdx,SYSTEMS.length-1)];
+// every enemy unlocked by the systems cleared so far
+const unlockedType=t=>SYSTEMS.slice(0,sysIdx+1).some(s=>s.adds===t);
 
 /* ================= persistence ================= */
 const SAVE='mindframe.001';
@@ -323,19 +355,24 @@ function nextWave(){
   wave++;
   spawnQ=[]; 
   const push=(t,type)=>spawnQ.push({t,type});
+  const S=SYS();
   if(wave<5){
-    const S=SYS();
     const grunts=(wave<3?4:2)+wave*2+S.extra, darts=(wave<2?0:wave*2)+S.extra,
           heavies=wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0);
     for(let i=0;i<grunts;i++) push(i*1.15+.6,'grunt');
     for(let i=0;i<darts;i++) push(i*1.15+2.6,'dart');
     for(let i=0;i<heavies;i++) push(i*6+4,'heavy');
+    if(unlockedType('tracker'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*7+3.4,'tracker');
+    if(unlockedType('overseer')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5.5,'overseer');
+    if(unlockedType('splinter')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*8+6.5,'splinter');
   }else{
-    const S=SYS();
     push(1.2,'boss');
     for(let i=0;i<5+S.extra;i++) push(8+i*6.5,'dart');
     for(let i=0;i<4+S.extra;i++) push(11+i*7,'grunt');
     for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,'heavy');
+    if(unlockedType('tracker'))  { push(13,'tracker'); push(30,'tracker'); }
+    if(unlockedType('overseer')) push(20,'overseer');
+    if(unlockedType('splinter')) { push(24,'splinter'); push(40,'splinter'); }
   }
   waveTimer=0;
   banner = wave<5 ? 'WAVE '+wave : 'WAVE 5 — THE RULER';
@@ -343,7 +380,8 @@ function nextWave(){
   bannerT=2.4;
 }
 
-const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8'};
+const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
+            tracker:'#ffb44d',overseer:'#3fd8e0',splinter:'#d9c6ff'};
 const ecol=t=>ECOL[t]||'#4d9dff';
 
 function edgeSpawn(){
@@ -354,14 +392,24 @@ function edgeSpawn(){
   return{x:-m,y:rand(0,H)};
 }
 
-function spawn(type){
-  const p=edgeSpawn(), S=SYS(), sc=(1+(wave-1)*.13)*S.hp, vm=S.spd;
+function spawn(type,at){
+  const p=at||edgeSpawn(), S=SYS(), sc=(1+(wave-1)*.13)*S.hp, vm=S.spd;
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
       hp:32*sc,max:32*sc,spd:78*vm,cool:rand(1.2,3),a:0,val:60});
   if(type==='dart') enemies.push({t:'dart',x:p.x,y:p.y,vx:0,vy:0,r:12,
       hp:14*sc,max:14*sc,spd:(190+wave*8)*vm,a:0,val:35,wob:rand(0,TAU)});
   if(type==='heavy') enemies.push({t:'heavy',x:p.x,y:p.y,vx:0,vy:0,r:27,
       hp:140*sc,max:140*sc,spd:44*vm,cool:rand(2,3.4),a:0,val:220,spin:0});
+  // TRACKER — keeps far, launches slow homing seekers
+  if(type==='tracker') enemies.push({t:'tracker',x:p.x,y:p.y,vx:0,vy:0,r:15,
+      hp:55*sc,max:55*sc,spd:120*vm,cool:rand(1.6,3),a:0,val:110,spin:0});
+  // OVERSEER — rotating shield arc blocks shots from whatever side it faces
+  if(type==='overseer') enemies.push({t:'overseer',x:p.x,y:p.y,vx:0,vy:0,r:22,
+      hp:110*sc,max:110*sc,spd:62*vm,cool:rand(2,3.4),a:0,val:200,
+      sh:1.15,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
+  // SPLINTER — bursts into two Watchers when killed
+  if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:19,
+      hp:70*sc,max:70*sc,spd:105*vm,a:0,val:130,spin:0,wob:rand(0,TAU)});
   if(type==='boss'){
     const hp=820*S.hp;
     enemies.push({t:'boss',x:W/2,y:-120,vx:0,vy:0,r:52,hp,max:hp,spd:46*vm,
@@ -453,6 +501,35 @@ function update(dt){
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*185,vy:Math.sin(a)*185,r:9,dmg:17,col:'#ff4d5e'});}
       }
     }
+    else if(e.t==='tracker'){
+      const want=430, k=d>want?1:-.8;
+      e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
+      e.x+=(-dy/d)*e.spd*.5*dt; e.y+=(dx/d)*e.spd*.5*dt;
+      e.spin+=dt*2.2;
+      e.cool-=dt;
+      if(e.cool<=0){
+        e.cool=3.4;
+        ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.a)*150,vy:Math.sin(e.a)*150,
+          r:6,dmg:12,col:'#ffb44d',seek:1.7,age:0});
+      }
+    }
+    else if(e.t==='overseer'){
+      e.shA+=e.shSpin*dt;
+      const want=300, k=d>want?1:-.5;
+      e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
+      e.x+=(-dy/d)*e.spd*.8*dt; e.y+=(dx/d)*e.spd*.8*dt;
+      e.cool-=dt;
+      if(e.cool<=0&&d<600){
+        e.cool=2.6;
+        for(let i=-1;i<=1;i+=2){const a=e.a+i*.1;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*270,vy:Math.sin(a)*270,r:5,dmg:9,col:'#3fd8e0'});}
+      }
+    }
+    else if(e.t==='splinter'){
+      e.wob+=dt*2.4; e.spin+=dt*1.6;
+      const a=e.a+Math.cos(e.wob)*.35;
+      e.x+=Math.cos(a)*e.spd*dt; e.y+=Math.sin(a)*e.spd*dt;
+    }
     else if(e.t==='dart'){
       e.wob+=dt*5;
       const off=Math.cos(e.wob)*.5;
@@ -498,12 +575,22 @@ function update(dt){
       if(b.hit.includes(e)) continue;
       const rr=e.r+b.r;
       if(dist2(b,e)<rr*rr){
+        if(e.sh){ // shielded from the front — flank it
+          const ia=Math.atan2(b.y-e.y,b.x-e.x);
+          let df=ia-e.shA; while(df>Math.PI)df-=TAU; while(df<-Math.PI)df+=TAU;
+          if(Math.abs(df)<e.sh){
+            burst(b.x,b.y,'#3fd8e0',5,220);
+            bullets.splice(i,1); break;
+          }
+        }
         e.hp-=b.dmg; b.hit.push(e);
         burst(b.x,b.y,ecol(e.t),4,150);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
           burst(e.x,e.y,ecol(e.t),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
           enemies.splice(j,1);
+          if(e.t==='splinter') for(let k=0;k<2;k++)
+            spawn('dart',{x:e.x+rand(-18,18),y:e.y+rand(-18,18)});
           if(e.t==='boss'){ // the Ruler falls: its escorts go with it
             spawnQ.length=0; ebullets.length=0;
             for(const o of enemies) burst(o.x,o.y,ecol(o.t),14,260);
@@ -518,6 +605,17 @@ function update(dt){
   /* --- enemy bullets vs player --- */
   for(let i=ebullets.length-1;i>=0;i--){
     const b=ebullets[i];
+    if(b.seek){
+      b.age+=dt;
+      if(b.age>4.5) b.seek=0;                      // burns out, flies straight
+      else{
+        const want=Math.atan2(P.y-b.y,P.x-b.x), cur=Math.atan2(b.vy,b.vx);
+        let df=want-cur; while(df>Math.PI)df-=TAU; while(df<-Math.PI)df+=TAU;
+        const na=cur+clamp(df,-b.seek*dt,b.seek*dt), sp=Math.hypot(b.vx,b.vy);
+        b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp;
+        if(Math.random()<.5) parts.push({x:b.x,y:b.y,vx:0,vy:0,life:.3,t:0,col:'#ffb44d',r:1.8});
+      }
+    }
     b.x+=b.vx*dt; b.y+=b.vy*dt;
     if(b.x<-40||b.x>W+40||b.y<-40||b.y>H+40){ebullets.splice(i,1);continue;}
     const rr=b.r+13;
@@ -533,7 +631,7 @@ function update(dt){
     const e=enemies[j], rr=e.r+13;
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0){
-        P.hp-= e.t==='dart'?14:e.t==='boss'?15:e.t==='heavy'?20:10;
+        P.hp-= e.t==='dart'?14:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='splinter'?12:10;
         P.inv=.5; shake=Math.max(shake,11);
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
@@ -638,6 +736,20 @@ function draw(){
         for(let i=0;i<4;i++){const a=i/4*TAU;
           i?ctx.lineTo(Math.cos(a)*e.r,Math.sin(a)*e.r):ctx.moveTo(Math.cos(a)*e.r,Math.sin(a)*e.r);}
         ctx.closePath();
+      }else if(e.t==='tracker'){
+        ctx.rotate(e.spin);
+        ctx.beginPath();
+        for(let i=0;i<3;i++){const a=i/3*TAU;
+          i?ctx.lineTo(Math.cos(a)*e.r,Math.sin(a)*e.r):ctx.moveTo(Math.cos(a)*e.r,Math.sin(a)*e.r);}
+        ctx.closePath();
+      }else if(e.t==='overseer'){
+        ctx.beginPath(); ctx.arc(0,0,e.r,0,TAU); ctx.closePath();
+      }else if(e.t==='splinter'){
+        ctx.rotate(e.spin);
+        ctx.beginPath();
+        for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?e.r*.48:e.r;
+          i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
+        ctx.closePath();
       }else{
         // THE RULER: an ever-changing black shape, legible only by the light it bends
         ctx.rotate(e.spin);
@@ -661,6 +773,13 @@ function draw(){
         ctx.fillStyle='rgba(157,134,232,'+(.35+.25*Math.sin(e.morph*4))+')'; ctx.fill();
       }
       if(e.t==='heavy'){ ctx.beginPath(); ctx.arc(0,0,e.r*.3,0,TAU); ctx.fillStyle=col; ctx.fill(); }
+      if(e.t==='tracker'){ ctx.beginPath(); ctx.arc(0,0,e.r*.26,0,TAU); ctx.fillStyle=col; ctx.fill(); }
+      if(e.t==='overseer'){
+        ctx.rotate(-e.a);                       // shield angle is absolute, not facing
+        ctx.beginPath(); ctx.arc(0,0,e.r+7,e.shA-e.sh,e.shA+e.sh);
+        ctx.lineWidth=4; ctx.strokeStyle='#3fd8e0';
+        ctx.shadowColor='#3fd8e0'; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
+      }
       ctx.restore(); ctx.shadowBlur=0;
       if(e.t!=='boss') hpbar(e.x,e.y-e.r-11,e.r*2.3,e.hp/e.max,col);
     }
@@ -753,7 +872,7 @@ requestAnimationFrame(frame);
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','brief']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','brief','code']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -829,6 +948,60 @@ function buildStory(){
   }
   el.innerHTML=html;
 }
+/* ---- save codes: MF1-<base64 payload>-<checksum> ---- */
+function checksum(raw){
+  let sum=0;
+  for(let i=0;i<raw.length;i++) sum=(sum*31+raw.charCodeAt(i))&0xfff;
+  return sum.toString(36).toUpperCase();
+}
+function makeCode(){
+  let mask=0;
+  SKILLS.forEach((s,i)=>{ if(has(s.id)) mask|=(1<<i); });
+  const raw=[save.points,save.best,save.deepestSys,mask,save.unlocked?1:0].join('.');
+  const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
+  return 'MF1-'+b64+'-'+checksum(raw);
+}
+function loadCode(code){
+  code=(code||'').trim();
+  if(code.slice(0,4).toUpperCase()!=='MF1-') return 'Codes start with MF1-';
+  const body=code.slice(4), cut=body.lastIndexOf('-');
+  if(cut<1) return 'That code is incomplete.';
+  let raw;
+  try{ raw=atob(body.slice(0,cut).split('-').join('+').split('_').join('/')); }
+  catch(err){ return 'That code could not be read.'; }
+  if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
+  const f=raw.split('.').map(Number);
+  if(f.length!==5||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
+  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],SYSTEMS.length-1);
+  save.owned=SKILLS.filter((sk,i)=>f[3]&(1<<i)).map(sk=>sk.id);
+  save.unlocked=!!f[4];
+  persist();
+  return null;
+}
+function openCode(){
+  $('codeOut').value=makeCode();
+  $('codeIn').value=''; $('codeMsg').textContent=''; $('codeMsg').style.color='';
+  show('code');
+}
+$('linkCode').onclick=openCode;
+$('btnCodeBack').onclick=()=>{refreshMenu();show('menu');};
+$('btnCopy').onclick=()=>{
+  const el=$('codeOut'); el.select(); el.setSelectionRange(0,999);
+  let done=false;
+  try{ done=document.execCommand('copy'); }catch(err){}
+  if(!done&&navigator.clipboard) navigator.clipboard.writeText(el.value).then(()=>{
+    $('codeMsg').style.color='#46e39b'; $('codeMsg').textContent='Copied.';
+  },()=>{});
+  else{ $('codeMsg').style.color= done?'#46e39b':'#ff4d5e';
+        $('codeMsg').textContent= done?'Copied.':'Copy failed — select it by hand.'; }
+};
+$('btnLoadCode').onclick=()=>{
+  const err=loadCode($('codeIn').value);
+  $('codeMsg').style.color=err?'#ff4d5e':'#46e39b';
+  $('codeMsg').textContent=err||'Loaded. Progress replaced.';
+  if(!err){ $('codeOut').value=makeCode(); refreshMenu(); }
+};
+
 let treeReturn='menu';
 $('btnReset').onclick=()=>{
   if(!confirm('Wipe all points, skills and records? This cannot be undone.')) return;

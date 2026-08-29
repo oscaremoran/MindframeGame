@@ -23,6 +23,9 @@ whole campaign.
 | 🔵 | **Iteration** | Holds its distance, strafes in a slow orbit, fires aimed pulses. |
 | 🟢 | **Watcher** | Fast and fragile. Weaves toward you and rams, dying on impact. |
 | 🔴 | **Primary** | Slow, tanky, never retreats. Fires three-shell volleys of heavy rounds. |
+| 🟠 | **Tracker** | *(System 002+)* Hangs back at long range and launches slow homing seekers that burn out after ~4.5s. |
+| 🩵 | **Overseer** | *(System 003+)* Carries a spinning shield arc that blocks every shot from the side it faces. Flank it. |
+| 🟣 | **Splinter** | *(System 004+)* Drifts in on a weaving path and bursts into two Watchers when killed. |
 | ⬛ | **The Ruler** | The Wave 5 boss. An ever-changing black shape. Cycles a radial ring, an aimed fan, and summoning Watchers — and enrages below 28% HP. |
 
 ## The Mindframe tree
@@ -40,9 +43,18 @@ Four branches of three:
 
 Progress, points, best score and furthest wave persist in `localStorage`.
 
+## Save codes
+
+**SAVE CODE** on the title screen shows a portable code for your progress —
+points, unlocked skills, best score and furthest system — as
+`MF1-<base64 payload>-<checksum>`. Copy it to move a save between browsers or
+machines; pasting a code replaces what is stored locally. The checksum rejects
+damaged or hand-edited codes.
+
 ## Systems and story text
 
-The campaign is four systems deep, each scaling enemy HP, speed and counts. Every
+The campaign is four systems deep, each scaling enemy HP, speed and counts, and
+each introducing one new enemy via its `adds` field. Every
 system carries a `brief` (shown before its waves) and a `clear` (shown when you
 finish it), authored in the `SYSTEMS` block at the top of the `<script>` in
 `index.html` — marked `★ WRITE YOUR TEXT HERE ★`. Blank text skips the screen, a
