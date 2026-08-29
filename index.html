@@ -87,7 +87,7 @@
 
   <div id="menu" class="overlay on">
     <h1>MINDFRAME</h1>
-    <h2>DEFENSE OF SYSTEM 001</h2>
+    <h2>FOUR SYSTEMS · ONE LIFE</h2>
     <p>Five waves of enemy Iterations are inbound. You are the only pilot in the space system and you have
        <span class="key">one ship</span>. Hold the system. You are Earth's last hope.<br><br>
        <span class="key">WASD</span> thrust &nbsp;·&nbsp; <span class="key">MOUSE</span> aim &nbsp;·&nbsp;
@@ -104,6 +104,16 @@
     </div>
     <p id="menuMeta" style="margin-top:18px"></p>
     <a class="storylink" id="linkStory">READ THE STORY — “MINDFRAME” BY OSCAR MORAN &rsaquo;</a>
+  </div>
+
+  <div id="brief" class="overlay">
+    <h1 id="briefTitle" style="font-size:clamp(22px,3.6vw,40px)">SYSTEM 001</h1>
+    <h2 id="briefSub">INBOUND</h2>
+    <div class="prose" id="briefText"></div>
+    <div class="row">
+      <button id="btnBriefGo">ENGAGE</button>
+      <button id="btnBriefTree" class="ghost" style="display:none">SKILL TREE</button>
+    </div>
   </div>
 
   <div id="story" class="overlay">
@@ -126,11 +136,12 @@
       <h1 style="font-size:clamp(20px,3.2vw,34px)">MINDFRAME</h1>
       <span id="pts">0 POINTS</span>
     </div>
-    <p style="margin:6px 0 0">Upgrades are permanent. Every <span class="key">400</span> score earns a point.</p>
+    <p style="margin:6px 0 0">Upgrades are permanent. Every <span class="key">1200</span> score earns a point.</p>
     <div id="tree"><svg id="lines"></svg></div>
     <div class="row" style="margin-top:0">
-      <button id="btnTreeGo">LAUNCH — WAVE 1</button>
+      <button id="btnTreeGo">LAUNCH — SYSTEM 001</button>
       <button id="btnTreeBack" class="ghost">BACK</button>
+      <button id="btnReset" class="ghost" style="opacity:.5">RESET PROGRESS</button>
     </div>
   </div>
 </div>
@@ -143,9 +154,48 @@ const W=cv.width, H=cv.height;
 const TAU=Math.PI*2, rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
 
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  ★  WRITE YOUR TEXT HERE  ★                                          ║
+   ║                                                                      ║
+   ║  One entry per system. Only three fields matter to you:              ║
+   ║    name  — shown on the HUD and the briefing screen                  ║
+   ║    brief — shown BEFORE the system's five waves                      ║
+   ║    clear — shown WHEN you finish it                                  ║
+   ║                                                                      ║
+   ║  Blank text ('') just skips that screen, so the game plays fine      ║
+   ║  until you fill them in. Blank lines separate paragraphs. A line     ║
+   ║  wrapped in [SQUARE BRACKETS] renders as green terminal output.      ║
+   ║                                                                      ║
+   ║  Add a sixth system by copying a block — waves, scaling, scoring     ║
+   ║  and the campaign ending all adapt on their own.                     ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+const SYSTEMS=[
+  { id:'001', name:'SYSTEM 001', hp:1.00, spd:1.00, extra:0,
+    brief:`[DEFENSE ORDER — SYSTEM 001]
+
+Write the opening here.`,
+    clear:`Write what happens when 001 is held here.` },
+
+  { id:'002', name:'SYSTEM 002', hp:1.32, spd:1.05, extra:1,
+    brief:``,
+    clear:`` },
+
+  { id:'003', name:'SYSTEM 003', hp:1.70, spd:1.10, extra:2,
+    brief:``,
+    clear:`` },
+
+  { id:'004', name:'SYSTEM 004 — ICARUS', hp:2.15, spd:1.16, extra:3,
+    brief:``,
+    clear:`` },
+];
+/* ═══════════════ end of the text block — code below ═══════════════ */
+
+const SYS=()=>SYSTEMS[Math.min(sysIdx,SYSTEMS.length-1)];
+
 /* ================= persistence ================= */
 const SAVE='mindframe.001';
-let save={points:0, owned:[], unlocked:false, best:0, deepest:1};
+const POINT_EVERY=1200;   // score needed per skill point
+let save={points:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 const has=id=>save.owned.includes(id);
@@ -153,21 +203,21 @@ const has=id=>save.owned.includes(id);
 /* ================= skill tree ================= */
 // col/row are percentages inside #tree
 const SKILLS=[
-  {id:'dmg1',  n:'PULSE\nCALIBRATION',  d:'+4 damage',        cost:1, x:11, y:16, req:null},
-  {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:2, x:11, y:50, req:'dmg1'},
-  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:3, x:11, y:84, req:'dmg2'},
+  {id:'dmg1',  n:'PULSE\nCALIBRATION',  d:'+4 damage',        cost:2, x:11, y:16, req:null},
+  {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:4, x:11, y:50, req:'dmg1'},
+  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:7, x:11, y:84, req:'dmg2'},
 
-  {id:'rate1', n:'FEED\nOVERCLOCK',     d:'+18% fire rate',   cost:1, x:33, y:16, req:null},
+  {id:'rate1', n:'FEED\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:16, req:null},
   {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:2, x:33, y:50, req:'rate1'},
-  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:3, x:33, y:84, req:'rate2'},
+  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:7, x:33, y:84, req:'rate2'},
 
-  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:1, x:56, y:16, req:null},
+  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:16, req:null},
   {id:'hull2', n:'ABLATIVE\nWEAVE',     d:'+30 max HP',       cost:2, x:56, y:50, req:'hull1'},
-  {id:'regen', n:'REPAIR\nFIELD',       d:'+2 HP / sec',      cost:3, x:56, y:84, req:'hull2'},
+  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:7, x:56, y:84, req:'hull2'},
 
-  {id:'spd1',  n:'THRUST\nVECTORING',   d:'+18% speed',       cost:1, x:79, y:16, req:null},
-  {id:'dash',  n:'BLINK\nDRIVE',        d:'SHIFT to dash',    cost:2, x:79, y:50, req:'spd1'},
-  {id:'shield',n:'DEFLECTOR',           d:'dash grants i-frames', cost:3, x:79, y:84, req:'dash'},
+  {id:'spd1',  n:'THRUST\nVECTORING',   d:'+18% speed',       cost:2, x:79, y:16, req:null},
+  {id:'dash',  n:'BLINK\nDRIVE',        d:'SHIFT to dash',    cost:4, x:79, y:50, req:'spd1'},
+  {id:'shield',n:'DEFLECTOR',           d:'dash grants i-frames', cost:7, x:79, y:84, req:'dash'},
 ];
 const byId=id=>SKILLS.find(s=>s.id===id);
 const canBuy=s=>!has(s.id) && save.points>=s.cost && (!s.req || has(s.req));
@@ -181,7 +231,7 @@ function stats(){
   if(has('rate1'))s.delay*=.82; if(has('rate2'))s.delay*=.82;
   if(has('spread'))s.shots=3;
   if(has('hull1'))s.maxHp+=30; if(has('hull2'))s.maxHp+=30;
-  if(has('regen'))s.regen=2;
+  if(has('regen'))s.regen=1.4;
   if(has('spd1'))s.speed*=1.18;
   if(has('dash'))s.dash=true;
   if(has('shield'))s.iframe=true;
@@ -209,7 +259,7 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 /* ================= world ================= */
 let state='menu', paused=false;
 let player, bullets, ebullets, enemies, parts, stars;
-let wave, waveTimer, spawnQ, score, shake, banner, bannerT, pointFloor;
+let wave, waveTimer, spawnQ, score, shake, banner, bannerT, pointFloor, sysIdx;
 
 function makeStars(){
   stars=[];
@@ -221,9 +271,51 @@ function newRun(){
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
-  score=0; shake=0; wave=0; pointFloor=0;
-  nextWave();
-  state='play'; paused=false;
+  score=0; shake=0; wave=0; sysIdx=0; pointFloor=0; paused=false;
+  if(SYSTEMS[0].brief.trim()) openBrief(SYSTEMS[0].name,'INBOUND — FIVE WAVES',para(SYSTEMS[0].brief));
+  else beginSystem();
+}
+
+// text -> paragraphs; [BRACKETED] lines render as terminal output
+function para(t){
+  if(!t||!t.trim()) return '';
+  return t.trim().split('\n\n').map(b=>{
+    const line=b.trim().split('\n').join('<br>');
+    if(!line) return '';
+    return line.charAt(0)==='[' ? '<p class="rep">'+line+'</p>' : '<p>'+line+'</p>';
+  }).join('');
+}
+
+function openBrief(title,sub,html){
+  $('briefTitle').textContent=title;
+  $('briefSub').textContent=sub;
+  $('briefText').innerHTML=html;
+  $('briefText').style.display=html?'':'none';
+  $('btnBriefTree').style.display=save.unlocked?'':'none';
+  state='brief'; show('brief');
+}
+
+// enter the current system: re-apply skills bought at the briefing, then fight
+function beginSystem(){
+  player.st=stats();
+  if(sysIdx>0) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.4);
+  player.hp=Math.min(player.hp,player.st.maxHp);
+  bullets=[];ebullets=[];enemies=[];
+  wave=0; nextWave();
+  state='play';
+}
+
+function systemCleared(){
+  const done=SYS();
+  save.unlocked=true;
+  save.deepestSys=Math.max(save.deepestSys,sysIdx+1);
+  persist();
+  if(sysIdx>=SYSTEMS.length-1){ endRun(true); return; }
+  sysIdx++;
+  const nxt=SYS();
+  const a=para(done.clear), b=para(nxt.brief);
+  openBrief(nxt.name,'SYSTEM '+done.id+' HELD  ·  HULL PARTIALLY RESTORED',
+    a + (a&&b?'<p class="rep">— — —</p>':'') + b);
 }
 
 /* ---- waves ---- */
@@ -232,18 +324,22 @@ function nextWave(){
   spawnQ=[]; 
   const push=(t,type)=>spawnQ.push({t,type});
   if(wave<5){
-    const grunts=(wave<3?4:2)+wave*2, darts=wave<2?0:wave*2, heavies=wave<3?0:wave-2;
+    const S=SYS();
+    const grunts=(wave<3?4:2)+wave*2+S.extra, darts=(wave<2?0:wave*2)+S.extra,
+          heavies=wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0);
     for(let i=0;i<grunts;i++) push(i*1.15+.6,'grunt');
     for(let i=0;i<darts;i++) push(i*1.15+2.6,'dart');
     for(let i=0;i<heavies;i++) push(i*6+4,'heavy');
   }else{
+    const S=SYS();
     push(1.2,'boss');
-    for(let i=0;i<5;i++) push(8+i*6.5,'dart');
-    for(let i=0;i<4;i++) push(11+i*7,'grunt');
-    push(16,'heavy');
+    for(let i=0;i<5+S.extra;i++) push(8+i*6.5,'dart');
+    for(let i=0;i<4+S.extra;i++) push(11+i*7,'grunt');
+    for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,'heavy');
   }
   waveTimer=0;
   banner = wave<5 ? 'WAVE '+wave : 'WAVE 5 — THE RULER';
+  if(wave===1) banner=SYS().name;
   bannerT=2.4;
 }
 
@@ -259,16 +355,16 @@ function edgeSpawn(){
 }
 
 function spawn(type){
-  const p=edgeSpawn(), sc=1+(wave-1)*.13;
+  const p=edgeSpawn(), S=SYS(), sc=(1+(wave-1)*.13)*S.hp, vm=S.spd;
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
-      hp:32*sc,max:32*sc,spd:78,cool:rand(.5,1.8),a:0,val:60});
+      hp:32*sc,max:32*sc,spd:78*vm,cool:rand(1.2,3),a:0,val:60});
   if(type==='dart') enemies.push({t:'dart',x:p.x,y:p.y,vx:0,vy:0,r:12,
-      hp:14*sc,max:14*sc,spd:190+wave*8,a:0,val:35,wob:rand(0,TAU)});
+      hp:14*sc,max:14*sc,spd:(190+wave*8)*vm,a:0,val:35,wob:rand(0,TAU)});
   if(type==='heavy') enemies.push({t:'heavy',x:p.x,y:p.y,vx:0,vy:0,r:27,
-      hp:140*sc,max:140*sc,spd:44,cool:rand(2,3.4),a:0,val:220,spin:0});
+      hp:140*sc,max:140*sc,spd:44*vm,cool:rand(2,3.4),a:0,val:220,spin:0});
   if(type==='boss'){
-    const hp=820;
-    enemies.push({t:'boss',x:W/2,y:-120,vx:0,vy:0,r:52,hp,max:hp,spd:46,
+    const hp=820*S.hp;
+    enemies.push({t:'boss',x:W/2,y:-120,vx:0,vy:0,r:52,hp,max:hp,spd:46*vm,
       a:0,val:1200,cool:3.2,phase:0,pt:0,spin:0,morph:0});
     shake=14;
   }
@@ -454,13 +550,13 @@ function update(dt){
   }
 
   /* --- score -> points --- */
-  const earned=Math.floor(score/400);
+  const earned=Math.floor(score/POINT_EVERY);
   if(earned>pointFloor){ save.points+=earned-pointFloor; pointFloor=earned; persist(); }
 
   /* --- end conditions --- */
   if(P.hp<=0){ P.hp=0; endRun(false); return; }
   if(!spawnQ.length && !enemies.length){
-    if(wave>=5){ endRun(true); }
+    if(wave>=5){ systemCleared(); }
     else if(bannerT<=0) nextWave();
   }
 }
@@ -468,17 +564,20 @@ function update(dt){
 function endRun(win){
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
+  save.deepestSys=Math.max(save.deepestSys,sysIdx);
   if(win) save.unlocked=true;
   persist();
   state='over';
   burst(player.x,player.y,'#dfe9ff',win?0:40,340);
-  document.getElementById('overTitle').textContent = win?'SYSTEM 001 HELD':'SYSTEM LOST';
-  document.getElementById('overSub').textContent   = win?'ALL FIVE WAVES CLEARED':'FELL ON WAVE '+wave;
+  document.getElementById('overTitle').textContent = win?'ALL SYSTEMS HELD':'SYSTEM LOST';
+  document.getElementById('overSub').textContent   = win
+    ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
+    : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
     ' &nbsp;·&nbsp; UNSPENT POINTS <span class="key">'+save.points+'</span>'+
-    (win&&!localStorage.getItem('mf.seen')?'<br><br>The Mindframe skill tree is now open. Upgrades are permanent — take them into Wave 1 again.':'');
-  if(win) try{localStorage.setItem('mf.seen','1');}catch(e){}
+    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The Mindframe skill tree is open. Upgrades are permanent — take them into your next run.':'');
+  if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   document.getElementById('btnTreeOver').style.display = save.unlocked?'':'none';
   show('over');
 }
@@ -600,7 +699,7 @@ function hud(){
   ctx.textAlign='right'; ctx.font='13px Menlo,monospace'; ctx.fillStyle='#dfe9ff';
   ctx.fillText('SCORE '+score,W-24,32);
   ctx.fillStyle='#7d8bb0'; ctx.font='11px Menlo,monospace';
-  ctx.fillText('SYSTEM 001  ·  WAVE '+wave+' / 5',W-24,52);
+  ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
   const rem=enemies.length+spawnQ.length;
   ctx.fillText('HOSTILES '+rem,W-24,70);
 
@@ -654,7 +753,7 @@ requestAnimationFrame(frame);
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','brief']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -689,8 +788,8 @@ function buildTree(){
 function refreshMenu(){
   $('btnTreeMenu').style.display=save.unlocked?'':'none';
   $('menuMeta').innerHTML = save.best
-    ? 'BEST <span class="key">'+save.best+'</span> &nbsp;·&nbsp; FURTHEST WAVE <span class="key">'+save.deepest+
-      '</span> &nbsp;·&nbsp; POINTS <span class="key">'+save.points+'</span>'
+    ? 'BEST <span class="key">'+save.best+'</span> &nbsp;·&nbsp; FURTHEST <span class="key">'+
+      (SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length-1)].name)+'</span> &nbsp;·&nbsp; POINTS <span class="key">'+save.points+'</span>'
     : '';
 }
 refreshMenu();
@@ -730,15 +829,27 @@ function buildStory(){
   }
   el.innerHTML=html;
 }
+let treeReturn='menu';
+$('btnReset').onclick=()=>{
+  if(!confirm('Wipe all points, skills and records? This cannot be undone.')) return;
+  save={points:0,owned:[],unlocked:false,best:0,deepest:1,deepestSys:0};
+  persist(); try{localStorage.removeItem('mf.seen');}catch(e){}
+  buildTree(); refreshMenu(); show('menu');
+};
 $('linkStory').onclick=()=>{buildStory();show('story');};
+$('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
+$('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();
+  $('btnTreeGo').style.display='none'; show('skills');};
 $('btnStoryBack').onclick=()=>{refreshMenu();show('menu');};
 
 $('btnStart').onclick=()=>{hideAll();newRun();};
 $('btnRetry').onclick=()=>{hideAll();newRun();};
 $('btnTreeGo').onclick=()=>{hideAll();newRun();};
-$('btnTreeBack').onclick=()=>{refreshMenu();show('menu');};
-$('btnTreeMenu').onclick=()=>{buildTree();show('skills');};
-$('btnTreeOver').onclick=()=>{buildTree();show('skills');};
+$('btnTreeBack').onclick=()=>{
+  if(treeReturn==='brief'){ show('brief'); } else { refreshMenu(); show('menu'); }
+};
+$('btnTreeMenu').onclick=()=>{treeReturn='menu';buildTree();$('btnTreeGo').style.display='';show('skills');};
+$('btnTreeOver').onclick=()=>{treeReturn='menu';buildTree();$('btnTreeGo').style.display='';show('skills');};
 })();
 </script>
 </body>

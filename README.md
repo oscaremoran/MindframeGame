@@ -1,8 +1,8 @@
 # Mindframe — Defense of System 001
 
 A single-file browser space shooter set in the world of **"Mindframe"** by Oscar Moran.
-You are the last human pilot in System 001. Five waves of Iterations are inbound.
-You have one life.
+You are the last human pilot. Four systems, five waves each, and one life for the
+whole campaign.
 
 **[Play it](index.html)** — no install, no build step, no server. Open `index.html` in any browser.
 
@@ -27,8 +27,10 @@ You have one life.
 
 ## The Mindframe tree
 
-Score earns skill points (1 per 400). The tree stays locked until your first Wave 5
-clear, then opens permanently — spend points, relaunch at Wave 1 stronger, repeat.
+Score earns skill points (1 per 1200). The tree stays locked until you first clear
+System 001, then opens permanently — spend points, relaunch stronger, push deeper.
+Tiers cost 2 / 4 / 7 points, so mastering all four branches takes several campaigns.
+It is also reachable between systems, so points spent mid-run apply immediately.
 Four branches of three:
 
 - **Pulse Calibration → Focused Pulse → Phase Rounds** — damage, then piercing shots
@@ -38,7 +40,15 @@ Four branches of three:
 
 Progress, points, best score and furthest wave persist in `localStorage`.
 
-## Story
+## Systems and story text
+
+The campaign is four systems deep, each scaling enemy HP, speed and counts. Every
+system carries a `brief` (shown before its waves) and a `clear` (shown when you
+finish it), authored in the `SYSTEMS` block at the top of the `<script>` in
+`index.html` — marked `★ WRITE YOUR TEXT HERE ★`. Blank text skips the screen, a
+blank line starts a new paragraph, and a `[BRACKETED]` line renders as green
+terminal output. Adding a fifth system is one more block; the waves, scaling and
+ending adapt.
 
 The full text of *Mindframe* is readable from the title screen.
 
