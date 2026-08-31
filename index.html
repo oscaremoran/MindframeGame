@@ -127,10 +127,34 @@
   .ship.locked{opacity:.4; cursor:not-allowed}
 
   /* ---- pilot school ---- */
-  #btnSchoolExit,#btnSchoolGarage{position:absolute; right:16px; margin:0; display:none;
+  #btnSchoolExit,#btnSchoolSkip{position:absolute; right:16px; margin:0; display:none;
     font-size:clamp(10px,1.15vw,12px); padding:9px 18px; z-index:5}
   #btnSchoolExit{bottom:132px}
-  #btnSchoolGarage{bottom:178px}
+  #btnSchoolSkip{bottom:178px}
+
+  /* ---- world map: the campaign as a path, drawn bottom-up like the tree ---- */
+  #map{justify-content:flex-start; padding:2.4% 4%}
+  #chart{position:relative; width:100%; flex:1; margin-top:10px; min-height:0}
+  #chart svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  .mnode{
+    position:absolute; transform:translate(-50%,-50%);
+    width:17%; padding:10px 6px; border:1px solid #263050; border-radius:3px;
+    background:#0a0e1c; text-align:center; cursor:default;
+  }
+  .mnode .id{font-size:clamp(12px,1.6vw,18px); letter-spacing:.14em; color:#8ea0c8}
+  .mnode .st{font-size:clamp(7.5px,.88vw,9.5px); letter-spacing:.16em; color:#4a5878; margin-top:5px}
+  .mnode.held{border-color:#2f7f5c; background:#0c1a16}
+  .mnode.held .id{color:#46e39b} .mnode.held .st{color:#2f7f5c}
+  .mnode.next{border-color:#4d9dff; background:#0d1a30; box-shadow:0 0 26px rgba(77,157,255,.28)}
+  .mnode.next .id{color:#dfe9ff} .mnode.next .st{color:#4d9dff}
+  .mnode.locked{opacity:.3}
+  .mnode.secret{width:13%; padding:12px 6px; border-style:dashed; opacity:.34}
+  .mnode.secret .id{font-size:clamp(8.5px,1.05vw,12px); line-height:1.35}
+  .mnode.secret .st{margin-top:9px}
+  .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
+    background:#1a1508; cursor:pointer; box-shadow:0 0 26px rgba(255,210,77,.25)}
+  .mnode.secret.open .id{color:#ffd24d} .mnode.secret.open .st{color:#8a7433}
+  .mnode.secret.open:hover{transform:translate(-50%,-50%) scale(1.06)}
 
   /* ---- skill tree ---- */
   #skills{justify-content:flex-start; padding:3% 4%}
@@ -158,7 +182,7 @@
 <div id="wrap">
   <canvas id="c" width="1000" height="680"></canvas>
   <button id="btnSchoolExit" class="ghost">EXIT SCHOOL</button>
-  <button id="btnSchoolGarage" class="hot">OPEN GARAGE — G</button>
+  <button id="btnSchoolSkip" class="ghost">SKIP LESSON</button>
 
   <div id="menu" class="overlay on">
     <h1>MINDFRAME</h1>
@@ -194,6 +218,21 @@
     <div class="row" style="margin-top:12px"><button id="btnCodexBack" class="ghost">BACK — ESC</button></div>
   </div>
 
+  <div id="map" class="overlay">
+    <div id="treeHead">
+      <h1 style="font-size:clamp(20px,3.2vw,34px)">WORLD MAP</h1>
+      <span id="mapPts">0 POINTS</span>
+    </div>
+    <p style="margin:6px 0 0">The path to the Icarus, the enemy battleship and center of command.</p>
+    <p id="mapBest" style="margin:2px 0 0; color:#4a5878; letter-spacing:.14em; font-size:clamp(9px,1vw,11px)"></p>
+    <div id="chart"><svg id="mlines"></svg></div>
+    <div class="row" style="margin-top:0">
+      <button id="btnMapGo">LAUNCH</button>
+      <button id="btnMapSecret" class="hot" style="display:none">SECRET MISSION</button>
+      <button id="btnMapBack" class="ghost">BACK — ESC</button>
+    </div>
+  </div>
+
   <div id="pause" class="overlay">
     <h1 style="font-size:clamp(22px,3.6vw,40px)">PAUSED</h1>
     <h2 id="pauseSub">SYSTEM 001</h2>
@@ -203,8 +242,7 @@
       <button id="btnPauseCodex" class="ghost">BESTIARY</button>
       <button id="btnQuit" class="ghost">QUIT TO TITLE</button>
     </div>
-    <p style="margin-top:20px"><span class="key">P</span> or <span class="key">ESC</span> resumes.
-       Quitting keeps your score and points — the run itself is over.</p>
+    <p style="margin-top:20px"><span class="key">P</span> or <span class="key">ESC</span> resumes.</p>
   </div>
 
   <div id="garage" class="overlay">
@@ -212,7 +250,7 @@
       <h1 style="font-size:clamp(20px,3.2vw,34px)">GARAGE</h1>
       <span id="garagePts">0 POINTS</span>
     </div>
-    <p style="margin:6px 0 0">Four ships, one pilot. Each ship has different strengths. Each one requires a system to be cleared, then a ship skill point unlock cost.</p>
+    <p style="margin:6px 0 0">Each ship has different strengths. Each one requires a system to be cleared, then a credit cost to unlock.</p>
     <div id="bay"></div>
     <div class="row" style="margin-top:14px">
       <button id="btnGarageBack" class="ghost">BACK</button>
@@ -268,20 +306,23 @@
     <div class="row">
       <button id="btnRetry">RE-LAUNCH</button>
       <button id="btnTreeOver" class="ghost" style="display:none">SKILL TREE</button>
+      <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
     </div>
   </div>
 
   <div id="skills" class="overlay">
     <div id="treeHead">
-      <h1 style="font-size:clamp(20px,3.2vw,34px)">MINDFRAME</h1>
+      <h1 style="font-size:clamp(18px,3.2vw,34px)">SKILL TREE</h1>
       <span id="pts">0 POINTS</span>
     </div>
-    <p style="margin:6px 0 0">Upgrades are permanent. Every <span class="key">1200</span> score earns a point.</p>
+    <p style="margin:6px 0 0">Upgrades are permanent. Runs pay in
+       <span class="key">credits</span>, trade them for points here, or for a hull in the Garage.</p>
+    <div class="row" style="margin:10px 0 0; justify-content:flex-start">
+      <button id="btnExchange" class="ghost">EXCHANGE</button>
+    </div>
     <div id="tree"><svg id="lines"></svg></div>
     <div class="row" style="margin-top:0">
-      <button id="btnTreeGo">LAUNCH — SYSTEM 001</button>
       <button id="btnTreeBack" class="ghost">BACK</button>
-      <button id="btnReset" class="ghost" style="opacity:.5">RESET PROGRESS</button>
     </div>
   </div>
 </div>
@@ -342,32 +383,42 @@ const unlockedType=t=>SYSTEMS.slice(0,sysIdx+1).some(s=>s.adds===t);
 
 /* ================= persistence ================= */
 const SAVE='mindframe.001';
-const POINT_EVERY=1200;   // score needed per skill point
-let save={points:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
+/* CREDITS are what a run pays out: one per wave held in System 001, two per
+   wave in 002, and so on, plus three for putting down a system's boss. They
+   are the only currency — spend them on hulls in the Garage, or exchange them
+   for skill points on the tree. Score is now just the scoreboard.          */
+const CREDITS_PER_WAVE=i=>i+1;   // i = system index
+const CREDIT_BOSS=3;
+const PER_POINT=2;               // credits it costs to buy one skill point
+let save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
           schoolDone:false, taught:[], ships:[0], ship:0};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
 save.taught=save.taught||[]; save.ships=save.ships||[0]; save.ship=save.ship||0;
+save.credits=save.credits||0;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 const has=id=>save.owned.includes(id);
+// nothing in the simulator pays, so school runs never bank anything
+function credit(n){ if(school||!n) return; save.credits+=n; persist(); }
 
 /* ================= skill tree ================= */
-// col/row are percentages inside #tree
+// col/row are percentages inside #tree — the tree is drawn bottom-up, so the
+// first tier of every branch sits at the bottom (y:84) and tier 3 at the top.
 const SKILLS=[
-  {id:'dmg1',  n:'PULSE\nCALIBRATION',  d:'+4 damage',        cost:4, x:11, y:16, req:null},
+  {id:'dmg1',  n:'PULSE\nUPGRADES',  d:'+4 damage',        cost:4, x:11, y:84, req:null},
   {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:7, x:11, y:50, req:'dmg1'},
-  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:84, req:'dmg2'},
+  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:16, req:'dmg2'},
 
-  {id:'rate1', n:'FEED\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:16, req:null},
+  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:84, req:null},
   {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:7, x:33, y:50, req:'rate1'},
-  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:17, x:33, y:84, req:'rate2'},
+  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:17, x:33, y:16, req:'rate2'},
 
-  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:16, req:null},
-  {id:'hull2', n:'ABLATIVE\nWEAVE',     d:'+30 max HP',       cost:9, x:56, y:50, req:'hull1'},
-  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:84, req:'hull2'},
+  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:84, req:null},
+  {id:'hull2', n:'HULL\nREINFORCEMENT', d:'+30 max HP',       cost:9, x:56, y:50, req:'hull1'},
+  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:16, req:'hull2'},
 
-  {id:'spd1',  n:'THRUST\nVECTORING',   d:'+18% speed',       cost:5, x:79, y:16, req:null},
-  {id:'dash',  n:'BLINK\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:50, req:'spd1'},
-  {id:'shield',n:'DEFLECTOR',           d:'dash grants i-frames', cost:12, x:79, y:84, req:'dash'},
+  {id:'spd1',  n:'THRUST\nBOOST',   d:'+18% speed',       cost:5, x:79, y:84, req:null},
+  {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:50, req:'spd1'},
+  {id:'shield',n:'DASH\nEFLECTOR',           d:'dash grants i-frames', cost:12, x:79, y:16, req:'dash'},
 ];
 const byId=id=>SKILLS.find(s=>s.id===id);
 const canBuy=s=>!has(s.id) && save.points>=s.cost && (!s.req || has(s.req));
@@ -380,20 +431,25 @@ const canBuy=s=>!has(s.id) && save.points>=s.cost && (!s.req || has(s.req));
    card can never lie about a ship.                                          */
 const SHIPS=[
   {n:'LANCER',  cls:'STANDARD PATTERN', hp:1.00, dmg:1.00, rate:1.00, spd:1.00, grip:1.00, cost:0,  sys:0},
-  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.12, rate:0.82, spd:0.86, grip:0.95, cost:5,  sys:1},
-  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:0.85, rate:1.14, spd:1.30, grip:1.35, cost:10, sys:2},
-  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:0.95, dmg:1.35, rate:1.25, spd:0.86, grip:0.80, cost:16, sys:3},
+  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, cost:10, sys:1},
+  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:0.85, rate:1.14, spd:1.30, grip:1.35, cost:20, sys:2},
+  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:0.95, dmg:1.35, rate:1.25, spd:0.86, grip:0.80, cost:32, sys:3},
 ];
 const STATS=[['HULL','hp'],['POWER','dmg'],['RATE','rate'],['SPEED','spd'],['GRIP','grip']];
 const grade=v=> v>=1.3?'A' : v>=1.12?'B' : v>=.95?'C' : v>=.8?'D' : 'E';
 const barPc=v=> clamp((v-.55)/.9,.06,1)*100;
 const shipOwned=i=> i===0 || save.ships.includes(i);
 const shipReady=i=> save.deepestSys>=SHIPS[i].sys;
-const shipBuy=i=> !shipOwned(i) && shipReady(i) && save.points>=SHIPS[i].cost;
+const shipBuy=i=> !shipOwned(i) && shipReady(i) && save.credits>=SHIPS[i].cost;
 const SHIP=()=>SHIPS[shipOwned(save.ship)?save.ship:0];
 
 /* ================= player stats ================= */
 const BASE={dmg:10, delay:.19, maxHp:100, speed:250, bspeed:640};
+/* Bullet magnetism — how forgiving the aim is. A round bends toward an enemy
+   within MAGNET_R that is ahead of it and inside MAGNET_CONE radians of where
+   it is already going, at up to MAGNET_TURN rad/sec. Small numbers on purpose:
+   it rescues a near miss, it does not aim for you.                          */
+const MAGNET_R=95, MAGNET_CONE=.80, MAGNET_TURN=5.5;
 function stats(){
   const s={...BASE, pierce:0, shots:1, regen:0, dash:false, iframe:false};
   if(has('dmg1'))s.dmg+=4; if(has('dmg2'))s.dmg+=5;
@@ -436,7 +492,6 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='Space'){e.preventDefault();}
   if(e.code==='KeyP'&&state==='play') setPause(!paused);
-  if(e.code==='KeyG'&&school&&!school.frozen&&$('btnSchoolGarage').style.display==='') openGarage('school');
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
   if(e.code==='Enter'){ e.preventDefault(); onEnter(); }
 });
@@ -454,7 +509,7 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 /* ================= world ================= */
 let state='menu', paused=false;
 let player, bullets, ebullets, enemies, parts, stars, pickups, buffs;
-let wave, waveTimer, spawnQ, score, shake, banner, bannerT, pointFloor, sysIdx;
+let wave, waveTimer, spawnQ, score, shake, banner, bannerT, sysIdx;
 
 function makeStars(){
   stars=[];
@@ -462,13 +517,16 @@ function makeStars(){
 }
 makeStars();
 
+/* A run is always the whole climb: it starts at System 001 and goes up. */
 function newRun(){
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
-  score=0; shake=0; wave=0; sysIdx=0; pointFloor=0; paused=false;
-  if(SYSTEMS[0].brief.trim()) openBrief(SYSTEMS[0].name,'INBOUND — FIVE WAVES',para(SYSTEMS[0].brief));
+  score=0; shake=0; wave=0; sysIdx=0; paused=false; runHeld=0;
+  mission=null; runSecrets=[];
+  const S0=SYS();
+  if(S0.brief.trim()) openBrief(S0.name,'INBOUND — FIVE WAVES',para(S0.brief));
   else beginSystem();
 }
 
@@ -502,17 +560,21 @@ function beginSystem(){
   state='play';
 }
 
+/* Clearing a system hands you the map, with the node you just took now green.
+   The briefing for the next one is behind CONTINUE. */
 function systemCleared(){
   const done=SYS();
   save.unlocked=true;
   save.deepestSys=Math.max(save.deepestSys,sysIdx+1);
   persist();
-  if(sysIdx>=SYSTEMS.length-1){ endRun(true); return; }
+  runHeld=sysIdx+1;
+  if(sysIdx>=SYSTEMS.length-1){ openMap('run','end'); return; }
   sysIdx++;
   const nxt=SYS();
   const a=para(done.clear), b=para(nxt.brief);
-  openBrief(nxt.name,'SYSTEM '+done.id+' HELD  ·  HULL PARTIALLY RESTORED',
-    a + (a&&b?'<p class="rep">— — —</p>':'') + b);
+  mapBrief=[nxt.name,'SYSTEM '+done.id+' HELD  ·  HULL PARTIALLY RESTORED',
+            a + (a&&b?'<p class="rep">— — —</p>':'') + b];
+  openMap('run','brief');
 }
 
 /* ---- waves ---- */
@@ -546,7 +608,7 @@ function nextWave(){
   // System 001 patches you up between waves. Later systems do not.
   if(sysIdx===0 && wave>1 && player) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.10);
   waveTimer=0;
-  banner = wave<5 ? 'WAVE '+wave : 'WAVE 5 — THE RULER';
+  banner = wave<5 ? 'WAVE '+wave : 'WAVE 5 — '+BOSS(sysIdx).n;
   if(wave===1) banner=SYS().name;
   bannerT=2.4;
 }
@@ -557,7 +619,7 @@ const AGGR=()=> sysIdx>0 ? 1 : EASE();
 const angDiff=(a,b)=>{ let d=a-b; while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TAU; return d; };
 // aim where the ship is going to be, not where it is
 function leadAngle(e,speed,amount){
-  const P=player, k=(amount===undefined?1:amount)*AGGR();
+  const P=(mission&&mission.k==='escort')?mission.ward:player, k=(amount===undefined?1:amount)*AGGR();
   const d=Math.hypot(P.x-e.x,P.y-e.y), t=d/speed*k;
   return Math.atan2(P.y+P.vy*t-e.y, P.x+P.vx*t-e.x);
 }
@@ -565,6 +627,7 @@ function leadAngle(e,speed,amount){
 const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
             tracker:'#ffb44d',overseer:'#3fd8e0',splinter:'#d9c6ff'};
 const ecol=t=>ECOL[t]||'#4d9dff';
+const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
 function edgeSpawn(){
   const s=Math.floor(rand(0,4)), m=70;
@@ -574,7 +637,7 @@ function edgeSpawn(){
   return{x:-m,y:rand(0,H)};
 }
 
-function spawn(type,at){
+function spawn(type,at,def){
   const ez=EASE();
   const p=at||edgeSpawn(), S=SYS(), sc=(1+(wave-1)*.13)*S.hp*ez, vm=S.spd*(.72+.28*ez);
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
@@ -595,11 +658,18 @@ function spawn(type,at){
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:19,
       hp:70*sc,max:70*sc,spd:105*vm,a:0,val:130,spin:0,wob:rand(0,TAU)});
   if(type==='boss'){
-    // it has watched every upgrade you bought, and it came ready for them
-    const hp=980*S.hp*(1+save.owned.length*.09);
-    enemies.push({t:'boss',x:W/2,y:-140,vx:0,vy:0,r:62,hp,max:hp,spd:46*vm,
-      a:0,val:1600,cool:3.2,pt:0,spin:0,morph:0,
-      tier:0,last:'',act:null,tel:null,flare:2.2});
+    // whichever one this system answers to, unless a mission named one. It has
+    // watched every upgrade you bought, and it came ready for them.
+    const B=def||BOSS(sysIdx), hp=B.hp*S.hp*(1+save.owned.length*.05);
+    const b={t:'boss',k:B.k,B,col:B.col,bn:B.n,
+      x:W/2,y:-140,vx:0,vy:0,r:B.r,hp,max:hp,spd:B.spd*vm,
+      a:0,val:B.val,cool:3.2,pt:0,spin:0,morph:0,shed:0,
+      tier:0,last:'',act:null,tel:null,flare:2.2};
+    // an arc that blocks shots means you have to keep flanking it
+    if(B.k==='overseer'||B.k==='archive'){
+      b.sh=B.k==='archive'?1.0:1.25; b.shA=rand(0,TAU); b.shSpin=(Math.random()<.5?-1:1)*.7;
+    }
+    enemies.push(b);
     shake=26; flash=Math.max(flash,.5);
   }
 }
@@ -633,19 +703,86 @@ function takePup(k){
 let toast='', toastT=0, flash=0;
 
 
-/* ════════════════ THE RULER ════════════════
-   Three tiers, not one enrage: it opens with the attacks you already know,
-   escalates at 62% hull, and comes apart at 28% — each tier keeping everything
-   from the one before and adding something worse. Every heavy attack is
-   telegraphed, so nothing it does is unfair — it is just relentless.        */
-const RULER_TIERS=[
-  {n:'', pool:['ring','fan','summon'],                          rest:[1.9,2.7], spd:1},
-  {n:'THE RULER — ESCALATING', pool:['ring','fan','summon','lance','spiral'],   rest:[1.4,2.1], spd:1.25},
-  {n:'THE RULER — ENRAGED',    pool:['ring','fan','lance','spiral','blink','summon'], rest:[.9,1.5], spd:1.6},
+/* ════════════════ SYSTEM BOSSES ════════════════
+   One boss per system, and each one is the system's own enemy taken to its
+   conclusion — a Primary, then a swarm of Watchers, then an Overseer, and only
+   then the thing behind all of them. They all share the same three-tier shape:
+   they open with what you already know, escalate at 62% hull, and come apart at
+   28%, each tier keeping everything from the one before and adding something
+   worse. Crossing a tier wipes the screen of enemy fire. Every heavy attack is
+   telegraphed, so nothing they do is unfair — they are just relentless.
+
+   `want` is the range it tries to hold and `strafe` how hard it circles, so
+   each one occupies the arena differently.                                  */
+const BOSSES=[
+  { k:'primary', n:'ITERATION 3296', col:'#ff4d5e', r:44, hp:620, val:1200,
+    spd:56, want:250, strafe:.25, sum:'grunt',
+    tiers:[
+      {n:'', pool:['shell','ring','summon'], rest:[1.8,2.5], spd:1},
+      {n:'ITERATION 3296 — BRACED',   pool:['shell','ring','summon','charge'],        rest:[1.4,2.0], spd:1.25},
+      {n:'ITERATION 3296 — CRITICAL', pool:['shell','ring','charge','fan','summon'],  rest:[1.0,1.6], spd:1.55},
+    ]},
+
+  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:50, hp:700, val:1400,
+    spd:64, want:360, strafe:.9, sum:'dart',
+    tiers:[
+      {n:'', pool:['swarm','lash','ring'], rest:[1.9,2.6], spd:1},
+      {n:'THE HIVE MIND — SPLITTING', pool:['swarm','lash','ring','fan'],          rest:[1.4,2.0], spd:1.3},
+      {n:'THE HIVE MIND — UNRAVELLING', pool:['swarm','lash','ring','fan','blink'], rest:[1.0,1.5], spd:1.7},
+    ]},
+
+  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:46, hp:760, val:1500,
+    spd:60, want:300, strafe:.85, sum:'grunt',
+    tiers:[
+      {n:'', pool:['ring','fan','summon'], rest:[1.8,2.5], spd:1},
+      {n:'ITERATION 2117 — EXPOSED',  pool:['ring','fan','summon','sweep'],          rest:[1.4,2.0], spd:1.25},
+      {n:'ITERATION 2117 — UNCOVERED',pool:['ring','fan','sweep','lance','blink'],   rest:[1.0,1.5], spd:1.6},
+    ]},
+
+  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:62, hp:900, val:2200,
+    spd:46, want:300, strafe:.7, sum:'dart',
+    tiers:[
+      {n:'', pool:['ring','fan','summon'], rest:[1.9,2.7], spd:1},
+      {n:'THE RULER — ESCALATING', pool:['ring','fan','summon','lance','spiral'],        rest:[1.4,2.1], spd:1.25},
+      {n:'THE RULER — ENRAGED',    pool:['ring','fan','lance','spiral','blink','summon'],rest:[.9,1.5],  spd:1.6},
+    ]},
+];
+const BOSS=i=>BOSSES[Math.min(i,BOSSES.length-1)];
+
+/* ---- the two that are not on anybody's roster ----
+   The secret branch off the last system puts you in front of one of these,
+   picked at random. They are the hardest fights in the game and they pay like
+   it. Same three-tier shape as every other boss, so nothing they do is unfair
+   — there is just more of it, and it arrives faster.                       */
+const SECRET_BOSSES=[
+  { k:'s3295', n:'ITERATION 3295', col:'#8dffc4', r:38, hp:900, val:2600,
+    spd:118, want:170, strafe:1.5, sum:'splinter',
+    tiers:[
+      {n:'', pool:['lash','charge','swarm'], rest:[1.5,2.1], spd:1},
+      {n:'ITERATION 3295 — UNBOUND', pool:['lash','charge','swarm','blink','fan'],        rest:[1.1,1.6], spd:1.3},
+      {n:'ITERATION 3295 — RECORD',  pool:['lash','charge','blink','fan','ring','swarm'], rest:[.8,1.2],  spd:1.7},
+    ]},
+
+  { k:'archive', n:'THE ARCHIVE', col:'#c78dff', r:56, hp:1000, val:2600,
+    spd:38, want:330, strafe:.5, sum:'overseer',
+    tiers:[
+      {n:'', pool:['ring','sweep','summon'], rest:[1.7,2.3], spd:1},
+      {n:'THE ARCHIVE — REWRITING', pool:['ring','sweep','summon','lance','spiral'],        rest:[1.3,1.8], spd:1.2},
+      {n:'THE ARCHIVE — CORRUPTED', pool:['ring','sweep','lance','spiral','blink','summon'],rest:[.9,1.3],  spd:1.5},
+    ]},
 ];
 
+// escorts never pile up on top of a boss fight
+function bossSummon(e,type,n){
+  const room=Math.max(0,5-(enemies.length-1));
+  const k=Math.min(n,room);
+  for(let i=0;i<k;i++) spawn(type,{x:e.x+rand(-40,40),y:e.y+rand(-40,40)});
+  if(k) burst(e.x,e.y,e.col,18,300);
+  return k;
+}
+
 function bossAI(e,dt,dx,dy,d){
-  const P=player;
+  const P=player, B=e.B;
   e.spin+=dt*1.1; e.pt+=dt;
   if(e.flare>0) e.flare-=dt;
 
@@ -654,19 +791,31 @@ function bossAI(e,dt,dx,dy,d){
   if(tier!==e.tier){
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     shake=Math.max(shake,20); flash=Math.max(flash,.45);
-    burst(e.x,e.y,'#9d86e8',46,430);
+    burst(e.x,e.y,e.col,46,430);
     ebullets.length=0;                        // the shockwave wipes the screen
-    banner=RULER_TIERS[tier].n; bannerT=2.2;
+    banner=B.tiers[tier].n; bannerT=2.2;
   }
   if(e.inv>0) e.inv-=dt;
-  const T=RULER_TIERS[e.tier];
+  const T=B.tiers[e.tier];
 
-  // ---- movement: it circles, and in the last tier it comes for you ----
-  if(!e.act || e.act.k!=='lance'){
-    const want = e.tier===2 && e.pt%9<3 ? 120 : 300;   // periodic press-in
-    const k=d>want?1:-.6, v=e.spd*T.spd;
+  // ---- the Hive Mind is a swarm before it is a boss: it sheds as it loses hull
+  if(B.k==='hive'){
+    const step=Math.floor((1-hpf)*8);
+    if(step>e.shed){ e.shed=step; bossSummon(e,'dart',2); }
+  }
+  // ---- 2117 keeps its arc between you and its core
+  if(e.sh){
+    const toP=Math.atan2(P.y-e.y,P.x-e.x);
+    e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.8*AGGR()*dt;
+  }
+
+  // ---- movement ----
+  if(!e.act || (e.act.k!=='lance'&&e.act.k!=='charge')){
+    const press = B.k==='ruler' ? (e.tier===2 && e.pt%9<3) : (e.tier===2 && e.pt%8<2.5);
+    const want = press ? 130 : B.want, v=e.spd*T.spd;
+    const k=d>want?1:-.6;
     e.x+=(dx/d)*v*k*dt;  e.y+=(dy/d)*v*k*dt;
-    e.x+=(-dy/d)*v*.7*dt; e.y+=(dx/d)*v*.7*dt;
+    e.x+=(-dy/d)*v*B.strafe*dt; e.y+=(dx/d)*v*B.strafe*dt;
     e.x=clamp(e.x,60,W-60); e.y=clamp(e.y,60,H-60);
   }
 
@@ -691,17 +840,42 @@ function bossAI(e,dt,dx,dy,d){
       }
       return;
     }
+    if(e.act.k==='charge'){
+      // 3296 braces, aims itself, and rams down the line it showed you
+      if(e.act.t<.75){ e.tel={a:e.act.a, t:e.act.t*1.27, len:560}; }
+      else{
+        e.tel=null;
+        const v=560;
+        e.x=clamp(e.x+Math.cos(e.act.a)*v*dt,60,W-60);
+        e.y=clamp(e.y+Math.sin(e.act.a)*v*dt,60,H-60);
+        if(e.act.t>1.35){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.5; }
+      }
+      return;
+    }
+    if(e.act.k==='sweep'){
+      // 2117 rakes a rotating wall of fire across the arena
+      e.act.fire-=dt;
+      while(e.act.fire<=0){
+        e.act.fire+=.11;
+        e.act.a+=e.act.dir*.17;
+        for(let i=0;i<3;i++)
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.act.a)*(210+i*85),vy:Math.sin(e.act.a)*(210+i*85),
+            r:5,dmg:9,col:'#3fd8e0'});
+      }
+      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.4; }
+      return;
+    }
     if(e.act.k==='spiral'){
       e.act.fire-=dt;
       while(e.act.fire<=0){
-        e.act.fire+=.07;
+        e.act.fire+=.105;
         const a=e.act.a; e.act.a+=.42;
         for(let i=0;i<2;i++){
           const aa=a+i*Math.PI;
-          ebullets.push({x:e.x,y:e.y,vx:Math.cos(aa)*205,vy:Math.sin(aa)*205,r:6,dmg:9,col:'#b49cf5'});
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(aa)*190,vy:Math.sin(aa)*190,r:6,dmg:8,col:'#b49cf5'});
         }
       }
-      if(e.act.t>(e.tier===2?2.6:2.0)){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.4; }
+      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.4; }
       return;
     }
   }
@@ -718,7 +892,7 @@ function bossAI(e,dt,dx,dy,d){
     for(let r=0;r<rings;r++) for(let i=0;i<n;i++){
       const a=i/n*TAU+e.spin+r*(Math.PI/n);
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*(175+r*70),vy:Math.sin(a)*(175+r*70),
-        r:6,dmg:9,col:'#b49cf5'});
+        r:6,dmg:9,col:e.col});
     }
     e.cool=rand(T.rest[0],T.rest[1])+.5;
   }
@@ -728,16 +902,37 @@ function bossAI(e,dt,dx,dy,d){
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*290,vy:Math.sin(a)*290,r:5,dmg:9,col:'#e6dcff'});}
     e.cool=rand(T.rest[0],T.rest[1]);
   }
-  else if(k==='summon'){
-    const n=e.tier+1;
-    for(let i=0;i<n;i++) spawn(Math.random()<.35&&e.tier>0?'grunt':'dart');
-    burst(e.x,e.y,'#9d86e8',18,300);
-    e.cool=rand(T.rest[0],T.rest[1])+1.4;
+  else if(k==='shell'){
+    // the Primary's braced spread, but it never stops bracing
+    const base=leadAngle(e,205,.7);
+    for(let i=-2;i<=2;i++){const a=base+i*.155;
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*205,vy:Math.sin(a)*205,r:9,dmg:13,col:'#ff4d5e'});}
+    e.cool=rand(T.rest[0],T.rest[1])+.5;
   }
+  else if(k==='lash'){
+    // the Hive spits: fast, scattered, and cheap to dodge if you keep moving
+    const base=leadAngle(e,330,.6);
+    for(let i=0;i<7;i++){
+      const a=base+rand(-.5,.5), sp=rand(280,380);
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:4,dmg:7,col:'#46e39b'});
+    }
+    e.cool=rand(T.rest[0],T.rest[1]);
+  }
+  else if(k==='swarm'){
+    bossSummon(e,B.sum,e.tier+2);
+    e.cool=rand(T.rest[0],T.rest[1])+1.6;
+  }
+  else if(k==='summon'){
+    const type = B.k==='ruler' && Math.random()<.35 && e.tier>0 ? 'grunt' : B.sum;
+    bossSummon(e,type,e.tier===2?2:1);
+    e.cool=rand(T.rest[0],T.rest[1])+2.0;
+  }
+  else if(k==='charge'){ e.act={k:'charge',t:0,a:Math.atan2(dy,dx)}; }
+  else if(k==='sweep'){ e.act={k:'sweep',t:0,fire:0,a:Math.atan2(dy,dx)-1.1,dir:Math.random()<.5?-1:1}; }
   else if(k==='lance'){ e.act={k:'lance',t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='spiral'){ e.act={k:'spiral',t:0,fire:0,a:e.spin}; }
   else if(k==='blink'){
-    burst(e.x,e.y,'#9d86e8',30,380);
+    burst(e.x,e.y,e.col,30,380);
     const a=rand(0,TAU), r=rand(210,300);
     e.x=clamp(P.x+Math.cos(a)*r,60,W-60); e.y=clamp(P.y+Math.sin(a)*r,60,H-60);
     burst(e.x,e.y,'#e6dcff',30,380);
@@ -764,7 +959,7 @@ function update(dt){
 
   // spawn queue — System 001 holds hostiles back so they arrive as a stream
   // rather than a pile-up. Nothing is skipped; the queue just waits its turn.
-  const maxLive = sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:99) : 99;
+  const maxLive = sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : 10;
   while(spawnQ.length && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
 
   const P=player, st=P.st;
@@ -801,7 +996,7 @@ function update(dt){
     const u=pickups[i]; u.t+=dt; u.spin+=dt*1.6;
     if(u.t>PU_LIFE){ pickups.splice(i,1); continue; }
     const dx=P.x-u.x, dy=P.y-u.y, d=Math.hypot(dx,dy)||1;
-    if(d<230){ const pull=760*(1-d/230); u.vx+=dx/d*pull*dt; u.vy+=dy/d*pull*dt; }
+    if(d<150){ const pull=1350*(1-d/150); u.vx+=dx/d*pull*dt; u.vy+=dy/d*pull*dt; }
     u.x+=u.vx*dt; u.y+=u.vy*dt;
     const fr=Math.pow(.22,dt); u.vx*=fr; u.vy*=fr;
     u.x=clamp(u.x,14,W-14); u.y=clamp(u.y,14,H-14);
@@ -823,8 +1018,10 @@ function update(dt){
   }
 
   /* --- enemies --- */
+  // On an escort everything hunts the hauler, not you.
+  const T = mission&&mission.k==='escort' ? mission.ward : P;
   for(const e of enemies){
-    const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
+    const dx=T.x-e.x, dy=T.y-e.y, d=Math.hypot(dx,dy)||1;
     e.a=Math.atan2(dy,dx);
     if(e.t==='grunt'){
       // holds its range, but now reverses its orbit so you cannot settle into it
@@ -895,7 +1092,7 @@ function update(dt){
       e.x+=Math.cos(a)*e.spd*urge*dt; e.y+=Math.sin(a)*e.spd*urge*dt;
     }
     else if(e.t==='dart'){
-      // it aims for where you will be, and once it is close it commits
+      // it aims for where its target will be, and once it is close it commits
       e.wob+=dt*5;
       const close=d<190;
       const a=(close?Math.atan2(dy,dx):leadAngle(e,e.spd,.8))+Math.cos(e.wob)*(close?.18:.42);
@@ -903,11 +1100,35 @@ function update(dt){
       e.x+=Math.cos(a)*sp2*dt; e.y+=Math.sin(a)*sp2*dt;
     }
     else if(e.t==='boss'){ bossAI(e,dt,dx,dy,d); }
+    // Nothing leaves the arena. An enemy is free until it has arrived, and
+    // is then held inside the walls for the rest of its life.
+    if(e.on){ e.x=clamp(e.x,e.r,W-e.r); e.y=clamp(e.y,e.r,H-e.r); }
+    else if(e.x>e.r&&e.x<W-e.r&&e.y>e.r&&e.y<H-e.r) e.on=true;
   }
 
   /* --- bullets vs enemies --- */
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
+    // A round that is going to miss narrowly leans into the target instead.
+    // It only ever bends toward something already close and roughly ahead, so
+    // aim still matters — it just stops punishing a trackpad for half a pixel.
+    let best=null, bestD=MAGNET_R*MAGNET_R;
+    for(const e of enemies){
+      if(b.hit.includes(e)) continue;
+      const ex=e.x-b.x, ey=e.y-b.y, dd=ex*ex+ey*ey;
+      if(dd>=bestD) continue;
+      if(ex*b.vx+ey*b.vy<=0) continue;             // behind the round: leave it
+      best=e; bestD=dd;
+    }
+    if(best){
+      const sp=Math.hypot(b.vx,b.vy)||1;
+      const want=Math.atan2(best.y-b.y,best.x-b.x), cur=Math.atan2(b.vy,b.vx);
+      const df=angDiff(want,cur);
+      if(Math.abs(df)<MAGNET_CONE){
+        const na=cur+clamp(df,-MAGNET_TURN*dt,MAGNET_TURN*dt);
+        b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp;
+      }
+    }
     b.x+=b.vx*dt; b.y+=b.vy*dt;
     if(b.x<-30||b.x>W+30||b.y<-30||b.y>H+30){bullets.splice(i,1);continue;}
     for(let j=enemies.length-1;j>=0;j--){
@@ -928,19 +1149,20 @@ function update(dt){
           }
         }
         e.hp-=b.dmg; b.hit.push(e);
-        burst(b.x,b.y,ecol(e.t),4,150);
+        burst(b.x,b.y,ecolOf(e),4,150);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
           if(e.val) drop(e);
-          burst(e.x,e.y,ecol(e.t),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
+          burst(e.x,e.y,ecolOf(e),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
           enemies.splice(j,1);
           if(e.t==='splinter') for(let k=0;k<2;k++)
             spawn('dart',{x:e.x+rand(-18,18),y:e.y+rand(-18,18)});
-          if(e.t==='boss'){ // the Ruler falls: its escorts go with it
+          if(e.t==='boss'){ // the boss falls: its escorts go with it
+            credit(CREDIT_BOSS);
             spawnQ.length=0; ebullets.length=0;
             shake=44; flash=1;
             for(let r=0;r<5;r++)                     // it comes apart in layers
-              burst(e.x+rand(-70,70),e.y+rand(-70,70),r%2?'#e6dcff':'#9d86e8',60,620);
+              burst(e.x+rand(-70,70),e.y+rand(-70,70),r%2?'#e6dcff':e.col,60,620);
             for(const o of enemies) burst(o.x,o.y,ecol(o.t),14,260);
             enemies.length=0; break;
           }
@@ -998,8 +1220,6 @@ function update(dt){
 
   /* --- score -> points --- */
   if(!school){
-    const earned=Math.floor(score/POINT_EVERY);
-    if(earned>pointFloor){ save.points+=earned-pointFloor; pointFloor=earned; persist(); }
   }
 
   /* --- end conditions --- */
@@ -1010,31 +1230,259 @@ function update(dt){
     }else{ P.hp=0; endRun(false); return; }
   }
   if(school){ schoolTick(dt); return; }
+  if(mission){ missionTick(dt); return; }
   if(!spawnQ.length && !enemies.length){
-    if(wave>=5){ systemCleared(); }
-    else if(bannerT<=0) nextWave();
+    if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); systemCleared(); }
+    else if(bannerT<=0){ credit(CREDITS_PER_WAVE(sysIdx)); nextWave(); }
   }
 }
 
-function endRun(win){
+function endRun(win,why){
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
   if(win) save.unlocked=true;
   persist();
-  state='over';
+  state='over'; mission=null;
   burst(player.x,player.y,'#dfe9ff',win?0:40,340);
   document.getElementById('overTitle').textContent = win?'ALL SYSTEMS HELD':'SYSTEM LOST';
   document.getElementById('overSub').textContent   = win
     ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
+    : why ? why+' — '+SYS().name
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    ' &nbsp;·&nbsp; UNSPENT POINTS <span class="key">'+save.points+'</span>'+
     (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The Mindframe skill tree is open. Upgrades are permanent — take them into your next run.':'');
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   document.getElementById('btnTreeOver').style.display = save.unlocked?'':'none';
   show('over');
+}
+
+/* ══════════════════════ SECRET MISSIONS ══════════════════════
+   The side branches off the world map. You are offered one on the map between
+   systems, once per run per system, and taking it is a gamble with the whole
+   campaign: failing a secret mission ends the run exactly like dying does.
+   They pay about double what a system pays, which is the only reason to go.
+
+   Two are flyable. The third is a placeholder for the secret bosses.       */
+const SECRETS=[
+  {k:'none',    n:'SECRET MISSION', sub:'NOT AVAILABLE YET'},
+  {k:'salvage', n:'SALVAGE',        sub:'COLLAPSING HULK'},
+  {k:'escort',  n:'ESCORT',         sub:'CONVOY RUN'},
+  {k:'boss',    n:'SECRET BOSS',    sub:'CLASSIFIED'},
+];
+const SECRET=i=>SECRETS[Math.min(i,SECRETS.length-1)];
+const secretFlyable=k=>k==='salvage'||k==='escort'||k==='boss';
+/* A system pays 5 waves plus its boss. A salvage or escort run pays half again
+   as much; a secret boss, which is the hardest thing in the game, pays two and
+   a half times — and is the only one of the three with nothing to collect and
+   no clock, just the fight.                                                */
+const SECRET_PAY=(i,k)=>Math.round((k==='boss'?2.5:1.5)*(5*(i+1)+3));
+
+let mission=null, runSecrets=[];
+
+function startMission(kind){
+  const i=sysIdx, pay=SECRET_PAY(i,kind);
+  runSecrets.push(i);
+  bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
+  clearBuffs();
+  player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
+  waveTimer=0; paused=false;
+  mission={k:kind, t:0, pay, sys:i, done:false};
+
+  if(kind==='boss'){
+    // one of the two, picked fresh every time you take the branch
+    const B=SECRET_BOSSES[Math.floor(Math.random()*SECRET_BOSSES.length)];
+    mission.B=B;
+    spawn('boss',null,B);
+    banner=B.n; bannerT=2.8;
+    hideAll(); state='play'; return;
+  }
+  if(kind==='escort'){
+    // a yellow hauler crossing the field at walking pace. Everything shooting
+    // at you will clip it, and Watchers go for it instead of you.
+    mission.dur=42;
+    // it is not armoured. Everything out there is coming for it, and it is
+    // your guns between them and it.
+    mission.ward={x:100,y:H*.42,hp:300,max:300,r:26,vy:0,a:0};
+    mission.ward.vx=(W-200)/mission.dur;
+    const S=SYS(), n=6+i*3;
+    for(let q=0;q<n;q++){
+      const t=2.5+q*(mission.dur-6)/n;
+      spawnQ.push({t, type: q%3===2?'grunt' : q%5===4?'heavy':'dart'});
+      if(i>=2&&q%4===3) spawnQ.push({t:t+.8,type:'tracker'});
+    }
+    banner='ESCORT — KEEP IT ALIVE'; bannerT=2.6;
+  }else{
+    // a hulk coming apart around you. Grab motes, leave through the gate, and
+    // do not still be inside when it finishes.
+    mission.dur=40;
+    mission.exit={x:W*.5,y:88,r:34};   // clear of the HUD, and a whole wreck away
+    mission.got=0;
+    mission.motes=[];
+    for(let q=0;q<pay;q++) mission.motes.push({
+      x:rand(70,W-70), y:rand(70,H-70), t:rand(0,TAU), got:false});
+    mission.junk=[];
+    for(let q=0;q<12+i*3;q++) missionJunk();
+    banner='SALVAGE — GET OUT BEFORE IT DOES'; bannerT=2.6;
+  }
+  hideAll(); state='play';
+}
+
+// one more piece of the wreck, thrown in from an edge
+function makeJunk(list,at){
+  const p=at||edgeSpawn(), a=Math.atan2(H/2-p.y,W/2-p.x)+rand(-.6,.6), sp=rand(45,120);
+  list.push({x:p.x,y:p.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+    r:rand(16,42), spin:rand(0,TAU), rot:rand(-.9,.9),
+    n:Math.floor(rand(5,8)), seed:rand(0,9)});
+}
+const missionJunk=()=>makeJunk(mission.junk);
+
+// wreckage drifts, turns, bounces off the walls, and hurts on contact
+function junkStep(list,dt,speed,dmg){
+  const P=player;
+  for(const j of list){
+    j.x+=j.vx*speed*dt; j.y+=j.vy*speed*dt; j.spin+=j.rot*dt;
+    if(j.x<j.r&&j.vx<0) j.vx*=-1;  if(j.x>W-j.r&&j.vx>0) j.vx*=-1;
+    if(j.y<j.r&&j.vy<0) j.vy*=-1;  if(j.y>H-j.r&&j.vy>0) j.vy*=-1;
+    const rr=j.r*.86+13;
+    if(P.inv<=0&&buffs.shield<=0&&dist2(j,P)<rr*rr){
+      P.hp-=dmg; P.inv=.55; shake=Math.max(shake,17);
+      const a=Math.atan2(P.y-j.y,P.x-j.x);
+      P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
+      burst(P.x,P.y,'#8ea0c8',14,260);
+    }
+  }
+}
+function junkDraw(list){
+  for(const j of list){
+    ctx.save(); ctx.translate(j.x,j.y); ctx.rotate(j.spin);
+    ctx.beginPath();
+    for(let i=0;i<j.n;i++){
+      const a=i/j.n*TAU, rr=j.r*(.62+.38*Math.abs(Math.sin(a*2.1+j.seed)));
+      i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle='#111726'; ctx.fill();
+    ctx.strokeStyle='#4a5878'; ctx.lineWidth=2; ctx.stroke();
+    ctx.restore();
+  }
+}
+// returns how many were picked up this frame
+function moteStep(list,dt,onGet){
+  const P=player; let got=0;
+  for(const u of list){
+    if(u.got) continue;
+    u.t+=dt*2.2;
+    if(dist2(u,P)<26*26){ u.got=true; got++; burst(u.x,u.y,'#46e39b',8,180); if(onGet) onGet(); }
+  }
+  return got;
+}
+function moteDraw(list){
+  for(const u of list){
+    if(u.got) continue;
+    const r=5+Math.sin(u.t)*1.3;
+    ctx.beginPath(); ctx.arc(u.x,u.y,r,0,TAU);
+    ctx.fillStyle='#46e39b'; ctx.shadowColor='#46e39b'; ctx.shadowBlur=12;
+    ctx.fill(); ctx.shadowBlur=0;
+  }
+}
+
+function missionTick(dt){
+  const P=player, M=mission;
+  M.t+=dt;
+
+  if(M.k==='boss'){
+    // nothing to collect and no clock: kill it, or it kills you
+    if(!enemies.some(e=>e.t==='boss')) missionEnd(true);
+    return;
+  }
+
+  if(M.k==='escort'){
+    const w=M.ward;
+    w.x+=w.vx*dt; w.a+=dt*.5;
+    // enemy fire that misses you does not miss it
+    for(let i=ebullets.length-1;i>=0;i--){
+      const b=ebullets[i], rr=b.r+w.r;
+      if(dist2(b,w)<rr*rr){
+        w.hp-=b.dmg*1.3; burst(b.x,b.y,'#ffd24d',7,200);
+        ebullets.splice(i,1);
+      }
+    }
+    // and neither do the Watchers, which came for it
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j], rr=e.r+w.r;
+      if(dist2(e,w)<rr*rr){
+        w.hp-=e.t==='dart'?34:22; burst(e.x,e.y,'#ffd24d',16,300);
+        shake=Math.max(shake,9);
+        if(e.t==='dart'||e.t==='splinter') enemies.splice(j,1);
+      }
+    }
+    if(w.hp<=0){ missionEnd(false,'CONVOY LOST'); return; }
+    if(w.x>=W-90){ missionEnd(true); return; }
+    return;
+  }
+
+  // ---- salvage ----
+  const left=M.dur-M.t;
+  if(left<=0){ missionEnd(false,'CRUSHED IN THE WRECK'); return; }
+  // it comes apart faster the longer you stay
+  if(M.junk.length < 12+M.sys*3+Math.floor(M.t/2.4)) missionJunk();
+  junkStep(M.junk,dt,1+M.t/M.dur,22);
+  M.got+=moteStep(M.motes,dt,()=>credit(1));
+  const ex=M.exit, rr=ex.r+13;
+  if(dist2(ex,P)<rr*rr) missionEnd(true);
+}
+
+function missionEnd(win,why){
+  const M=mission; mission=null;
+  bullets=[];ebullets=[];enemies=[];spawnQ=[];
+  if(!win){
+    banner=why; bannerT=2.4;
+    player.hp=0; endRun(false, why);
+    return;
+  }
+  if(M.k!=='salvage') credit(M.pay);          // salvage paid as you picked it up
+  player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*.15);
+  toast='SECRET MISSION HELD  ·  +'+(M.k==='salvage'?M.got:M.pay)+' CR'; toastT=3.4;
+  if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
+  else { state='menu'; refreshMenu(); show('menu'); }
+}
+
+function missionDraw(){
+  const M=mission;
+  if(M.k==='boss') return;          // it draws itself, and it has its own bar
+  if(M.k==='escort'){
+    const w=M.ward;
+    ctx.save(); ctx.translate(w.x,w.y);
+    const g=ctx.createRadialGradient(0,0,w.r*.4,0,0,w.r*2.4);
+    g.addColorStop(0,'rgba(255,210,77,.22)'); g.addColorStop(1,'rgba(255,210,77,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,w.r*2.4,0,TAU); ctx.fill();
+    ctx.rotate(w.a*.2);
+    ctx.strokeStyle='#ffd24d'; ctx.fillStyle='rgba(255,210,77,.13)';
+    ctx.lineWidth=2.6; ctx.shadowColor='#ffd24d'; ctx.shadowBlur=16;
+    ctx.beginPath();
+    ctx.moveTo(w.r,0); ctx.lineTo(w.r*.3,w.r*.7); ctx.lineTo(-w.r*.9,w.r*.55);
+    ctx.lineTo(-w.r*.9,-w.r*.55); ctx.lineTo(w.r*.3,-w.r*.7);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0; ctx.restore();
+    hpbar(w.x,w.y-w.r-13,w.r*2.6,w.hp/w.max,'#ffd24d');
+    // the line it is trying to reach
+    ctx.strokeStyle='rgba(255,210,77,.28)'; ctx.setLineDash([6,8]); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(W-90,40); ctx.lineTo(W-90,H-40); ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+  // ---- salvage: wreckage, motes, and the way out ----
+  junkDraw(M.junk); moteDraw(M.motes);
+  const ex=M.exit, pulse=.5+.5*Math.sin(M.t*3);
+  ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r,0,TAU);
+  ctx.strokeStyle='rgba(70,227,155,'+(.5+.4*pulse)+')'; ctx.lineWidth=3;
+  ctx.shadowColor='#46e39b'; ctx.shadowBlur=20; ctx.stroke(); ctx.shadowBlur=0;
+  ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r*(.35+.5*pulse),0,TAU);
+  ctx.strokeStyle='rgba(70,227,155,.35)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.font='10px Menlo,monospace'; ctx.fillStyle='#46e39b'; ctx.textAlign='center';
+  ctx.fillText('EXIT',ex.x,ex.y+ex.r+16); ctx.textAlign='left';
 }
 
 /* ══════════════════════ PILOT SCHOOL ══════════════════════
@@ -1105,13 +1553,22 @@ function schoolLessons(){
     },
     tick(){ for(const u of pickups) u.t=0; return !pickups.length; }});
 
-  L.push({ name:'THE GARAGE', lines:[
-    'Points buy hulls as well as upgrades. Every hull trades one strength for',
-    'another, and the letters on its card are the whole truth about it.',
-    'Press G, or use the button, to open the Garage. Look it over, then come back.'],
-    goal:()=>school.garageSeen?'GARAGE READ':'OPEN THE GARAGE — G',
-    setup(){ school.garageSeen=false; $('btnSchoolGarage').style.display=''; },
-    tick(){ return school.garageSeen; }});
+  if(save.unlocked) L.push({ name:'SECRET MISSIONS', teach:'secret', lines:[
+    'Between systems the world map offers a side branch. Taking it is a gamble:',
+    'ESCORT keeps a yellow hauler alive across the field while everything shoots at',
+    'it, SALVAGE is a collapsing hulk full of credits on a clock. They pay well, but',
+    'failing one ends the run like dying does. This is salvage — grab all four cells.'],
+    goal:()=>'CELLS  '+school.motes.filter(m=>m.got).length+' / '+school.motes.length,
+    setup(){
+      for(let i=0;i<6;i++) makeJunk(school.junk);
+      for(const p of [[250,200],[750,200],[250,480],[750,480]])
+        school.motes.push({x:p[0],y:p[1],t:rand(0,TAU),got:false});
+    },
+    tick(dt){
+      junkStep(school.junk,dt,1,22);
+      moteStep(school.motes,dt);
+      return school.motes.every(m=>m.got);
+    }});
 
   if(has('dash')) L.push({ name:'BLINK DRIVE', lines:[
     'SHIFT blinks you in whatever direction you are already thrusting — hold a key,',
@@ -1154,16 +1611,18 @@ function schoolLessons(){
 
 // a skill you own but have never been drilled on is worth flagging on the title
 const TAUGHT=['dash','spread','pierce','regen'];
-const newLessons=()=>TAUGHT.filter(id=>has(id)&&!save.taught.includes(id)).length;
+const newLessons=()=>TAUGHT.filter(id=>has(id)&&!save.taught.includes(id)).length
+  + (save.unlocked&&!save.taught.includes('secret')?1:0);
 
 function schoolStart(){
   hideAll();
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[]; clearBuffs();
-  score=0; shake=0; wave=1; sysIdx=0; pointFloor=0; paused=false; waveTimer=0; bannerT=0;
-  school={i:-1,list:schoolLessons(),t:0,rings:[],dashes:0,hold:0,frozen:false,garageSeen:false};
+  score=0; shake=0; wave=1; sysIdx=0; paused=false; waveTimer=0; bannerT=0;
+  school={i:-1,list:schoolLessons(),t:0,rings:[],junk:[],motes:[],dashes:0,hold:0,frozen:false};
   $('btnSchoolExit').style.display='';
+  $('btnSchoolSkip').style.display='';
   state='play';
   schoolNext();
 }
@@ -1173,8 +1632,7 @@ function schoolNext(){
   if(school.i>=school.list.length){ schoolFinish(); return; }
   enemies.length=0; ebullets.length=0; bullets.length=0; spawnQ.length=0;
   clearBuffs();
-  $('btnSchoolGarage').style.display='none';
-  school.rings=[]; school.t=0; school.dashes=0; school.hold=0; school.frozen=false;
+  school.rings=[]; school.junk=[]; school.motes=[]; school.t=0; school.dashes=0; school.hold=0; school.frozen=false;
   player.hp=player.st.maxHp; player.inv=1.4;
   school.list[school.i].setup();
   banner=school.list[school.i].name; bannerT=2.2;
@@ -1195,7 +1653,7 @@ function schoolTick(dt){
 function schoolLeave(){
   school=null; paused=false; state='menu';
   $('btnSchoolExit').style.display='none';
-  $('btnSchoolGarage').style.display='none';
+  $('btnSchoolSkip').style.display='none';
 }
 function schoolFinish(){
   schoolLeave();
@@ -1312,8 +1770,9 @@ function draw(){
       if(!e.tel) continue;
       const k=clamp(e.tel.t/.95,0,1);
       ctx.save();
-      ctx.strokeStyle='rgba(230,220,255,'+(.12+.5*k)+')';
-      ctx.lineWidth=2+16*k*k; ctx.shadowColor='#b49cf5'; ctx.shadowBlur=22;
+      ctx.globalAlpha=.12+.5*k;
+      ctx.strokeStyle=e.k==='primary'?'#ff9aa3':'#e6dcff';
+      ctx.lineWidth=2+16*k*k; ctx.shadowColor=ecolOf(e); ctx.shadowBlur=22;
       ctx.beginPath(); ctx.moveTo(e.x,e.y);
       ctx.lineTo(e.x+Math.cos(e.tel.a)*e.tel.len, e.y+Math.sin(e.tel.a)*e.tel.len);
       ctx.stroke(); ctx.restore(); ctx.shadowBlur=0;
@@ -1321,12 +1780,13 @@ function draw(){
 
     // enemies
     for(const e of enemies){
-      const col=ecol(e.t);
+      const col=ecolOf(e);
       if(e.t==='boss'){                       // the light it bends around itself
         const g=ctx.createRadialGradient(e.x,e.y,e.r*.4,e.x,e.y,e.r*(2.6+(e.flare>0?.9:0)));
-        g.addColorStop(0,'rgba(157,134,232,'+(.34+(e.flare>0?.3:0))+')');
-        g.addColorStop(1,'rgba(157,134,232,0)');
+        ctx.globalAlpha=.34+(e.flare>0?.3:0);
+        g.addColorStop(0,col); g.addColorStop(1,'rgba(0,0,0,0)');
         ctx.fillStyle=g; ctx.beginPath(); ctx.arc(e.x,e.y,e.r*3.5,0,TAU); ctx.fill();
+        ctx.globalAlpha=1;
       }
       ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
       ctx.strokeStyle=col; ctx.fillStyle=e.t==='heavy'?'rgba(255,77,94,.13)':'rgba(0,0,0,.55)';
@@ -1358,6 +1818,35 @@ function draw(){
         for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?e.r*.48:e.r;
           i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
         ctx.closePath();
+      }else if(e.k==='primary'){
+        // ITERATION 3296: a Primary grown past its own frame — the diamond, doubled
+        ctx.rotate(e.spin*.7);
+        for(const f of [1,.66]){
+          ctx.beginPath();
+          for(let i=0;i<4;i++){const a=i/4*TAU+(f<1?Math.PI/4:0);
+            i?ctx.lineTo(Math.cos(a)*e.r*f,Math.sin(a)*e.r*f):ctx.moveTo(Math.cos(a)*e.r*f,Math.sin(a)*e.r*f);}
+          ctx.closePath();
+        }
+      }else if(e.k==='s3295'){
+        // ITERATION 3295: the Watcher's dart, three times over
+        for(const f of [1,.7,.42]){
+          ctx.moveTo(e.r*f,0);
+          ctx.lineTo(-e.r*f,e.r*f*.75); ctx.lineTo(-e.r*f,-e.r*f*.75);
+          ctx.closePath();
+        }
+      }else if(e.k==='archive'){
+        // THE ARCHIVE: a ring of stored Mindframes around an empty middle
+        e.morph+=1/60;
+        ctx.arc(0,0,e.r,0,TAU);
+        ctx.moveTo(e.r*.34,0); ctx.arc(0,0,e.r*.34,0,TAU);
+      }else if(e.k==='hive'){
+        // THE HIVE MIND: a core with the swarm still orbiting it
+        e.morph+=1/60;
+        ctx.beginPath(); ctx.arc(0,0,e.r*.55,0,TAU); ctx.closePath();
+      }else if(e.k==='overseer'){
+        // ITERATION 2117: the Overseer's circle, with a second ring inside it
+        ctx.beginPath(); ctx.arc(0,0,e.r,0,TAU); ctx.closePath();
+        ctx.moveTo(e.r*.6,0); ctx.arc(0,0,e.r*.6,0,TAU);
       }else{
         // THE RULER: an ever-changing black shape, legible only by the light it bends
         ctx.rotate(e.spin);
@@ -1372,18 +1861,42 @@ function draw(){
         ctx.closePath();
       }
       if(e.t==='boss'){
-        ctx.fillStyle='#000'; ctx.fill();          // true void
+        ctx.fillStyle = e.k==='ruler' ? '#000' : 'rgba(0,0,0,.66)';
+        ctx.fill();
         ctx.shadowBlur=26+(e.flare>0?26:0);
         ctx.strokeStyle=e.tier===2?'#e6dcff':col;
         ctx.lineWidth=e.tier===2?4:3;
         ctx.stroke();                              // shimmering rim
         ctx.shadowBlur=0;
-        ctx.lineWidth=1.4; ctx.strokeStyle='rgba(180,156,245,.55)';
-        for(let i=0;i<9;i++){                      // tendrils, longer as it fails
-          const a=i/9*TAU+e.morph*.6,
-                l=e.r*(1.15+.5*(1-e.hp/e.max)+.18*Math.sin(e.morph*3+i));
-          ctx.beginPath(); ctx.moveTo(Math.cos(a)*e.r*.9,Math.sin(a)*e.r*.9);
-          ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke();
+        if(e.k==='ruler'){
+          ctx.lineWidth=1.4; ctx.strokeStyle='rgba(180,156,245,.55)';
+          for(let i=0;i<9;i++){                    // tendrils, longer as it fails
+            const a=i/9*TAU+e.morph*.6,
+                  l=e.r*(1.15+.5*(1-e.hp/e.max)+.18*Math.sin(e.morph*3+i));
+            ctx.beginPath(); ctx.moveTo(Math.cos(a)*e.r*.9,Math.sin(a)*e.r*.9);
+            ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke();
+          }
+        }
+        if(e.k==='archive'){                       // the Mindframes it holds
+          ctx.lineWidth=2; ctx.shadowColor=col; ctx.shadowBlur=12;
+          for(let i=0;i<16;i++){
+            const a=i/16*TAU+e.morph*.5, rr=e.r*.68;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr,3.4+1.6*Math.sin(e.morph*3+i),0,TAU);
+            ctx.stroke();
+          }
+          ctx.shadowBlur=0;
+        }
+        if(e.k==='hive'){                          // the swarm it is made of
+          ctx.lineWidth=2; ctx.shadowColor=col; ctx.shadowBlur=12;
+          for(let i=0;i<9;i++){
+            const a=i/9*TAU+e.morph*1.3, rr=e.r*(.82+.14*Math.sin(e.morph*2.4+i*1.7));
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a)*rr+Math.cos(a+2)*7, Math.sin(a)*rr+Math.sin(a+2)*7);
+            ctx.lineTo(Math.cos(a)*rr-Math.cos(a+2)*7, Math.sin(a)*rr-Math.sin(a+2)*7);
+            ctx.stroke();
+          }
+          ctx.shadowBlur=0;
         }
       }else{ ctx.fill(); ctx.stroke(); }
       if(e.t==='boss'&&e.inv>0){
@@ -1392,22 +1905,25 @@ function draw(){
         ctx.shadowColor='#e6dcff'; ctx.shadowBlur=24; ctx.stroke(); ctx.shadowBlur=0;
       }
       if(e.t==='boss'){
+        ctx.globalAlpha=.35+.25*Math.sin(e.morph*4+e.spin);
         ctx.beginPath(); ctx.arc(0,0,e.r*.30,0,TAU);
-        ctx.fillStyle='rgba(157,134,232,'+(.35+.25*Math.sin(e.morph*4))+')'; ctx.fill();
+        ctx.fillStyle=col; ctx.fill(); ctx.globalAlpha=1;
       }
       if(e.t==='heavy'){ ctx.beginPath(); ctx.arc(0,0,e.r*.3,0,TAU); ctx.fillStyle=col; ctx.fill(); }
       if(e.t==='tracker'){ ctx.beginPath(); ctx.arc(0,0,e.r*.26,0,TAU); ctx.fillStyle=col; ctx.fill(); }
-      if(e.t==='overseer'){
+      if(e.sh){
         ctx.rotate(-e.a);                       // shield angle is absolute, not facing
         ctx.beginPath(); ctx.arc(0,0,e.r+7,e.shA-e.sh,e.shA+e.sh);
-        ctx.lineWidth=4; ctx.strokeStyle='#3fd8e0';
-        ctx.shadowColor='#3fd8e0'; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
+        const sc=e.t==='boss'?col:'#3fd8e0';
+        ctx.lineWidth=e.t==='boss'?6:4; ctx.strokeStyle=sc;
+        ctx.shadowColor=sc; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
       }
       ctx.restore(); ctx.shadowBlur=0;
       if(e.t!=='boss') hpbar(e.x,e.y-e.r-11,e.r*2.3,e.hp/e.max,col);
     }
 
-    if(school) schoolRings();
+    if(mission) missionDraw();
+    if(school){ junkDraw(school.junk); moteDraw(school.motes); schoolRings(); }
 
     // player
     const P=player;
@@ -1454,8 +1970,26 @@ function hud(){
   }else{
     ctx.fillText('SCORE '+score,W-24,32);
     ctx.fillStyle='#7d8bb0'; ctx.font='11px Menlo,monospace';
-    ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
-    ctx.fillText('HOSTILES '+(enemies.length+spawnQ.length),W-24,70);
+    if(mission){
+      const M=mission;
+      ctx.fillStyle=M.k==='escort'?'#ffd24d':M.k==='boss'?M.B.col:'#46e39b';
+      ctx.fillText('SECRET MISSION — '+
+        (M.k==='escort'?'ESCORT':M.k==='boss'?'CLASSIFIED':'SALVAGE'),W-24,52);
+      if(M.k!=='boss'){
+        ctx.fillStyle='#7d8bb0';
+        ctx.fillText(M.k==='escort'
+          ? 'CONVOY '+Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max
+          : 'COLLAPSE IN '+Math.max(0,Math.ceil(M.dur-M.t))+'s',W-24,70);
+      }
+      ctx.fillStyle='#46e39b';
+      ctx.fillText(M.k==='salvage'?'SALVAGED '+M.got+' / '+M.motes.length
+                                  :'PAYS '+M.pay+' CR',W-24,M.k==='boss'?70:88);
+    }else{
+      ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
+      ctx.fillText('HOSTILES '+(enemies.length+spawnQ.length),W-24,70);
+      ctx.fillStyle='#46e39b';
+      ctx.fillText('CREDITS '+save.credits,W-24,88);
+    }
   }
 
   // dash cd
@@ -1496,16 +2030,15 @@ function hud(){
     const w=520,x=(W-w)/2,y=H-42;
     ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x,y,w,13);
     ctx.fillStyle='#0b0a14'; ctx.fillRect(x,y,w*clamp(boss.hp/boss.max,0,1),13);
-    ctx.strokeStyle='#9d86e8'; ctx.strokeRect(x+.5,y+.5,w*clamp(boss.hp/boss.max,0,1),13);
-    ctx.strokeStyle='rgba(157,134,232,.35)'; ctx.strokeRect(x+.5,y+.5,w,13);
+    ctx.strokeStyle=boss.col; ctx.strokeRect(x+.5,y+.5,w*clamp(boss.hp/boss.max,0,1),13);
+    ctx.globalAlpha=.35; ctx.strokeRect(x+.5,y+.5,w,13); ctx.globalAlpha=1;
     for(const t of [.28,.62]){                 // where it changes
       ctx.strokeStyle='rgba(230,220,255,.5)'; ctx.beginPath();
       ctx.moveTo(x+w*t,y); ctx.lineTo(x+w*t,y+13); ctx.stroke();
     }
     ctx.textAlign='center'; ctx.font='11px Menlo,monospace';
-    ctx.fillStyle=boss.tier===2?'#ff4d5e':'#b7a6ef';
-    ctx.fillText(boss.tier===2?'THE RULER — ENRAGED'
-      :boss.tier===1?'THE RULER — ESCALATING':'THE RULER',W/2,y-8);
+    ctx.fillStyle=boss.tier?boss.col:'#b7a6ef';
+    ctx.fillText(boss.tier?boss.B.tiers[boss.tier].n:boss.bn,W/2,y-8);
   }
 
   // banner
@@ -1547,6 +2080,7 @@ function setPause(on){
 function quitRun(){
   paused=false;
   if(school){ schoolExit(); return; }
+  mission=null;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
@@ -1557,9 +2091,83 @@ function quitRun(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
+
+/* ════════════ WORLD MAP — the campaign as one climb ════════════
+   A roguelike route, not a level select: it reads bottom to top, 001 at the
+   floor and the Ruler's system at the ceiling, and there is no way to start
+   part-way up. What the map does show is how far you have got, and the side
+   branch off each system to a SECRET MISSION — none of which are flyable yet. */
+const MAP_Y=i=>{                       // 001 at the bottom, the last system at the top
+  const n=SYSTEMS.length;
+  return n<2 ? 50 : 88-i*(76/(n-1));
+};
+const MAP_X=38, SECRET_X=74;
+
+/* HELD means "you killed the thing guarding it, on this run" — it is run state,
+   not a record. A fresh map has nothing held and 001 as NEXT, however deep the
+   save has been before; what the save remembers is a line of text under the
+   title instead. `mapMode` is 'menu' before a run and 'run' between systems. */
+let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null;
+
+/* The side branch beside the system you are about to fly, offered once per run
+   and only while you are actually on the route. Taking it risks the campaign. */
+const secretOffered=i=> mapMode==='run' && mapThen==='brief' && i===sysIdx
+  && secretFlyable(SECRET(i).k) && !runSecrets.includes(i);
+
+function buildMap(){
+  const c=$('chart'), svg=$('mlines'), ns='http://www.w3.org/2000/svg';
+  const held=Math.min(runHeld,SYSTEMS.length);
+  c.querySelectorAll('.mnode').forEach(n=>n.remove());
+  svg.innerHTML='';
+  const line=(x1,y1,x2,y2,col,dash)=>{
+    const l=document.createElementNS(ns,'line');
+    l.setAttribute('x1',x1+'%'); l.setAttribute('y1',y1+'%');
+    l.setAttribute('x2',x2+'%'); l.setAttribute('y2',y2+'%');
+    l.setAttribute('stroke',col); l.setAttribute('stroke-width','2');
+    if(dash) l.setAttribute('stroke-dasharray','5 6');
+    svg.appendChild(l);
+  };
+  const node=(x,y,cls,id,st)=>{
+    const d=document.createElement('div');
+    d.className='mnode '+cls;
+    d.style.left=x+'%'; d.style.top=y+'%';
+    d.innerHTML='<div class="id">'+id+'</div><div class="st">'+st+'</div>';
+    c.appendChild(d); return d;
+  };
+
+  SYSTEMS.forEach((sy,i)=>{
+    const y=MAP_Y(i), done=i<held, next=i===held;
+    if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':next?'#4d9dff':'#22293f');
+    const sec=SECRET(i), open=secretOffered(i);
+    line(MAP_X,y,SECRET_X,y, open?'#ffd24d':'#22293f', true);
+    const sn=node(SECRET_X,y,'secret'+(open?' open':''),
+      open?sec.n:'SECRET<br>MISSION',
+      open?sec.sub:'NOT AVAILABLE YET');
+    if(open) sn.onclick=()=>startMission(sec.k);
+    node(MAP_X,y, done?'held':next?'next':'locked', sy.id,
+         done?'HELD':next?'NEXT':'LOCKED');
+  });
+  $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
+  const run=mapMode==='run';
+  $('btnMapGo').textContent = run
+    ? (mapThen==='end' ? 'CAMPAIGN COMPLETE — RESULTS' : 'CONTINUE — '+SYS().name)
+    : 'LAUNCH — '+SYSTEMS[0].name;
+  $('btnMapBack').style.display = run ? 'none' : '';   // mid-run, the pause menu is the only way out
+  const sec=$('btnMapSecret'), off=secretOffered(sysIdx);
+  sec.style.display=off?'':'none';
+  if(off) sec.textContent='SECRET MISSION — '+SECRET(sysIdx).n;
+  $('mapBest').textContent = save.deepestSys
+    ? 'FURTHEST HELD  '+SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length)-1].name
+    : '';
+}
+function openMap(mode,then){
+  mapMode=mode||'menu'; mapThen=then||null;
+  if(mapMode==='menu') runHeld=0;
+  buildMap(); state='map'; show('map');
+}
 
 function buildTree(){
   const t=$('tree'), svg=$('lines');
@@ -1586,8 +2194,17 @@ function buildTree(){
     d.onclick=()=>{ if(canBuy(s)){ save.points-=s.cost; save.owned.push(s.id); persist(); buildTree(); refreshMenu(); } };
     t.appendChild(d);
   }
-  $('pts').textContent=save.points+' POINT'+(save.points===1?'':'S');
+  $('pts').textContent=save.credits+' CR  ·  '+save.points+' POINT'+(save.points===1?'':'S');
+  const e=$('btnExchange');
+  e.textContent='EXCHANGE '+PER_POINT+' CR \u2192 1 POINT';
+  e.className=save.credits>=PER_POINT?'':'ghost';
+  e.disabled=save.credits<PER_POINT;
+  e.style.opacity=save.credits>=PER_POINT?'':'.4';
 }
+$('btnExchange').onclick=()=>{
+  if(save.credits<PER_POINT) return;
+  save.credits-=PER_POINT; save.points++; persist(); buildTree(); refreshMenu();
+};
 
 
 /* ════════════ BESTIARY — the reference, in tabs ════════════
@@ -1597,13 +2214,12 @@ function buildTree(){
 const CODEX={
   hostiles:{ label:'HOSTILES', sub:'what is out there', rows:[
     {c:'#4d9dff', n:'ITERATION', tag:'SYSTEM 001  ·  LINE UNIT', sys:0,
-     t:'Fires blue pulses. The basic enemy unit. It holds its distance, orbits, '+
-       'and reverses that orbit when you settle into it — and it fires where you '+
-       'are going, not where you are. From System 003 it double-taps.'},
+     t:'Fires blue pulses. The basic enemy unit. It holds its distance, and orbits.'+
+       'From System 003 it shoots twice as fast.'},
     {c:'#46e39b', n:'WATCHER', tag:'SYSTEM 001  ·  RAM', sys:0,
-     t:'Fast but weak. Tries to ram you. It flies an intercept course rather than '+
-       'chasing your tail, and inside close range it commits and accelerates. It '+
-       'dies on impact — but it takes hull with it.'},
+     t:'Fast but weak. Tries to ram you. '+
+       'Inside close range it accelerates. It '+
+       'dies on impact — but it takes your ship with it.'},
     {c:'#ff4d5e', n:'PRIMARY', tag:'SYSTEM 001  ·  HEAVY', sys:0,
      t:"The enemy's elite. Strong tanks that will fire large bombs at you. It never "+
        'retreats, it leads its shots, and from System 002 it sometimes braces and '+
@@ -1618,9 +2234,22 @@ const CODEX={
        'you keep doing, not something you do once.'},
     {c:'#d9c6ff', n:'SPLINTER', tag:'SYSTEM 004  ·  BREEDER', sys:3,
      t:'Bursts into two Watchers when it dies. It weaves in, and speeds up inside '+
-       'close range. Kill it at distance or kill it with room to move.'},
-    {c:'#000', n:'THE RULER', tag:'WAVE 5  ·  POLYINTELLIGENCE', sys:0, void:1,
-     t:'The enemy leader. Extremely powerful and can kill you in a few hits.'},
+       'close range. Kill it at distance.'},
+    {c:'#ff4d5e', n:'ITERATION 3296', tag:'SYSTEM 001  ·  WAVE 5', sys:0,
+     t:'A Primary that outgrew its mindframe. It never retreats, it never stops '+
+       'bracing, and once it is hurt it aims itself at you and blasts down the '+
+       'line it showed you. Do not be standing on that line.'},
+    {c:'#46e39b', n:'THE HIVE MIND', tag:'SYSTEM 002  ·  WAVE 5', sys:1,
+     t:'Not one enemy, a swarm around a core. It spits Watchers, and it sheds '+
+       'two more every time you take an eighth of its hull off it. Killing the '+
+       'core kills the swarm, so ignore the escorts and keep hitting the middle.'},
+    {c:'#3fd8e0', n:'ITERATION 2117', tag:'SYSTEM 003  ·  WAVE 5', sys:2,
+     t:'An Overseer that has learned. Its shield arc is wider and it '+
+       'tracks you, so every shot has to come from somewhere it is not looking. '+
+       'Hurt, it rakes a rotating wall of fire across the whole arena.'},
+    {c:'#000', n:'THE RULER', tag:'SYSTEM 004  ·  POLYINTELLIGENCE', sys:3, void:1,
+     t:'The enemy leader, and the creature the other three answered to. Extremely '+
+       'powerful and can kill you in a few hits.'},
   ]},
   cells:{ label:'CELLS', sub:'what wrecks leave behind', rows:[
     {c:'#46e39b', n:'HULL REPAIR', tag:'INSTANT  ·  +30% HULL', sys:0,
@@ -1692,7 +2321,7 @@ function shipArt(cv2,hull){
 
 function buildGarage(){
   const bay=$('bay'); bay.innerHTML='';
-  $('garagePts').textContent=save.points+' POINT'+(save.points===1?'':'S');
+  $('garagePts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
   SHIPS.forEach((sh,i)=>{
     const owned=shipOwned(i), sel=SHIPS.indexOf(SHIP())===i, ready=shipReady(i), buy=shipBuy(i);
     const d=document.createElement('div');
@@ -1707,14 +2336,14 @@ function buildGarage(){
     const foot = sel ? 'IN THE BAY'
       : owned ? 'CLICK TO FLY'
       : !ready ? 'CLEAR '+SYSTEMS[sh.sys-1].name+' TO UNLOCK'
-      : buy ? 'UNLOCK — '+sh.cost+' POINTS'
-      : sh.cost+' POINTS  ·  YOU HAVE '+save.points;
+      : buy ? 'UNLOCK — '+sh.cost+' CR'
+      : sh.cost+' CR  ·  YOU HAVE '+save.credits;
     d.innerHTML='<canvas class="shipart" width="150" height="86"></canvas>'+
       '<div class="sn">'+sh.n+'</div><div class="sc">'+sh.cls+'</div>'+rows+
       '<div class="foot">'+foot+'</div>';
     d.onclick=()=>{
       if(owned){ save.ship=i; persist(); buildGarage(); refreshMenu(); }
-      else if(buy){ save.points-=sh.cost; save.ships.push(i); save.ship=i; persist();
+      else if(buy){ save.credits-=sh.cost; save.ships.push(i); save.ship=i; persist();
                     buildGarage(); refreshMenu(); }
     };
     bay.appendChild(d);
@@ -1722,29 +2351,20 @@ function buildGarage(){
   });
 }
 
-function openGarage(from){
-  garageReturn=from||'menu';
-  if(from==='school'){ school.frozen=true; }
-  buildGarage(); show('garage');
-}
-function closeGarage(){
-  if(garageReturn==='school'&&school){
-    school.frozen=false; school.garageSeen=true; hideAll();
-  }else{ refreshMenu(); show('menu'); }
-}
-let garageReturn='menu';
+function openGarage(){ buildGarage(); show('garage'); }
+function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
 
 function refreshMenu(){
   $('btnTreeMenu').style.display=save.unlocked?'':'none';
   const buyable=SHIPS.some((sh,i)=>shipBuy(i));
   $('btnGarage').className = buyable?'hot':'ghost';
-  $('btnGarage').innerHTML = 'GARAGE — '+SHIP().n+(buyable?'<span class="new">NEW</span>':'');
+  $('btnGarage').textContent='GARAGE';
   const n=newLessons();
   $('btnSchool').className = n?'hot':'ghost';
   $('btnSchool').innerHTML = 'PILOT SCHOOL'+(n?'<span class="new">'+n+' NEW</span>':'');
   $('menuMeta').innerHTML = save.best
     ? 'BEST <span class="key">'+save.best+'</span> &nbsp;·&nbsp; FURTHEST <span class="key">'+
-      (SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length-1)].name)+'</span> &nbsp;·&nbsp; POINTS <span class="key">'+save.points+'</span>'
+      (SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length-1)].name)+'</span> &nbsp;·&nbsp; CREDITS <span class="key">'+save.credits+'</span>'
     : '';
 }
 refreshMenu();
@@ -1795,7 +2415,7 @@ function makeCode(){
   SKILLS.forEach((s,i)=>{ if(has(s.id)) mask|=(1<<i); });
   let smask=0; SHIPS.forEach((sh,i)=>{ if(shipOwned(i)) smask|=(1<<i); });
   const raw=[save.points,save.best,save.deepestSys,mask,save.unlocked?1:0,
-             smask*8+SHIPS.indexOf(SHIP())].join('.');
+             smask*8+SHIPS.indexOf(SHIP()),save.credits].join('.');
   const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
   return 'MF1-'+b64+'-'+checksum(raw);
 }
@@ -1809,7 +2429,7 @@ function loadCode(code){
   catch(err){ return 'That code could not be read.'; }
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   const f=raw.split('.').map(Number);
-  if(f.length<5||f.length>6||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
+  if(f.length<5||f.length>7||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
   save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],SYSTEMS.length-1);
   save.owned=SKILLS.filter((sk,i)=>f[3]&(1<<i)).map(sk=>sk.id);
   save.unlocked=!!f[4];
@@ -1819,6 +2439,7 @@ function loadCode(code){
     save.ship=clamp(f[5]%8,0,SHIPS.length-1);
     if(!save.ships.includes(save.ship)) save.ship=0;
   }else{ save.ships=[0]; save.ship=0; }
+  save.credits = f.length===7 ? f[6] : 0;   // codes from before credits carry none
   persist();
   return null;
 }
@@ -1847,34 +2468,34 @@ $('btnLoadCode').onclick=()=>{
 };
 
 let treeReturn='menu';
-$('btnReset').onclick=()=>{
-  if(!confirm('Wipe all points, skills and records? This cannot be undone.')) return;
-  save={points:0,owned:[],unlocked:false,best:0,deepest:1,deepestSys:0,
-        schoolDone:false,taught:[],ships:[0],ship:0};
-  persist(); try{localStorage.removeItem('mf.seen');}catch(e){}
-  buildTree(); refreshMenu(); show('menu');
-};
 $('linkStory').onclick=()=>{buildStory();show('story');};
 $('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
-$('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();
-  $('btnTreeGo').style.display='none'; show('skills');};
+$('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();show('skills');};
 $('btnStoryBack').onclick=()=>{refreshMenu();show('menu');};
 
-$('btnStart').onclick=()=>{hideAll();newRun();};
+$('btnStart').onclick=()=>openMap('menu');
 $('btnRetry').onclick=()=>{hideAll();newRun();};
-$('btnTreeGo').onclick=()=>{hideAll();newRun();};
+$('btnMapGo').onclick=()=>{
+  if(mapMode!=='run'){ hideAll(); newRun(); return; }
+  if(mapThen==='end'){ endRun(true); return; }
+  openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
+};
+$('btnMapSecret').onclick=()=>{ if(secretOffered(sysIdx)) startMission(SECRET(sysIdx).k); };
+$('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
+$('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnTreeBack').onclick=()=>{
   if(treeReturn==='brief'){ show('brief'); }
   else if(treeReturn==='pause'){ show('pause'); }
-  else { refreshMenu(); show('menu'); }
+  else if(treeReturn==='over'){ show('over'); }
+  else { state='menu'; refreshMenu(); show('menu'); }
 };
-$('btnTreeMenu').onclick=()=>{treeReturn='menu';buildTree();$('btnTreeGo').style.display='';show('skills');};
-$('btnTreeOver').onclick=()=>{treeReturn='menu';buildTree();$('btnTreeGo').style.display='';show('skills');};
+$('btnTreeMenu').onclick=()=>{treeReturn='menu';buildTree();show('skills');};
+$('btnTreeOver').onclick=()=>{treeReturn='over';buildTree();show('skills');};
 
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage']
+const openOverlay=()=>['menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage','map']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -1884,12 +2505,13 @@ function onEscape(){
   if(o==='garage'){ closeGarage(); return; }
   if(o==='skills'){ $('btnTreeBack').onclick(); return; }
   if(o==='brief'||o==='menu') return;          // mid-campaign: no accidental exits
+  if(o==='map'&&mapMode==='run') return;       // ditto: CONTINUE or TITLE SCREEN, deliberately
   if(o){ refreshMenu(); show('menu'); }
 }
 function onEnter(){
   const o=openOverlay();
   const main={menu:'btnStart',over:'btnRetry',pause:'btnResume',brief:'btnBriefGo',
-              skills:'btnTreeGo',codex:'btnCodexBack',garage:'btnGarageBack',
+              skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',map:'btnMapGo',
               story:'btnStoryBack',code:'btnCodeBack',schoolEnd:'btnSchoolLaunch'}[o];
   if(!main) return;
   const b=$(main);
@@ -1900,21 +2522,27 @@ function onEnter(){
 $('btnResume').onclick=()=>setPause(false);
 $('btnQuit').onclick=quitRun;
 $('btnPauseCodex').onclick=()=>{ buildCodex(); show('codex'); };
-$('btnPauseTree').onclick=()=>{ treeReturn='pause'; buildTree();
-  $('btnTreeGo').style.display='none'; show('skills'); };
+$('btnPauseTree').onclick=()=>{ treeReturn='pause'; buildTree(); show('skills'); };
 
 /* ---- bestiary ---- */
 $('btnCodex').onclick=()=>{ buildCodex(); show('codex'); };
 $('btnCodexBack').onclick=()=>{ if(paused){ show('pause'); } else { refreshMenu(); show('menu'); } };
 
 /* ---- garage ---- */
-$('btnGarage').onclick=()=>openGarage('menu');
+$('btnGarage').onclick=openGarage;
 $('btnGarageBack').onclick=closeGarage;
 
 /* ---- pilot school ---- */
 $('btnSchool').onclick=schoolStart;
 $('btnSchoolExit').onclick=schoolExit;
-$('btnSchoolGarage').onclick=()=>openGarage('school');
+// skipping a lesson still counts it as flown — the school is a teacher, not a gate
+$('btnSchoolSkip').onclick=()=>{
+  if(!school||school.frozen) return;
+  const L=school.list[school.i];
+  if(L&&L.teach&&!save.taught.includes(L.teach)){ save.taught.push(L.teach); persist(); }
+  banner='LESSON SKIPPED'; bannerT=1.4;
+  schoolNext();
+};
 $('btnSchoolMenu').onclick=()=>{refreshMenu();show('menu');};
 $('btnSchoolLaunch').onclick=()=>{hideAll();newRun();};
 // opens itself every time the window opens, until it has been finished once
