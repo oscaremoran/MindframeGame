@@ -248,6 +248,50 @@ to its conclusion.
 | 🩵 | 003 | **Iteration 2117** | An Overseer with everything it learned. A wider tracking shield arc, and a rotating wall of fire across the arena. |
 | ⬛ | 004 | **The Ruler** | The thing the other three answered to. Charged lances, spiral barrages, and blinking. |
 
+### The arrival
+
+A boss does not simply spawn any more. The arena **seals** — a frame draws in
+from the four corners under a blinking `[ ARENA SEALED ]` — the fight freezes
+(you can fly; nothing shoots, and the spawn queue is held so its escorts cannot
+walk in over the top of it), and the hull drags itself in as thirty pieces of
+debris spiralling inward: the death scene run backwards. It lands at 1.55s with
+a shockwave, draws itself in with a dashed outline inside closing target rings,
+and then states what it is — name, the **same classification the bestiary
+carries**, and a bar filling to the hull it actually arrived with. 4.2 seconds,
+and then it starts.
+
+### The line it fights
+
+Attacks are no longer drawn at random from a pool. Every boss has an **authored
+sequence per tier** — an opener, signature combos, and a `|` at the end:
+
+```
+ITERATION 3296, tier 2:
+  charge → shell → fan → ring → charge → | → shell → shell → summon → ring → |
+```
+
+`|` is the **punish window**. Having fired its line, the boss stops, drops to a
+fifth of its speed and **takes 2.4× damage** for 1.15–1.7 seconds depending on
+tier, ringed in yellow with `EXPOSED ×2.4` over the boss bar. Every fight now
+has a beat where the right answer is to stop dodging and commit. The sequence
+restarts from its opener at each tier, so a boss you have fought before opens
+the same way — it is something you learn, not something you react to.
+
+### Armour
+
+Every boss carries a ring of **armour nodes** orbiting its hull — three `BRACE
+PLATE`s on 3296, three `SPAWN POD`s on the Hive, two `ARC EMITTER`s on 2117,
+four `THRONE ANCHOR`s on the Ruler, two `SPLINTER RACK`s on 3295, five `STORED
+MIND`s on the Archive. While one is alive the hull only takes **60%** of what
+you deal it, and rounds meet the ring before they meet the boss.
+
+Strip the ring and it is wide open for a full **three seconds** at punish value.
+That makes clearing the nodes strictly faster than grinding through them — the
+mechanic rewards target priority rather than taxing you for ignoring it. They
+come back at every tier change, so a fight is three strips, not one.
+
+### The shape
+
 They all share one shape. Each fights in three tiers, and each tier keeps
 everything from the one before:
 
@@ -258,10 +302,29 @@ everything from the one before:
 | below 28% | third | Another attack, faster again, and it presses in close. |
 
 Crossing a tier is an event: the boss becomes untouchable for a second, the
-shockwave wipes every enemy bullet off the screen, and the boss bar marks the
-thresholds. Boss hull scales with the pilot — `base × system × (1 + 0.05 per
-skill you own)`, where base is 620 / 700 / 760 / 900 — so it arrives ready for
-whatever you spent your credits on without punishing you for having spent them.
+shockwave wipes every enemy bullet off the screen, the armour ring comes back,
+and the boss bar marks the thresholds. Boss hull scales with the pilot —
+`base × system × (1 + 0.05 per skill you own)`, where base is
+**744 / 840 / 912 / 1080** — so it arrives ready for whatever you spent your
+credits on without punishing you for having spent them.
+
+### The Ruler has a fourth
+
+The campaign does not end on the same shape as System 001's boss. Below **15%**
+hull the Ruler **walks out of its own frame**: the shell shatters, what is left
+is less than half the size and more than twice as fast, it stops orbiting and
+comes at you, and **the arena closes** — 132px of wall grinding in on all four
+sides until the fight is a duel in a box.
+
+And it **knits**. Out of frame, 1.6 seconds without taking a hit and it starts
+repairing at 2.8% of max per second, back up to the 15% threshold it can never
+cross again. The last phase of the campaign is a question about damage, not
+about patience.
+
+Mechanically this is one extra `tiers` entry on one boss, marked `bare` (no
+armour ring — there is nothing left to plate) and `last`. The tier ladder is
+`Math.min(…, B.tiers.length - 1)`, so every other boss stays at three and
+giving a boss a fourth phase is one more block and nothing else.
 Every heavy attack is telegraphed before it lands. Escorts are capped at five on
 the field, so a boss fight stays a duel rather than a pile-up.
 
