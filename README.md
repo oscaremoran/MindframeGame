@@ -18,6 +18,23 @@ whole campaign.
 | `Esc` | Back one screen — and pauses a run |
 | `Enter` | Presses the main button on the current screen |
 
+## The cold open
+
+**LAUNCH** does not drop you into a briefing. The defence net comes up first: a
+grid unfolds from the horizon, two scan bars sweep the field, your actual hull
+draws itself inside closing target rings, and a boot log reads back the save it
+has been handed — hull, nodes owned, integrity, systems inbound, and the two
+lines that are the whole game:
+
+```
+> RESUPPLY  . . . . . . . . .  NONE
+> FALLBACK  . . . . . . . . .  NONE
+```
+
+It runs 6.2 seconds over the live starfield, under scanlines and a vignette, and
+**any key or click skips it**. It is authored in `cineDraw()` as one timeline of
+`t`-gated beats, so re-timing it is editing numbers, not code.
+
 ## Pilot School
 
 A coached tutorial that **opens itself every time you load the page until you
@@ -46,6 +63,21 @@ flown them.
 
 Extra lessons appear for the tier-3 skills you own — **Blink Drive**, **Triple
 Spread**, **Phase Rounds**, **Repair Field** — so the school grows with the save.
+Two of those drill the skill rather than demonstrate it, against **emplacements**:
+Primaries bolted to the floor that still lead and fire, but never close.
+
+- **Blink Drive** puts three *indestructible* emplacements on the right of the
+  arena and asks for four **clean breaks**. A blink only counts if there was a
+  round within 200px genuinely pointed at you when you pressed `SHIFT` — blinking
+  into empty space says `NOTHING WAS COMING` and scores nothing. So the drill
+  teaches the timing, not the button.
+- **Repair Field** is an attrition drill. You start at 60% hull against three
+  200-hull emplacements that between them out-damage the field, and you have to
+  kill all three **without ever dropping under 25%**. Dropping under re-racks the
+  whole drill with `PULL BACK SOONER`. The only way through is the loop the skill
+  exists for: hit a target, break off before it costs more than you regain, come
+  back full. The far-left corner is out of everything's range on purpose.
+
 Nothing dies in the simulator: hitting zero hull just restores it. It scores
 nothing and earns no points, and leaving early (**ESC** or **EXIT SCHOOL**)
 does not count as finishing, so it will open again next time. **PILOT SCHOOL**
@@ -61,6 +93,25 @@ Ruler's system at the ceiling.
 It is a roguelike route, not a level select: **nothing on it can be skipped**.
 Every run starts at System 001 and climbs. Each system also has a dashed side
 branch to a **Secret Mission** — see below.
+
+The chart is a live readout rather than a static diagram: a clipped-corner frame
+with corner brackets, a grid, drifting motes, scanlines and a scan bar crawling
+up it, all on a canvas driven by the main loop. A gradient spine runs the length
+of the route, and **three pulses climb the part of it you already hold** — they
+read the same `MAP_X` / `MAP_Y` percentages the nodes are placed with, so the
+route they light is always the route you are looking at. The segment you are
+about to fly is a flowing dashed line; the `NEXT` node breathes, and an offered
+secret branch pulses yellow.
+
+Every system node carries its own numbers under the status line — the real
+values from the `SYSTEMS` block, not a description of them:
+
+```
+    01
+SYSTEM 002
+   NEXT
+×1.32 THREAT · 2 CR / WAVE · +TRACKER
+```
 
 **HELD is run state, not a record.** A node only turns green once you have
 killed the thing guarding it *on this run*, so the map you launch from always
@@ -89,12 +140,13 @@ of it you gambled.
 
 | | Mission | What it is |
 |---|---|---|
-| 🟡 | **Escort** | A yellow hauler crawls across the field on a 42-second run, with 300 hull of its own. **Everything out there hunts the hauler, not you** — the whole enemy AI retargets, so you are the only thing between them and it. Get it to the line. Lose it and the run is over. |
-| 🟢 | **Salvage** | A hulk coming apart around you. No hostiles — drifting wreckage that costs 22 hull and a hard shove on contact, more of it every few seconds, and green credit motes scattered through it. Each mote is **1 credit, banked the moment you touch it**. The `EXIT` gate is open the whole time. Stay longer, grab more; be inside when the 40 seconds run out and the wreck finishes the job. |
+| 🟡 | **Escort** | A yellow hauler crawls across the field on a 44-second run with 340 hull of its own. **Everything out there hunts the hauler, not you** — the whole enemy AI retargets, so you are the only thing between them and it. It is a stream, not a trickle: `11 + system×4` scheduled hostiles with Watchers arriving in pairs, plus Trackers, Overseers and Splinters as the systems allow, plus **two timed pushes** at a third and two thirds of the crossing. Escort is also the only place the arena runs **12 live hostiles instead of ten**. What reaches it hurts: a Watcher ram is 40, a Primary 34, anything else 24, and stray fire lands at 1.6×. |
+| 🟢 | **Salvage** | An open debris field with green credit motes scattered through it. No hostiles and **no clock** — just wreckage that costs **34 hull** and a hard shove on contact. It opens at `17 + system×5` pieces, gains another every **1.1 seconds**, and everything already out there accelerates on a `1 + t/17` ramp — up to **76 pieces at 3.4× drift**, where it levels off. Each mote is **1 credit, banked the moment you touch it**. The `EXIT` gate is open the whole time and nothing ever forces you through it: you leave when you decide another mote is not worth the field you would have to cross to reach it. |
 | 🟪 | **Secret Boss** | Nothing to collect and no clock — just the fight, off the last system's branch. One of two, picked at random each time you take it. |
 
 Salvage is press-your-luck: what you have already picked up is yours even if the
-wreck kills you. Escort pays nothing at all unless the hauler makes it. Clearing
+wreck kills you, and nothing but your own judgement ends the run — greed is the
+only clock. Escort pays nothing at all unless the hauler makes it. Clearing
 either patches you up by 15% and drops you into the next system's briefing.
 
 ### The two off the roster
@@ -213,6 +265,33 @@ whatever you spent your credits on without punishing you for having spent them.
 Every heavy attack is telegraphed before it lands. Escorts are capped at five on
 the field, so a boss fight stays a duel rather than a pile-up.
 
+### When one falls
+
+A boss took a minute to kill, so it does not get to blink out in one frame.
+`bossDeathFx()` runs a scene: **time drops to 16% and ramps back over a second
+and a half**, the arena clears, and the frame comes apart in seven layered
+detonations 150ms apart, each with its own ring and its own shards. At 1.35s the
+real shockwave goes — a white ring crossing the whole arena, a second slow, and
+twenty pieces of hull thrown at 600px/s. The banner reads `TARGET DESTROYED`.
+Its three cells are already on the floor before any of this starts.
+
+Nothing may advance while it plays. A `sealing` flag holds the run open for
+**3.1 seconds** before the wave-clear check is allowed to run, because without
+it the arena is empty on the very next frame and the world map takes the screen
+before the first detonation lands. The same hold defers a secret boss's
+`missionEnd`. You keep control of the ship throughout.
+
+**Dying gets the same treatment.** The run no longer ends on the frame your hull
+hits zero. `deathFx()` slows time to a crawl, shatters the ship into shards,
+walks four secondary detonations across the wreck and closes with a red ring the
+size of the arena — and the results panel arrives **2.35 seconds later**, in a
+new `dying` state that exists only to let the scene finish.
+
+Both are built on one small fx layer next to `burst()`: `shock()` for expanding
+rings, `shred()` for tumbling debris, `slow()` for time dilation, and `after()`
+for scheduling a beat. Timers and the slow ramp run on **real** time, so a scene
+plays at the same speed no matter how slow the world it is playing in.
+
 ## The Garage
 
 Four hulls, pure stat trade-offs — no hidden rules. A hull is gated **twice**:
@@ -232,9 +311,31 @@ card can never lie about a ship. Each hull has its own silhouette in flight.
 
 ## Bestiary
 
-Everything the game expects you to know lives on one tabbed screen — **HOSTILES**
-(with entries you have not met yet dimmed), **CELLS**, and **CONTROLS** — reachable
-from the title screen and from the pause menu.
+Everything the game expects you to know lives on one tabbed screen — **HOSTILES**,
+**CELLS**, and **CONTROLS** — reachable from the title screen and from the pause menu.
+
+It is built as an **assess readout**, not a list: a roster down the left, and one
+unit's full telemetry filling the panel on the right, inside a clipped-corner
+frame with hairline rules, scanlines and a scan bar crawling down it.
+
+The panel carries, for the selected unit:
+
+- **The real silhouette**, live on its own canvas — rotating, breathing, inside
+  a dashed target reticle and a grid. It is drawn by `unitPath()`, the *same*
+  function the arena draws enemies with, so a codex entry can never show a shape
+  the game does not actually field.
+- **Five measured bars** — `HULL`, `VELOCITY`, `POWER`, `CADENCE`, `CONTACT` —
+  each with its raw number beside it (`140`, `44 px/s`, `17 dmg`, `.37 /s`,
+  `20 dmg`). Every bar is scaled against **the heaviest thing in the roster**
+  rather than a hand-written maximum, so adding an enemy re-scales every card at
+  once and no bar can quietly lie.
+- **TACTICAL ANALYSIS** — what it is and how it behaves.
+- **COUNTERMEASURE** — one line, in green, on how to actually kill it.
+
+A hostile you have not met is not merely dimmed: its name renders as block
+characters in the roster, and its panel reads `NOT YET ENCOUNTERED · TELEMETRY
+UNAVAILABLE` with no silhouette and no bars. `CELLS` and `CONTROLS` use the same
+frame with a cell casing in the art panel in place of a hull.
 
 ## Getting around
 
@@ -264,7 +365,35 @@ Four branches of three:
 - **Hull Plating → Ablative Weave → Repair Field** — max HP, then passive regeneration
 - **Thrust Vectoring → Blink Drive → Deflector** — speed, then a dash with i-frames
 
+Buying a node is the only permanent thing in the game, so it lands like one: the
+node overloads white and punches out a ring, the branch line feeding it surges,
+the whole screen takes an inset green flare, and the skill's name and effect
+stamp themselves over the tree for a second and a half. All CSS keyframes —
+`nodeLand`, `lineSurge`, `screenPulse`, `stamp` — re-applied across the tree
+rebuild by a `landed` marker, so the animation survives the redraw that follows
+the purchase.
+
+**RESPEC** sits beside `EXCHANGE`. It sells the entire tree back: every point
+you ever spent on a skill returns, and every skill goes. It is free and total —
+there is no tax and no partial refund — because points are the scarce thing and
+a tree you regret is otherwise a save you cannot fix. The button shows what it
+will refund (`RESPEC — REFUND 21P`), and a first click arms it into
+`SELL 6 SKILLS FOR 21P?` for four seconds rather than firing straight away.
+Hulls are bought with credits, so a respec never touches the Garage, and
+lessons you have already flown stay flown.
+
 Progress, points, best score and furthest wave persist in `localStorage`.
+
+## Starting over
+
+**WIPE ALL PROGRESS** is the last link on the title screen, in red. It is the
+only genuinely destructive control in the game, so it names what it is about to
+destroy before it will do it — a first click arms it into
+`ERASE 41 CR · 6P · 4 SKILLS · 2 HULLS · BEST 18400? — CLICK AGAIN` for five
+seconds. The second click clears the `localStorage` key outright and resets
+credits, points, skills, hulls, best score, furthest system, and both tutorial
+flags, so Pilot School opens itself again on the next load exactly as it does
+for a new player.
 
 ## Save codes
 

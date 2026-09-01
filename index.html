@@ -63,7 +63,6 @@
   #codeMsg{min-height:1.7em}
   .legend{display:flex; gap:26px; margin-top:22px; flex-wrap:wrap; justify-content:center; font-size:clamp(10px,1.2vw,12.5px)}
   .legend div{display:flex; align-items:center; gap:9px; color:#7d8bb0}
-  .dot{width:11px; height:11px; border-radius:2px; transform:rotate(45deg)}
 
   /* ---- highlighted (attention) buttons ---- */
   button.hot{background:#ffb44d; color:#05060d}
@@ -79,20 +78,6 @@
     background:transparent; color:#7d8bb0; cursor:pointer; font-weight:400}
   .tab:hover{color:#dfe9ff; border-color:#4d9dff; transform:none; box-shadow:none}
   .tab.on{background:#0d1a30; border-color:#4d9dff; color:#dfe9ff}
-  #codexBody{width:100%; flex:1; min-height:0; overflow-y:auto; margin-top:12px;
-    text-align:left; padding-right:10px}
-  #codexBody::-webkit-scrollbar{width:8px}
-  #codexBody::-webkit-scrollbar-thumb{background:#263050; border-radius:4px}
-  .entry{display:flex; gap:16px; align-items:flex-start; padding:13px 4px;
-    border-bottom:1px solid #141c30}
-  .entry:last-child{border-bottom:0}
-  .entry .mark{width:26px; flex:none; display:flex; justify-content:center; padding-top:3px}
-  .entry .body{flex:1; min-width:0}
-  .entry .nm{color:#dfe9ff; letter-spacing:.2em; font-size:clamp(10px,1.2vw,13px)}
-  .entry .tagline{color:#4a5878; letter-spacing:.12em; font-size:clamp(8px,.95vw,10.5px); margin-top:3px}
-  .entry .txt{color:#8ea0c8; font-size:clamp(9.5px,1.15vw,12.5px); line-height:1.75; margin-top:6px}
-  .entry.locked{opacity:.42}
-  .entry .txt .key{color:#dfe9ff}
 
   /* ---- pause ---- */
   #pause{background:rgba(5,6,13,.72)}
@@ -132,29 +117,70 @@
   #btnSchoolExit{bottom:132px}
   #btnSchoolSkip{bottom:178px}
 
-  /* ---- world map: the campaign as a path, drawn bottom-up like the tree ---- */
+  /* ══════════ world map ══════════
+     The campaign as a route, drawn bottom-up like the tree, on a live canvas:
+     a grid, a scan bar, and pulses running up the spine you have already held.
+     Nodes are clipped-corner readouts carrying the system's real scaling.   */
   #map{justify-content:flex-start; padding:2.4% 4%}
-  #chart{position:relative; width:100%; flex:1; margin-top:10px; min-height:0}
-  #chart svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
-  .mnode{
-    position:absolute; transform:translate(-50%,-50%);
-    width:17%; padding:10px 6px; border:1px solid #263050; border-radius:3px;
-    background:#0a0e1c; text-align:center; cursor:default;
+  #chart{
+    position:relative; width:100%; flex:1; margin-top:10px; min-height:0;
+    border:1px solid #2c3d61; background:linear-gradient(165deg,#111a2e 0%,#0a1020 72%);
+    clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
   }
-  .mnode .id{font-size:clamp(12px,1.6vw,18px); letter-spacing:.14em; color:#8ea0c8}
-  .mnode .st{font-size:clamp(7.5px,.88vw,9.5px); letter-spacing:.16em; color:#4a5878; margin-top:5px}
-  .mnode.held{border-color:#2f7f5c; background:#0c1a16}
-  .mnode.held .id{color:#46e39b} .mnode.held .st{color:#2f7f5c}
-  .mnode.next{border-color:#4d9dff; background:#0d1a30; box-shadow:0 0 26px rgba(77,157,255,.28)}
+  #mapArt{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  #chart svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  #chart::after{                        /* scanlines over the whole route */
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:4;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.10) 0 1px,transparent 1px 3px);
+  }
+  .mcnr{position:absolute; width:15px; height:15px; border:1.5px solid #6fb2ff; opacity:.8; z-index:3}
+  .mcnr.k1{top:7px;left:7px;border-right:0;border-bottom:0}
+  .mcnr.k2{top:7px;right:7px;border-left:0;border-bottom:0}
+  .mcnr.k3{bottom:7px;left:7px;border-right:0;border-top:0}
+  .mcnr.k4{bottom:7px;right:7px;border-left:0;border-top:0}
+
+  .mnode{
+    position:absolute; transform:translate(-50%,-50%); z-index:2;
+    width:19%; padding:9px 6px 8px; border:1px solid #38466b;
+    background:rgba(21,28,48,.94); text-align:center; cursor:default;
+    clip-path:polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 11px 100%, 0 calc(100% - 11px));
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .mnode .mi{position:absolute; top:5px; left:8px; font-size:8px; letter-spacing:.16em; color:#5d6c8f}
+  .mnode .id{font-size:clamp(12px,1.6vw,18px); letter-spacing:.14em; color:#b6c4de}
+  .mnode .st{font-size:clamp(7.5px,.88vw,9.5px); letter-spacing:.16em; color:#6b7ca3; margin-top:5px}
+  .mnode .mx{
+    margin-top:6px; padding-top:5px; border-top:1px solid #18213a; white-space:nowrap;
+    font-size:clamp(6.5px,.78vw,8.5px); letter-spacing:.08em; color:#7182a8; line-height:1.3;
+  }
+  .mnode .mx b{font-weight:400; color:#a9bad9}
+  .mnode.held{border-color:#46e39b; background:rgba(16,45,36,.94)}
+  .mnode.held .id{color:#6bf3b4} .mnode.held .st{color:#46e39b}
+  .mnode.held .mx{border-top-color:#163a2c}
+  .mnode.next{border-color:#6fb2ff; background:rgba(20,40,73,.96);
+    box-shadow:0 0 30px rgba(77,157,255,.3), inset 0 0 26px rgba(77,157,255,.09);
+    animation:mapNext 2.1s ease-in-out infinite}
+  @keyframes mapNext{
+    0%,100%{ box-shadow:0 0 22px rgba(77,157,255,.22), inset 0 0 20px rgba(77,157,255,.06) }
+    50%    { box-shadow:0 0 40px rgba(77,157,255,.44), inset 0 0 30px rgba(77,157,255,.14) }
+  }
   .mnode.next .id{color:#dfe9ff} .mnode.next .st{color:#4d9dff}
-  .mnode.locked{opacity:.3}
-  .mnode.secret{width:13%; padding:12px 6px; border-style:dashed; opacity:.34}
+  .mnode.next .mx{border-top-color:#1e3358; color:#5d6c8f}
+  .mnode.locked{opacity:.52}
+  .mnode.secret{width:14%; padding:11px 6px; border-style:dashed; opacity:.5}
   .mnode.secret .id{font-size:clamp(8.5px,1.05vw,12px); line-height:1.35}
   .mnode.secret .st{margin-top:9px}
   .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
-    background:#1a1508; cursor:pointer; box-shadow:0 0 26px rgba(255,210,77,.25)}
+    background:rgba(48,38,12,.95); cursor:pointer;
+    animation:mapSecret 1.5s ease-in-out infinite}
+  @keyframes mapSecret{
+    0%,100%{ box-shadow:0 0 20px rgba(255,210,77,.22) }
+    50%    { box-shadow:0 0 40px rgba(255,210,77,.5) }
+  }
   .mnode.secret.open .id{color:#ffd24d} .mnode.secret.open .st{color:#8a7433}
   .mnode.secret.open:hover{transform:translate(-50%,-50%) scale(1.06)}
+  #mlines line.flow{stroke-dasharray:7 9; animation:mapFlow .9s linear infinite}
+  @keyframes mapFlow{ to{stroke-dashoffset:-16} }
 
   /* ---- skill tree ---- */
   #skills{justify-content:flex-start; padding:3% 4%}
@@ -176,6 +202,132 @@
   .node.own .nm{color:#46e39b}
   .node.own .cost{color:#2f7f5c}
   .node.locked{opacity:.34; cursor:not-allowed}
+
+  /* ══════════ ASSESS — the bestiary readout ══════════
+     A roster on the left, one unit's full telemetry on the right. Clipped
+     corners, hairline rules, a scan bar crawling down the art, and every bar
+     measured against the heaviest thing in the roster rather than a guess. */
+  #codexWrap{display:flex; gap:18px; width:100%; flex:1; min-height:0; margin-top:12px}
+  #codexList{
+    width:31%; min-width:190px; overflow-y:auto; padding-right:6px;
+    display:flex; flex-direction:column; gap:5px;
+  }
+  #codexList::-webkit-scrollbar{width:7px}
+  #codexList::-webkit-scrollbar-thumb{background:#263050; border-radius:4px}
+  .rosterRow{
+    display:flex; align-items:center; gap:10px; padding:8px 11px; cursor:pointer;
+    border:1px solid #2a3552; background:#111829; text-align:left;
+    clip-path:polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+    transition:background .13s, border-color .13s;
+  }
+  .rosterRow:hover{background:#18223a; border-color:#41527b}
+  .rosterRow .rk{width:3px; align-self:stretch; background:currentColor; box-shadow:0 0 9px currentColor}
+  .rosterRow .rn{font-size:clamp(9px,1.05vw,11.5px); letter-spacing:.13em; color:#aebcd8}
+  .rosterRow .ri{margin-left:auto; font-size:9px; color:#66748f; letter-spacing:.1em}
+  .rosterRow.on{background:#1b2c4c; border-color:#6fb2ff}
+  .rosterRow.on .rn{color:#dfe9ff}
+  .rosterRow.dark .rn{color:#5b6684; font-family:Menlo,monospace}
+
+  #assess{
+    flex:1; min-width:0; position:relative; overflow:hidden;
+    border:1px solid #33456d; background:linear-gradient(160deg,#141d33 0%,#0b1121 72%);
+    clip-path:polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    padding:18px 22px; display:flex; flex-direction:column; gap:13px;
+    overflow-y:auto;
+  }
+  #assess::before{                       /* scanlines over the whole readout */
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:2;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.11) 0 1px,transparent 1px 3px);
+  }
+  #assess::after{                        /* and one bar crawling down it */
+    content:''; position:absolute; left:0; right:0; height:70px; pointer-events:none; z-index:3;
+    background:linear-gradient(180deg,rgba(77,157,255,0),rgba(100,170,255,.14) 78%,rgba(185,220,255,.42));
+    animation:assessScan 4.4s linear infinite;
+  }
+  @keyframes assessScan{ 0%{top:-70px} 100%{top:100%} }
+
+  .asHead{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
+    border-bottom:1px solid #33456d; padding-bottom:11px}
+  .asIdx{font-size:10px; letter-spacing:.22em; color:#66748f}
+  .asName{font-size:clamp(16px,2.5vw,27px); letter-spacing:.2em; color:#dfe9ff; line-height:1}
+  .asTag{margin-left:auto; font-size:9.5px; letter-spacing:.18em; padding:4px 9px;
+    border:1px solid currentColor; opacity:.9}
+
+  .asMain{display:flex; gap:20px; align-items:flex-start}
+  .asArt{position:relative; flex:0 0 auto; border:1px solid #33456d; background:#0a1120;
+    clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))}
+  .asArt canvas{display:block}
+  .asArt .cnr{position:absolute; width:13px; height:13px; border:1.5px solid #46e39b; opacity:.75}
+  .asArt .c1{top:6px;left:6px;border-right:0;border-bottom:0}
+  .asArt .c2{top:6px;right:6px;border-left:0;border-bottom:0}
+  .asArt .c3{bottom:6px;left:6px;border-right:0;border-top:0}
+  .asArt .c4{bottom:6px;right:6px;border-left:0;border-top:0}
+
+  .asStats{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px}
+  .asBar{display:grid; grid-template-columns:74px 1fr 58px; align-items:center; gap:10px}
+  .asBar b{font-weight:400; font-size:9.5px; letter-spacing:.17em; color:#8b9ac0}
+  .asBar i{font-style:normal; font-size:10px; letter-spacing:.1em; color:#c3d0e8; text-align:right}
+  .asTrack{height:9px; background:#161f36; border:1px solid #33456d; position:relative; overflow:hidden}
+  .asFill{position:absolute; inset:0 auto 0 0; background:currentColor;
+    box-shadow:0 0 11px currentColor; animation:asGrow .5s cubic-bezier(.2,.9,.3,1) both}
+  @keyframes asGrow{ from{width:0 !important} }
+  .asTrack .tick{position:absolute; top:0; bottom:0; width:1px; background:#3a4a70}
+
+  .asBlock{border-left:2px solid #3d5078; padding:2px 0 2px 12px}
+  .asBlock h4{margin:0 0 5px; font-size:9.5px; letter-spacing:.22em; color:#4d9dff; font-weight:400}
+  .asBlock p{margin:0; font-size:clamp(10.5px,1.15vw,12.5px); line-height:1.65; color:#b3c0dc}
+  .asBlock.ctr{border-left-color:#46e39b}
+  .asBlock.ctr h4{color:#46e39b}
+  .asBlock.ctr p{color:#cfe8dc}
+  .asNodata{display:flex; flex-direction:column; align-items:center; justify-content:center;
+    flex:1; gap:10px; color:#6b7ba0; letter-spacing:.24em; font-size:12px; text-align:center}
+  .asNodata span{font-size:30px; letter-spacing:.1em; color:#3d5077}
+  .storylink.danger{color:#7a4550}
+  .storylink.danger:hover{color:#ff4d5e}
+  .storylink.armed{color:#ff4d5e; text-shadow:0 0 14px rgba(255,77,94,.7)}
+
+  /* ---- a node landing ----
+     Buying a skill is the only permanent thing in the game, so it gets to be
+     an event: the node overloads, a ring leaves it, and the branch it feeds
+     lights up all the way down.                                            */
+  .node.landed{ animation:nodeLand .9s cubic-bezier(.2,.9,.3,1) both; z-index:5 }
+  @keyframes nodeLand{
+    0%  { transform:translate(-50%,-50%) scale(1);   box-shadow:0 0 0 0 rgba(70,227,155,.9), 0 0 0 rgba(70,227,155,0);
+          border-color:#ffffff; background:#1d4d38 }
+    18% { transform:translate(-50%,-50%) scale(1.28); box-shadow:0 0 0 6px rgba(70,227,155,.45), 0 0 46px rgba(70,227,155,.9);
+          border-color:#ffffff; background:#2c6b4d }
+    100%{ transform:translate(-50%,-50%) scale(1);   box-shadow:0 0 0 34px rgba(70,227,155,0), 0 0 0 rgba(70,227,155,0);
+          border-color:#46e39b; background:#0c2119 }
+  }
+  .node.landed .nm{ animation:nodeText .9s ease-out both }
+  @keyframes nodeText{ 0%{color:#fff; text-shadow:0 0 14px #fff} 100%{color:#46e39b; text-shadow:none} }
+  #tree line.surge{ animation:lineSurge .9s ease-out both }
+  @keyframes lineSurge{
+    0%  { stroke:#ffffff; stroke-width:6 }
+    100%{ stroke:#46e39b; stroke-width:2 }
+  }
+  /* the whole screen registers it, briefly */
+  #skills.pulse::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    box-shadow:inset 0 0 120px rgba(70,227,155,.55);
+    animation:screenPulse .9s ease-out both;
+  }
+  @keyframes screenPulse{ 0%{opacity:1} 100%{opacity:0} }
+  /* the name of what you just bought, stamped over the tree */
+  #unlockName{
+    position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
+    pointer-events:none; text-align:center; z-index:6;
+    font-size:clamp(15px,2.6vw,30px); letter-spacing:.34em; color:#dfe9ff;
+    text-shadow:0 0 26px rgba(70,227,155,.95); white-space:nowrap;
+    animation:stamp 1.5s ease-out both;
+  }
+  #unlockName small{ display:block; margin-top:9px; font-size:.44em; letter-spacing:.3em; color:#46e39b }
+  @keyframes stamp{
+    0%  { opacity:0; transform:translate(-50%,-50%) scale(1.7); filter:blur(7px) }
+    14% { opacity:1; transform:translate(-50%,-50%) scale(1);   filter:blur(0) }
+    72% { opacity:1 }
+    100%{ opacity:0; transform:translate(-50%,-52%) scale(1) }
+  }
 </style>
 </head>
 <body>
@@ -202,6 +354,7 @@
     <div class="links">
       <a class="storylink" id="linkStory">READ THE STORY — “MINDFRAME” BY OSCAR MORAN &rsaquo;</a>
       <a class="storylink" id="linkCode">SAVE CODE &rsaquo;</a>
+      <a class="storylink danger" id="linkWipe">WIPE ALL PROGRESS &rsaquo;</a>
     </div>
   </div>
 
@@ -214,7 +367,10 @@
       <span id="codexSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
     </div>
     <div class="tabs" id="codexTabs"></div>
-    <div id="codexBody"></div>
+    <div id="codexWrap">
+      <div id="codexList"></div>
+      <div id="assess"></div>
+    </div>
     <div class="row" style="margin-top:12px"><button id="btnCodexBack" class="ghost">BACK — ESC</button></div>
   </div>
 
@@ -225,7 +381,10 @@
     </div>
     <p style="margin:6px 0 0">The path to the Icarus, the enemy battleship and center of command.</p>
     <p id="mapBest" style="margin:2px 0 0; color:#4a5878; letter-spacing:.14em; font-size:clamp(9px,1vw,11px)"></p>
-    <div id="chart"><svg id="mlines"></svg></div>
+    <div id="chart">
+      <canvas id="mapArt"></canvas><svg id="mlines"></svg>
+      <i class="mcnr k1"></i><i class="mcnr k2"></i><i class="mcnr k3"></i><i class="mcnr k4"></i>
+    </div>
     <div class="row" style="margin-top:0">
       <button id="btnMapGo">LAUNCH</button>
       <button id="btnMapSecret" class="hot" style="display:none">SECRET MISSION</button>
@@ -319,6 +478,7 @@
        <span class="key">credits</span>, trade them for points here, or for a hull in the Garage.</p>
     <div class="row" style="margin:10px 0 0; justify-content:flex-start">
       <button id="btnExchange" class="ghost">EXCHANGE</button>
+      <button id="btnRespec" class="ghost">RESPEC</button>
     </div>
     <div id="tree"><svg id="lines"></svg></div>
     <div class="row" style="margin-top:0">
@@ -491,6 +651,7 @@ const keys={}, mouse={x:W/2, y:H/2-140, down:false};
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='Space'){e.preventDefault();}
+  if(state==='intro'){ e.preventDefault(); cineEnd(); return; }   // any key skips the cold open
   if(e.code==='KeyP'&&state==='play') setPause(!paused);
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
   if(e.code==='Enter'){ e.preventDefault(); onEnter(); }
@@ -502,7 +663,7 @@ function ptr(e){
   mouse.y=(e.clientY-r.top)*(H/r.height);
 }
 cv.addEventListener('mousemove',ptr);
-cv.addEventListener('mousedown',e=>{ptr(e);mouse.down=true;});
+cv.addEventListener('mousedown',e=>{ptr(e);mouse.down=true;if(state==='intro')cineEnd();});
 addEventListener('mouseup',()=>mouse.down=false);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 
@@ -517,6 +678,145 @@ function makeStars(){
 }
 makeStars();
 
+/* ══════════════════════ THE COLD OPEN ══════════════════════
+   Every run opens the same way: the defence net comes up, reads the pilot it
+   has been given, and hands them four systems. It is the one place the game
+   states the stake out loud — one hull, one run — so it plays before the
+   System 001 briefing rather than after it. Any key skips it.              */
+let cine=null;
+const CINE_DUR=6.2;
+
+function cineStart(then){
+  const st=stats(), sh=SHIP();
+  cine={t:0, then, lines:[
+    [0.55,'> UPLINK  . . . . . . . . . .  ESTABLISHED'],
+    [1.05,'> DEFENCE NET  . . . . . . .  ONLINE'],
+    [1.55,'> PILOT RECORD  . . . . . .  '+(save.deepestSys>0?'ON FILE':'NONE')],
+    [2.05,'> HULL  . . . . . . . . . . .  '+sh.n],
+    [2.55,'> SKILL NUMBER  . . . . . . . .  '+save.owned.length+' / '+SKILLS.length+' NODES'],
+    [3.05,'> INTEGRITY  . . . . . . . .  '+Math.round(st.maxHp)+' HP'],
+    [3.55,'> SYSTEMS INBOUND  . . . .  '+SYSTEMS.length],
+    [4.15,'> RESUPPLY  . . . . . . . . .  NONE'],
+    [4.55,'> FALLBACK  . . . . . . . . .  NONE'],
+  ]};
+  hideAll(); state='intro';
+}
+function cineEnd(){
+  if(!cine) return;
+  const then=cine.then; cine=null; state='menu';
+  then();
+}
+function cineStep(dt){
+  cine.t+=dt;
+  if(cine.t>=CINE_DUR) cineEnd();
+}
+
+function cineDraw(){
+  const C=cine, t=C.t, w=W, h=H;   // the starfield is already down: draw over it
+
+  // --- the grid comes up first, from the horizon out ---
+  const gk=clamp(t/1.1,0,1);
+  ctx.strokeStyle='rgba(110,170,255,'+(.19*gk)+')'; ctx.lineWidth=1;
+  for(let x=0;x<=w;x+=50){ ctx.beginPath(); ctx.moveTo(x,h*.5-h*.5*gk); ctx.lineTo(x,h*.5+h*.5*gk); ctx.stroke(); }
+  for(let y=0;y<=h;y+=50){ const k=Math.abs(y-h*.5)/(h*.5);
+    if(k>gk) continue;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+
+  // --- a scan bar sweeps down, twice ---
+  for(const off of [0,2.9]){
+    const st2=t-off;
+    if(st2>0&&st2<1.5){
+      const y=(st2/1.5)*h;
+      const g=ctx.createLinearGradient(0,y-70,0,y+18);
+      g.addColorStop(0,'rgba(77,157,255,0)'); g.addColorStop(1,'rgba(77,157,255,.30)');
+      ctx.fillStyle=g; ctx.fillRect(0,y-70,w,88);
+      ctx.fillStyle='rgba(190,220,255,.75)'; ctx.fillRect(0,y,w,1.4);
+    }
+  }
+
+  // --- the ship builds itself on the right ---
+  const bk=clamp((t-1.2)/1.6,0,1);
+  if(bk>0){
+    const cx=w*.72, cy=h*.5, R=76;
+    ctx.save(); ctx.translate(cx,cy);
+    // targeting rings closing in
+    for(let i=0;i<3;i++){
+      const rk=clamp((t-1.2-i*.22)/1.1,0,1);
+      if(rk<=0) continue;
+      const rr=R*(3.1-2.0*rk)+i*16;
+      ctx.beginPath(); ctx.arc(0,0,rr,0,TAU);
+      ctx.strokeStyle='rgba(77,157,255,'+(.5*rk*(1-i*.22))+')';
+      ctx.setLineDash([10,14]); ctx.lineDashOffset=-t*(40+i*30)*(i%2?-1:1);
+      ctx.lineWidth=1.4; ctx.stroke(); ctx.setLineDash([]);
+    }
+    // corner brackets
+    if(bk>.55){
+      const b=R*1.9, L=20;
+      ctx.strokeStyle='rgba(70,227,155,'+((bk-.55)/.45*.8)+')'; ctx.lineWidth=2;
+      for(const sx of [-1,1]) for(const sy of [-1,1]){
+        ctx.beginPath();
+        ctx.moveTo(sx*b-sx*L,sy*b); ctx.lineTo(sx*b,sy*b); ctx.lineTo(sx*b,sy*b-sy*L);
+        ctx.stroke();
+      }
+    }
+    // the hull itself: outline first, then it fills
+    ctx.rotate(-Math.PI/2 + Math.sin(t*.8)*.05);
+    ctx.setLineDash([200*bk,200]); ctx.lineDashOffset=0;
+    ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=18*bk;
+    shipPath(ctx,R,player?player.st.hull:SHIPS.indexOf(SHIP()));
+    if(bk>=1){ ctx.fillStyle='rgba(10,20,38,.9)'; ctx.fill(); }
+    ctx.strokeStyle='#dfe9ff'; ctx.lineWidth=2.4; ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur=0;
+    ctx.restore();
+  }
+
+  // --- the boot log types itself out on the left ---
+  ctx.textAlign='left'; ctx.font='13px Menlo,monospace';
+  let ly=h*.5-C.lines.length*11;
+  for(const [at,txt] of C.lines){
+    if(t<at){ ly+=22; continue; }
+    const k=clamp((t-at)/.26,0,1), n=Math.floor(txt.length*k);
+    ctx.fillStyle= n>=txt.length ? '#8ea0c8' : '#46e39b';
+    ctx.fillText(txt.slice(0,n),w*.09,ly);
+    if(n<txt.length&&Math.floor(t*14)%2)
+      ctx.fillRect(w*.09+ctx.measureText(txt.slice(0,n)).width+2,ly-9,7,11);
+    ly+=22;
+  }
+
+  // --- the title lands last, and it lands hard ---
+  if(t>4.95){
+    const k=clamp((t-4.95)/.4,0,1);
+    ctx.textAlign='center';
+    ctx.save();
+    ctx.globalAlpha=k;
+    ctx.font='600 15px Menlo,monospace'; ctx.fillStyle='#4d9dff';
+    ctx.fillText('M I N D F R A M E',w/2,h*.14);
+    const sc=1+(1-k)*.35;
+    ctx.translate(w/2,h*.86); ctx.scale(sc,sc);
+    ctx.font='600 26px Menlo,monospace';
+    ctx.shadowColor='#dfe9ff'; ctx.shadowBlur=26*k;
+    ctx.fillStyle='#dfe9ff';
+    ctx.fillText('DEFENCE OF SYSTEM 001',0,0);
+    ctx.shadowBlur=0;
+    ctx.font='12px Menlo,monospace'; ctx.fillStyle='#ff4d5e';
+    ctx.fillText('ONE HULL  ·  ONE RUN  ·  NO RESUPPLY',0,26);
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+
+  // --- scanlines and a vignette over everything, so it reads as a screen ---
+  ctx.fillStyle='rgba(0,0,0,.09)';
+  for(let y=0;y<h;y+=3) ctx.fillRect(0,y,w,1);
+  const vg=ctx.createRadialGradient(w/2,h/2,h*.34,w/2,h/2,h*.86);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.46)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
+
+  ctx.textAlign='right'; ctx.font='11px Menlo,monospace';
+  ctx.fillStyle='rgba(125,139,176,'+(.45+.35*Math.sin(t*4))+')';
+  ctx.fillText('PRESS ANY KEY TO SKIP',w-26,h-24);
+  ctx.textAlign='left';
+}
+
 /* A run is always the whole climb: it starts at System 001 and goes up. */
 function newRun(){
   const st=stats();
@@ -524,10 +824,12 @@ function newRun(){
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=0; paused=false; runHeld=0;
-  mission=null; runSecrets=[];
+  mission=null; runSecrets=[]; fxClear(); flash=0;
   const S0=SYS();
-  if(S0.brief.trim()) openBrief(S0.name,'INBOUND — FIVE WAVES',para(S0.brief));
-  else beginSystem();
+  cineStart(()=>{
+    if(S0.brief.trim()) openBrief(S0.name,'INBOUND — FIVE WAVES',para(S0.brief));
+    else beginSystem();
+  });
 }
 
 // text -> paragraphs; [BRACKETED] lines render as terminal output
@@ -948,18 +1250,150 @@ function burst(x,y,col,n,sp=200){
   }
 }
 
+/* ---- the big fx ----
+   burst() throws sparks, and that is the right weight for a Watcher. Three
+   moments in the game are worth more than sparks: a boss coming apart, the
+   pilot dying, and a skill landing. They get rings, debris, and time itself
+   leaning on the brakes.                                                    */
+let waves=[], shards=[], slowT=0, slowMax=1, timers=[];
+/* A boss coming apart is a scene, and nothing is allowed to advance while it
+   plays — otherwise the arena is empty on the very next frame and the map
+   takes the screen before the first detonation lands. */
+let sealing=false;
+
+// an expanding ring that thins as it goes
+function shock(x,y,col,r0,r1,life,w){ waves.push({x,y,col,r0,r1,life,w:w||5,t:0}); }
+// pieces of something that used to be whole, tumbling
+function shred(x,y,col,n,sp,size){
+  for(let i=0;i<n;i++){
+    const a=rand(0,TAU), v=rand(sp*.25,sp);
+    shards.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,col,
+      r:rand(size*.35,size),spin:rand(0,TAU),rot:rand(-8,8),t:0,life:rand(.8,1.9),
+      n:Math.floor(rand(3,6)),seed:rand(0,9)});
+  }
+}
+// time leans on the brakes, then lets go
+function slow(sec){ if(sec>slowT){ slowT=sec; slowMax=sec; } }
+const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
+// a beat later, do this. Runs on real time, so it survives the run ending.
+const after=(t,fn)=>timers.push({t,fn});
+function fxClear(){ waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; }
+
+function fxStep(dt){
+  for(let i=waves.length-1;i>=0;i--){
+    const w=waves[i]; w.t+=dt; if(w.t>=w.life) waves.splice(i,1);
+  }
+  for(let i=shards.length-1;i>=0;i--){
+    const p=shards[i]; p.t+=dt;
+    if(p.t>=p.life){ shards.splice(i,1); continue; }
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.982; p.vy*=.982; p.spin+=p.rot*dt;
+  }
+}
+function timerStep(dt){
+  for(let i=timers.length-1;i>=0;i--){
+    const t=timers[i]; t.t-=dt;
+    if(t.t<=0){ timers.splice(i,1); t.fn(); }
+  }
+}
+
+/* A boss is the only thing in a system that took a minute to kill. It does not
+   get to blink out in one frame: time slows, the frame comes apart in layers
+   over a second and a half, and the last ring crosses the whole arena.      */
+function bossDeathFx(e){
+  const x=e.x, y=e.y, col=e.col;
+  spawnQ.length=0; ebullets.length=0;
+  sealing=true; after(3.1,()=>{ sealing=false; });
+  slow(1.5); shake=52; flash=1;
+  banner='TARGET DESTROYED'; bannerT=3.2;
+  shock(x,y,col,e.r*.6,e.r*3.2,.5,9);
+  shock(x,y,'#e6dcff',e.r*.4,e.r*5.5,.9,6);
+  shred(x,y,col,26,430,17);
+  burst(x,y,'#ffffff',70,560);
+  for(const o of enemies) burst(o.x,o.y,ecol(o.t),14,260);
+  // it comes apart in layers, and each layer is its own event
+  for(let i=0;i<7;i++) after(.16+i*.15,()=>{
+    const a=rand(0,TAU), d=rand(18,e.r*1.5);
+    const px=x+Math.cos(a)*d, py=y+Math.sin(a)*d;
+    burst(px,py,i%2?'#e6dcff':col,44,520);
+    shock(px,py,i%2?'#ffffff':col,6,rand(70,150),.42,4);
+    shred(px,py,col,5,380,12);
+    shake=Math.max(shake,26); flash=Math.max(flash,.34);
+  });
+  // and then the shockwave that reaches the walls
+  after(1.35,()=>{
+    slow(.5); shake=Math.max(shake,44); flash=1;
+    shock(x,y,'#ffffff',20,Math.max(W,H)*1.25,1.15,13);
+    shock(x,y,col,10,Math.max(W,H)*.85,.95,8);
+    shred(x,y,col,20,600,22);
+    burst(x,y,col,90,700);
+  });
+}
+
+/* The pilot dies once per campaign. The run does not end on the frame the hull
+   hits zero — the ship comes apart, the field goes quiet, and only then does
+   the results panel arrive.                                                 */
+function deathFx(){
+  const P=player;
+  slow(1.9); shake=48; flash=.85;
+  ebullets.length=0; bullets.length=0; pickups.length=0;
+  shock(P.x,P.y,'#ff4d5e',8,190,.55,8);
+  shock(P.x,P.y,'#dfe9ff',4,340,.95,5);
+  shred(P.x,P.y,'#dfe9ff',18,360,13);
+  burst(P.x,P.y,'#ff4d5e',60,480);
+  burst(P.x,P.y,'#dfe9ff',40,300);
+  for(let i=0;i<4;i++) after(.2+i*.22,()=>{
+    const a=rand(0,TAU), d=rand(10,52);
+    burst(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d,i%2?'#ff4d5e':'#dfe9ff',26,380);
+    shock(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d,'#ff4d5e',4,rand(50,110),.4,3);
+    shake=Math.max(shake,20);
+  });
+  after(1.15,()=>{ shock(P.x,P.y,'#ff4d5e',20,Math.max(W,H),1.1,10); flash=Math.max(flash,.6); shake=Math.max(shake,30); });
+}
+
+function fxDraw(){
+  for(const w of waves){
+    const k=w.t/w.life, r=w.r0+(w.r1-w.r0)*(1-Math.pow(1-k,2.4));
+    ctx.beginPath(); ctx.arc(w.x,w.y,r,0,TAU);
+    ctx.strokeStyle=w.col; ctx.globalAlpha=Math.pow(1-k,1.7);
+    ctx.lineWidth=w.w*(1-k)+.6;
+    ctx.shadowColor=w.col; ctx.shadowBlur=22*(1-k);
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1; ctx.shadowBlur=0;
+  for(const p of shards){
+    const k=1-p.t/p.life;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.spin);
+    ctx.globalAlpha=Math.min(1,k*1.6);
+    ctx.beginPath();
+    for(let i=0;i<p.n;i++){
+      const a=i/p.n*TAU, rr=p.r*(.5+.5*Math.abs(Math.sin(a*2.3+p.seed)));
+      i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle='#05060d'; ctx.fill();
+    ctx.strokeStyle=p.col; ctx.lineWidth=1.6;
+    ctx.shadowColor=p.col; ctx.shadowBlur=10*k; ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1; ctx.shadowBlur=0;
+}
+
 /* ================= update ================= */
 function update(dt){
   waveTimer+=dt; if(bannerT>0)bannerT-=dt;
   shake=Math.max(0,shake-dt*34);
   if(flash>0) flash=Math.max(0,flash-dt*1.7);
+  fxStep(dt);
 
   // stars drift
   for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} }
 
   // spawn queue — System 001 holds hostiles back so they arrive as a stream
   // rather than a pile-up. Nothing is skipped; the queue just waits its turn.
-  const maxLive = sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : 10;
+  // an escort is the one place the arena is allowed to be busier than a system:
+  // the whole point of it is more inbound than one ship can cover
+  const maxLive = mission ? (mission.k==='escort'?12:10)
+                : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : 10;
   while(spawnQ.length && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
 
   const P=player, st=P.st;
@@ -982,7 +1416,7 @@ function update(dt){
     P.dashCd=1.15; P.dashT=.17;
     P.vx=ax*st.speed*3.1; P.vy=ay*st.speed*3.1;
     if(st.iframe)P.inv=.4;
-    if(school) school.dashes++;
+    if(school) schoolDash();
     burst(P.x,P.y,'#4d9dff',12,260);
   }
   if(st.regen) P.hp=Math.min(st.maxHp,P.hp+st.regen*dt);
@@ -1159,11 +1593,7 @@ function update(dt){
             spawn('dart',{x:e.x+rand(-18,18),y:e.y+rand(-18,18)});
           if(e.t==='boss'){ // the boss falls: its escorts go with it
             credit(CREDIT_BOSS);
-            spawnQ.length=0; ebullets.length=0;
-            shake=44; flash=1;
-            for(let r=0;r<5;r++)                     // it comes apart in layers
-              burst(e.x+rand(-70,70),e.y+rand(-70,70),r%2?'#e6dcff':e.col,60,620);
-            for(const o of enemies) burst(o.x,o.y,ecol(o.t),14,260);
+            bossDeathFx(e);
             enemies.length=0; break;
           }
         }
@@ -1230,6 +1660,7 @@ function update(dt){
     }else{ P.hp=0; endRun(false); return; }
   }
   if(school){ schoolTick(dt); return; }
+  if(sealing) return;                 // let the boss finish falling first
   if(mission){ missionTick(dt); return; }
   if(!spawnQ.length && !enemies.length){
     if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); systemCleared(); }
@@ -1243,8 +1674,7 @@ function endRun(win,why){
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
   if(win) save.unlocked=true;
   persist();
-  state='over'; mission=null;
-  burst(player.x,player.y,'#dfe9ff',win?0:40,340);
+  mission=null;
   document.getElementById('overTitle').textContent = win?'ALL SYSTEMS HELD':'SYSTEM LOST';
   document.getElementById('overSub').textContent   = win
     ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
@@ -1252,10 +1682,13 @@ function endRun(win,why){
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The Mindframe skill tree is open. Upgrades are permanent — take them into your next run.':'');
+    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades are permanent — take them into your next run.':'');
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   document.getElementById('btnTreeOver').style.display = save.unlocked?'':'none';
-  show('over');
+  if(win){ state='over'; show('over'); return; }
+  // a death is a scene, not a screen transition. Let it finish first.
+  state='dying'; deathFx();
+  after(2.35,()=>{ if(state==='dying'){ state='over'; show('over'); } });
 }
 
 /* ══════════════════════ SECRET MISSIONS ══════════════════════
@@ -1267,7 +1700,7 @@ function endRun(win,why){
    Two are flyable. The third is a placeholder for the secret bosses.       */
 const SECRETS=[
   {k:'none',    n:'SECRET MISSION', sub:'NOT AVAILABLE YET'},
-  {k:'salvage', n:'SALVAGE',        sub:'COLLAPSING HULK'},
+  {k:'salvage', n:'SALVAGE',        sub:'OPEN DEBRIS FIELD'},
   {k:'escort',  n:'ESCORT',         sub:'CONVOY RUN'},
   {k:'boss',    n:'SECRET BOSS',    sub:'CLASSIFIED'},
 ];
@@ -1275,8 +1708,8 @@ const SECRET=i=>SECRETS[Math.min(i,SECRETS.length-1)];
 const secretFlyable=k=>k==='salvage'||k==='escort'||k==='boss';
 /* A system pays 5 waves plus its boss. A salvage or escort run pays half again
    as much; a secret boss, which is the hardest thing in the game, pays two and
-   a half times — and is the only one of the three with nothing to collect and
-   no clock, just the fight.                                                */
+   a half times — and is the only one of the three with nothing to collect,
+   just the fight.                                                          */
 const SECRET_PAY=(i,k)=>Math.round((k==='boss'?2.5:1.5)*(5*(i+1)+3));
 
 let mission=null, runSecrets=[];
@@ -1299,35 +1732,48 @@ function startMission(kind){
     hideAll(); state='play'; return;
   }
   if(kind==='escort'){
-    // a yellow hauler crossing the field at walking pace. Everything shooting
-    // at you will clip it, and Watchers go for it instead of you.
-    mission.dur=42;
-    // it is not armoured. Everything out there is coming for it, and it is
-    // your guns between them and it.
-    mission.ward={x:100,y:H*.42,hp:300,max:300,r:26,vy:0,a:0};
+    // a yellow hauler crossing the field at walking pace. Everything out there
+    // is coming for it, and it is your guns between them and it. It is not
+    // armoured and it does not shoot back, so every hostile that reaches it is
+    // a hostile you did not kill in time.
+    mission.dur=44;
+    mission.ward={x:100,y:H*.42,hp:340,max:340,r:26,vy:0,a:0};
     mission.ward.vx=(W-200)/mission.dur;
-    const S=SYS(), n=6+i*3;
+    const n=11+i*4;                        // a stream, but one ship can cover it
     for(let q=0;q<n;q++){
-      const t=2.5+q*(mission.dur-6)/n;
+      const t=1.8+q*(mission.dur-5)/n;
       spawnQ.push({t, type: q%3===2?'grunt' : q%5===4?'heavy':'dart'});
-      if(i>=2&&q%4===3) spawnQ.push({t:t+.8,type:'tracker'});
+      if(q%4===1) spawnQ.push({t:t+.6, type:'dart'});          // Watchers come in pairs
+      if(i>=1&&q%4===3) spawnQ.push({t:t+.8,type:'tracker'});
+      if(i>=2&&q%6===5) spawnQ.push({t:t+1.1,type:'overseer'});
+      if(i>=3&&q%7===6) spawnQ.push({t:t+1.3,type:'splinter'});
     }
+    // and two pushes: everything at once, timed to the thirds of the crossing
+    for(const [at,k] of [[mission.dur*.34,3],[mission.dur*.7,4]])
+      for(let q=0;q<k+i;q++) spawnQ.push({t:at+q*.26, type: q%2?'dart':'grunt'});
     banner='ESCORT — KEEP IT ALIVE'; bannerT=2.6;
   }else{
-    // a hulk coming apart around you. Grab motes, leave through the gate, and
-    // do not still be inside when it finishes.
-    mission.dur=40;
+    // a debris field, and it never settles. There is no clock and nothing
+    // crushes you at the end of one — the wreckage just keeps arriving, more
+    // of it and moving faster, until staying is its own punishment. When you
+    // leave is entirely your call.
+    mission.base=17+i*5;
     mission.exit={x:W*.5,y:88,r:34};   // clear of the HUD, and a whole wreck away
     mission.got=0;
     mission.motes=[];
     for(let q=0;q<pay;q++) mission.motes.push({
       x:rand(70,W-70), y:rand(70,H-70), t:rand(0,TAU), got:false});
     mission.junk=[];
-    for(let q=0;q<12+i*3;q++) missionJunk();
-    banner='SALVAGE — GET OUT BEFORE IT DOES'; bannerT=2.6;
+    for(let q=0;q<mission.base;q++) missionJunk();
+    banner='SALVAGE — IT ONLY GETS WORSE'; bannerT=2.6;
   }
   hideAll(); state='play';
 }
+
+/* How far a salvage run is allowed to escalate. There is no timer on one, so
+   these two are what eventually makes staying a bad idea — and the ceilings
+   are there so a very long run stays a fair fight and a steady frame rate. */
+const SALV_CAP=76, SALV_VMAX=3.4;
 
 // one more piece of the wreck, thrown in from an edge
 function makeJunk(list,at){
@@ -1405,7 +1851,7 @@ function missionTick(dt){
     for(let i=ebullets.length-1;i>=0;i--){
       const b=ebullets[i], rr=b.r+w.r;
       if(dist2(b,w)<rr*rr){
-        w.hp-=b.dmg*1.3; burst(b.x,b.y,'#ffd24d',7,200);
+        w.hp-=b.dmg*1.6; burst(b.x,b.y,'#ffd24d',7,200);
         ebullets.splice(i,1);
       }
     }
@@ -1413,7 +1859,8 @@ function missionTick(dt){
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j], rr=e.r+w.r;
       if(dist2(e,w)<rr*rr){
-        w.hp-=e.t==='dart'?34:22; burst(e.x,e.y,'#ffd24d',16,300);
+        w.hp-=e.t==='dart'?40:e.t==='heavy'?34:24; burst(e.x,e.y,'#ffd24d',16,300);
+        shock(w.x,w.y,'#ffd24d',w.r,w.r*2.4,.35,4);
         shake=Math.max(shake,9);
         if(e.t==='dart'||e.t==='splinter') enemies.splice(j,1);
       }
@@ -1424,11 +1871,11 @@ function missionTick(dt){
   }
 
   // ---- salvage ----
-  const left=M.dur-M.t;
-  if(left<=0){ missionEnd(false,'CRUSHED IN THE WRECK'); return; }
-  // it comes apart faster the longer you stay
-  if(M.junk.length < 12+M.sys*3+Math.floor(M.t/2.4)) missionJunk();
-  junkStep(M.junk,dt,1+M.t/M.dur,22);
+  // No clock. The only thing that escalates is the wreckage itself: a new
+  // piece roughly every 1.8s, and everything already out there moving faster,
+  // until the field is thick enough that another mote is not worth it.
+  if(M.junk.length < Math.min(SALV_CAP, M.base+Math.floor(M.t/1.1))) missionJunk();
+  junkStep(M.junk,dt,Math.min(SALV_VMAX,1+M.t/17),34);
   M.got+=moteStep(M.motes,dt,()=>credit(1));
   const ex=M.exit, rr=ex.r+13;
   if(dist2(ex,P)<rr*rr) missionEnd(true);
@@ -1499,6 +1946,15 @@ function drone(x,y,hp){
   e.spd=0; e.cool=1e9; e.hp=e.max=hp||30; e.val=0;
   return e;
 }
+// an emplacement: a Primary bolted to the floor. It still leads and fires, it
+// just never closes, so a drill can put live fire in the arena on purpose.
+function turret(x,y,hp,rof){
+  spawn('heavy',{x,y});
+  const e=enemies[enemies.length-1];
+  e.spd=0; e.val=0; e.rof=rof||1; e.cool=rand(.5,1.6);
+  if(hp) e.hp=e.max=hp; else e.inv=1e9;   // no hull given: it cannot be killed
+  return e;
+}
 function ring(x,y){ school.rings.push({x,y,r:46,hit:false}); }
 const cleared=()=>!enemies.length;
 
@@ -1555,9 +2011,9 @@ function schoolLessons(){
 
   if(save.unlocked) L.push({ name:'SECRET MISSIONS', teach:'secret', lines:[
     'Between systems the world map offers a side branch. Taking it is a gamble:',
-    'ESCORT keeps a yellow hauler alive across the field while everything shoots at',
-    'it, SALVAGE is a collapsing hulk full of credits on a clock. They pay well, but',
-    'failing one ends the run like dying does. This is salvage — grab all four cells.'],
+    'ESCORT keeps a yellow hauler alive across the field while everything shoots at it.',
+    'SALVAGE is a debris field of credits that only ever gets thicker — you leave when you',
+    'choose. Both pay well, and failing one ends the run. This is salvage: grab four cells.'],
     goal:()=>'CELLS  '+school.motes.filter(m=>m.got).length+' / '+school.motes.length,
     setup(){
       for(let i=0;i<6;i++) makeJunk(school.junk);
@@ -1571,13 +2027,15 @@ function schoolLessons(){
     }});
 
   if(has('dash')) L.push({ name:'BLINK DRIVE', lines:[
-    'SHIFT blinks you in whatever direction you are already thrusting — hold a key,',
-    'then SHIFT. It runs on a short cooldown, shown under your hull bar.',
-    has('shield')?'Your Deflector makes those frames invulnerable — blink through fire, not around it.'
-                 :'Use it to leave a spot before the shots aimed at that spot arrive. Blink three times.'],
-    teach:'dash', goal:()=>'BLINKS  '+school.dashes+' / 3',
-    setup(){},
-    tick(){ return school.dashes>=3; }});
+    'SHIFT blinks you the way you are already thrusting — hold a direction, then SHIFT.',
+    has('shield')?'Your Deflector makes those frames invulnerable: go through a volley, not around it.'
+                 :'It is an escape, not a sprint. Spend it on a shot that is already in the air.',
+    'These three emplacements cannot be destroyed. Break out of four shots aimed at you.'],
+    teach:'dash', dodge:true,
+    goal:()=>'CLEAN BREAKS  '+school.clean+' / 4',
+    setup(){ player.x=W*.2; player.y=H*.5; player.vx=player.vy=0;
+      turret(820,190,0,.55); turret(890,430,0,.55); turret(700,570,0,.55); },
+    tick(){ return school.clean>=4; }});
 
   if(has('spread')) L.push({ name:'TRIPLE SPREAD', lines:[
     'Your emitters fire three rounds in a fan. It spreads with range, so the whole',
@@ -1598,13 +2056,18 @@ function schoolLessons(){
     tick:cleared });
 
   if(has('regen')) L.push({ name:'REPAIR FIELD', lines:[
-    'Your hull rebuilds itself, slowly and constantly. That changes how you fight:',
-    'breaking away from a wave for a few seconds is now worth real hull. Your ship',
-    'has been left damaged — disengage and let the field work.'],
-    goal:()=>'HULL  '+Math.round(player.hp/player.st.maxHp*100)+'% / 90%',
+    'The field knits '+player.st.regen.toFixed(1)+' hull a second back on, always, mid-fight included. It will',
+    'not out-heal a gunline — it pays you for leaving one. Hit a target, break off before',
+    'it costs more than you regain, come back full. Kill all three, never dropping under 25%.'],
+    goal:()=>'EMPLACEMENTS  '+enemies.length+'  ·  HULL  '+Math.round(player.hp/player.st.maxHp*100)+'%',
     teach:'regen',
-    setup(){ player.hp=player.st.maxHp*.4; },
-    tick(){ return player.hp>=player.st.maxHp*.9; }});
+    setup(){
+      player.hp=player.st.maxHp*.6;
+      player.x=W*.14; player.y=H*.5; player.vx=player.vy=0;
+      turret(830,180,200,1.15); turret(900,420,200,1.15); turret(760,560,200,1.15);
+    },
+    fail(){ return player.hp<player.st.maxHp*.25 ? 'PULL BACK SOONER' : null; },
+    tick:cleared });
 
   return L;
 }
@@ -1618,9 +2081,9 @@ function schoolStart(){
   hideAll();
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
-  bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[]; clearBuffs();
+  bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[]; clearBuffs(); fxClear(); flash=0;
   score=0; shake=0; wave=1; sysIdx=0; paused=false; waveTimer=0; bannerT=0;
-  school={i:-1,list:schoolLessons(),t:0,rings:[],junk:[],motes:[],dashes:0,hold:0,frozen:false};
+  school={i:-1,list:schoolLessons(),t:0,rings:[],junk:[],motes:[],dashes:0,clean:0,hold:0,frozen:false};
   $('btnSchoolExit').style.display='';
   $('btnSchoolSkip').style.display='';
   state='play';
@@ -1632,16 +2095,47 @@ function schoolNext(){
   if(school.i>=school.list.length){ schoolFinish(); return; }
   enemies.length=0; ebullets.length=0; bullets.length=0; spawnQ.length=0;
   clearBuffs();
-  school.rings=[]; school.junk=[]; school.motes=[]; school.t=0; school.dashes=0; school.hold=0; school.frozen=false;
+  school.rings=[]; school.junk=[]; school.motes=[]; school.t=0; school.dashes=0; school.clean=0; school.hold=0; school.frozen=false;
   player.hp=player.st.maxHp; player.inv=1.4;
   school.list[school.i].setup();
   banner=school.list[school.i].name; bannerT=2.2;
+}
+
+// A blink is only worth counting if it actually got you out of something. At
+// the moment SHIFT lands, look for a round that is close and genuinely closing.
+function schoolDash(){
+  school.dashes++;
+  const L=school.list[school.i]; if(!L||!L.dodge||school.hold>0) return;
+  const P=player;
+  let threat=false;
+  for(const b of ebullets){
+    const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1;
+    if(d>200) continue;
+    const sp=Math.hypot(b.vx,b.vy)||1;
+    if((dx*b.vx+dy*b.vy)/(d*sp) < .8) continue;   // not pointed at you: it does not count
+    threat=true; break;
+  }
+  if(threat){ school.clean++; burst(P.x,P.y,'#46e39b',18,320); banner='CLEAN BREAK'; bannerT=.9; }
+  else { banner='NOTHING WAS COMING'; bannerT=.9; }
 }
 
 function schoolTick(dt){
   school.t+=dt;
   if(school.hold>0){ school.hold-=dt; if(school.hold<=0) schoolNext(); return; }
   const L=school.list[school.i];
+  // a drill with a standard to hold can be failed — it re-racks rather than ending
+  if(school.t>1 && L.fail){
+    const why=L.fail();
+    if(why){
+      enemies.length=0; ebullets.length=0; bullets.length=0; parts.length=0;
+      school.t=0; school.dashes=0; school.clean=0;
+      player.hp=player.st.maxHp; player.inv=1.6;
+      player.x=W*.18; player.y=H*.5; player.vx=player.vy=0;
+      L.setup();
+      banner=why; bannerT=2.2; shake=Math.max(shake,14);
+      return;
+    }
+  }
   if(school.t>1 && L.tick(dt)){
     if(L.teach && !save.taught.includes(L.teach)){ save.taught.push(L.teach); persist(); }
     school.hold=1.8; banner='LESSON PASSED'; bannerT=1.8;
@@ -1691,6 +2185,83 @@ function schoolRings(){
 }
 
 /* ================= render ================= */
+/* One silhouette per unit, in one place. The arena draws with it and so does
+   the bestiary's assess panel, so a codex entry can never show a shape the
+   game does not actually field. `kind` is an enemy's `t`, or its `k` when that
+   `t` is 'boss'. `spin` and `morph` are the animated terms.               */
+function unitPath(g,kind,r,spin,morph){
+  spin=spin||0; morph=morph||0;
+  if(kind==='dart'){
+    g.beginPath(); g.moveTo(r,0); g.lineTo(-r,r*.75); g.lineTo(-r,-r*.75); g.closePath();
+  }else if(kind==='grunt'){
+    g.beginPath();
+    for(let i=0;i<6;i++){const a=i/6*TAU; const rr=i%2?r*.62:r;
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
+    g.closePath();
+  }else if(kind==='heavy'){
+    g.rotate(spin);
+    g.beginPath();
+    for(let i=0;i<4;i++){const a=i/4*TAU;
+      i?g.lineTo(Math.cos(a)*r,Math.sin(a)*r):g.moveTo(Math.cos(a)*r,Math.sin(a)*r);}
+    g.closePath();
+  }else if(kind==='tracker'){
+    g.rotate(spin);
+    g.beginPath();
+    for(let i=0;i<3;i++){const a=i/3*TAU;
+      i?g.lineTo(Math.cos(a)*r,Math.sin(a)*r):g.moveTo(Math.cos(a)*r,Math.sin(a)*r);}
+    g.closePath();
+  }else if(kind==='overseer'){
+    g.beginPath(); g.arc(0,0,r,0,TAU); g.closePath();
+  }else if(kind==='splinter'){
+    g.rotate(spin);
+    g.beginPath();
+    for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?r*.48:r;
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
+    g.closePath();
+  }else if(kind==='b_primary'){
+    // ITERATION 3296: a Primary grown past its own frame — the diamond, doubled
+    g.rotate(spin*.7);
+    for(const f of [1,.66]){
+      g.beginPath();
+      for(let i=0;i<4;i++){const a=i/4*TAU+(f<1?Math.PI/4:0);
+        i?g.lineTo(Math.cos(a)*r*f,Math.sin(a)*r*f):g.moveTo(Math.cos(a)*r*f,Math.sin(a)*r*f);}
+      g.closePath();
+    }
+  }else if(kind==='b_s3295'){
+    // ITERATION 3295: the Watcher's dart, three times over
+    g.beginPath();
+    for(const f of [1,.7,.42]){
+      g.moveTo(r*f,0);
+      g.lineTo(-r*f,r*f*.75); g.lineTo(-r*f,-r*f*.75);
+      g.closePath();
+    }
+  }else if(kind==='b_archive'){
+    // THE ARCHIVE: a ring of stored Mindframes around an empty middle
+    g.beginPath();
+    g.arc(0,0,r,0,TAU);
+    g.moveTo(r*.34,0); g.arc(0,0,r*.34,0,TAU);
+  }else if(kind==='b_hive'){
+    // THE HIVE MIND: a core with the swarm still orbiting it
+    g.beginPath(); g.arc(0,0,r*.55,0,TAU); g.closePath();
+  }else if(kind==='b_overseer'){
+    // ITERATION 2117: the Overseer's circle, with a second ring inside it
+    g.beginPath(); g.arc(0,0,r,0,TAU); g.closePath();
+    g.moveTo(r*.6,0); g.arc(0,0,r*.6,0,TAU);
+  }else{
+    // THE RULER: an ever-changing black shape, legible only by the light it bends
+    g.rotate(spin);
+    g.beginPath();
+    const N=13;
+    for(let i=0;i<N;i++){
+      const a=i/N*TAU;
+      const rr=r*(.62+.38*Math.abs(Math.sin(a*2.5+morph*1.7))+.12*Math.sin(a*5-morph*2.3));
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
+    }
+    g.closePath();
+  }
+}
+const unitKind=e=> e.t==='boss'?'b_'+e.k:e.t;
+
 // one silhouette per hull, so you can tell what you are flying at a glance
 function shipPath(g,r,hull){
   g.beginPath();
@@ -1723,13 +2294,16 @@ function draw(){
 
   for(const s of stars){ ctx.fillStyle='rgba(160,185,240,'+(s.z*.55)+')'; ctx.fillRect(s.x,s.y,s.s,s.s); }
 
-  if(state==='play'||state==='over'){
+  if(state==='intro'){ cineDraw(); ctx.restore(); return; }
+
+  if(state==='play'||state==='over'||state==='dying'){
     // particles
     for(const p of parts){
       ctx.globalAlpha=1-p.t/p.life; ctx.fillStyle=p.col;
       ctx.fillRect(p.x-p.r/2,p.y-p.r/2,p.r,p.r);
     }
     ctx.globalAlpha=1;
+    fxDraw();
 
     // enemy bullets
     for(const b of ebullets){
@@ -1791,75 +2365,8 @@ function draw(){
       ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
       ctx.strokeStyle=col; ctx.fillStyle=e.t==='heavy'?'rgba(255,77,94,.13)':'rgba(0,0,0,.55)';
       ctx.lineWidth=e.t==='boss'?3:e.t==='heavy'?2.6:2; ctx.shadowColor=col; ctx.shadowBlur=14;
-      if(e.t==='dart'){
-        ctx.beginPath(); ctx.moveTo(e.r,0); ctx.lineTo(-e.r,e.r*.75); ctx.lineTo(-e.r,-e.r*.75); ctx.closePath();
-      }else if(e.t==='grunt'){
-        ctx.beginPath();
-        for(let i=0;i<6;i++){const a=i/6*TAU; const rr=i%2?e.r*.62:e.r;
-          i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
-        ctx.closePath();
-      }else if(e.t==='heavy'){
-        ctx.rotate(e.spin);
-        ctx.beginPath();
-        for(let i=0;i<4;i++){const a=i/4*TAU;
-          i?ctx.lineTo(Math.cos(a)*e.r,Math.sin(a)*e.r):ctx.moveTo(Math.cos(a)*e.r,Math.sin(a)*e.r);}
-        ctx.closePath();
-      }else if(e.t==='tracker'){
-        ctx.rotate(e.spin);
-        ctx.beginPath();
-        for(let i=0;i<3;i++){const a=i/3*TAU;
-          i?ctx.lineTo(Math.cos(a)*e.r,Math.sin(a)*e.r):ctx.moveTo(Math.cos(a)*e.r,Math.sin(a)*e.r);}
-        ctx.closePath();
-      }else if(e.t==='overseer'){
-        ctx.beginPath(); ctx.arc(0,0,e.r,0,TAU); ctx.closePath();
-      }else if(e.t==='splinter'){
-        ctx.rotate(e.spin);
-        ctx.beginPath();
-        for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?e.r*.48:e.r;
-          i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
-        ctx.closePath();
-      }else if(e.k==='primary'){
-        // ITERATION 3296: a Primary grown past its own frame — the diamond, doubled
-        ctx.rotate(e.spin*.7);
-        for(const f of [1,.66]){
-          ctx.beginPath();
-          for(let i=0;i<4;i++){const a=i/4*TAU+(f<1?Math.PI/4:0);
-            i?ctx.lineTo(Math.cos(a)*e.r*f,Math.sin(a)*e.r*f):ctx.moveTo(Math.cos(a)*e.r*f,Math.sin(a)*e.r*f);}
-          ctx.closePath();
-        }
-      }else if(e.k==='s3295'){
-        // ITERATION 3295: the Watcher's dart, three times over
-        for(const f of [1,.7,.42]){
-          ctx.moveTo(e.r*f,0);
-          ctx.lineTo(-e.r*f,e.r*f*.75); ctx.lineTo(-e.r*f,-e.r*f*.75);
-          ctx.closePath();
-        }
-      }else if(e.k==='archive'){
-        // THE ARCHIVE: a ring of stored Mindframes around an empty middle
-        e.morph+=1/60;
-        ctx.arc(0,0,e.r,0,TAU);
-        ctx.moveTo(e.r*.34,0); ctx.arc(0,0,e.r*.34,0,TAU);
-      }else if(e.k==='hive'){
-        // THE HIVE MIND: a core with the swarm still orbiting it
-        e.morph+=1/60;
-        ctx.beginPath(); ctx.arc(0,0,e.r*.55,0,TAU); ctx.closePath();
-      }else if(e.k==='overseer'){
-        // ITERATION 2117: the Overseer's circle, with a second ring inside it
-        ctx.beginPath(); ctx.arc(0,0,e.r,0,TAU); ctx.closePath();
-        ctx.moveTo(e.r*.6,0); ctx.arc(0,0,e.r*.6,0,TAU);
-      }else{
-        // THE RULER: an ever-changing black shape, legible only by the light it bends
-        ctx.rotate(e.spin);
-        e.morph+=1/60;
-        ctx.beginPath();
-        const N=13;
-        for(let i=0;i<N;i++){
-          const a=i/N*TAU;
-          const rr=e.r*(.62+.38*Math.abs(Math.sin(a*2.5+e.morph*1.7))+.12*Math.sin(a*5-e.morph*2.3));
-          i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
-        }
-        ctx.closePath();
-      }
+      unitPath(ctx,unitKind(e),e.r,e.spin,e.morph);
+      if(e.t==='boss'&&(e.k==='archive'||e.k==='hive'||e.k==='ruler')) e.morph+=1/60;
       if(e.t==='boss'){
         ctx.fillStyle = e.k==='ruler' ? '#000' : 'rgba(0,0,0,.66)';
         ctx.fill();
@@ -1949,7 +2456,7 @@ function draw(){
   ctx.restore();
 
   if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
-  if(state==='play'||state==='over') hud();
+  if(state==='play'||state==='over'||state==='dying') hud();
 }
 
 function hud(){
@@ -1979,7 +2486,7 @@ function hud(){
         ctx.fillStyle='#7d8bb0';
         ctx.fillText(M.k==='escort'
           ? 'CONVOY '+Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max
-          : 'COLLAPSE IN '+Math.max(0,Math.ceil(M.dur-M.t))+'s',W-24,70);
+          : 'WRECKAGE  '+M.junk.length+(M.junk.length>=SALV_CAP?'  MAX':''),W-24,70);
       }
       ctx.fillStyle='#46e39b';
       ctx.fillText(M.k==='salvage'?'SALVAGED '+M.got+' / '+M.motes.length
@@ -2056,11 +2563,22 @@ function hud(){
 /* ================= loop ================= */
 let last=performance.now();
 function frame(now){
-  const dt=Math.min(.033,(now-last)/1000); last=now;
-  if(state==='play'&&!paused&&!(school&&school.frozen)) update(dt);
-  else if(state==='over'){ for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}} shake=Math.max(0,shake-dt*34); if(flash>0)flash=Math.max(0,flash-dt*1.7); }
+  const raw=Math.min(.033,(now-last)/1000); last=now;
+  timerStep(raw);                                  // scheduled beats keep real time
+  if(slowT>0) slowT=Math.max(0,slowT-raw);
+  const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
+  if(state==='intro'){ cineStep(raw); }
+  else if(state==='play'&&!paused&&!(school&&school.frozen)) update(dt);
+  else if(state==='over'||state==='dying'){
+    for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}}
+    fxStep(dt);
+    for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} }
+    shake=Math.max(0,shake-dt*34); if(flash>0)flash=Math.max(0,flash-dt*1.7);
+  }
   else { for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} } ctx.fillStyle='#05060d'; }
   draw();
+  if($('codex').classList.contains('on')) assessArt(raw);
+  if($('map').classList.contains('on')) mapArt(raw);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -2080,7 +2598,7 @@ function setPause(on){
 function quitRun(){
   paused=false;
   if(school){ schoolExit(); return; }
-  mission=null;
+  mission=null; fxClear(); flash=0; shake=0;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
@@ -2122,33 +2640,43 @@ function buildMap(){
   const held=Math.min(runHeld,SYSTEMS.length);
   c.querySelectorAll('.mnode').forEach(n=>n.remove());
   svg.innerHTML='';
-  const line=(x1,y1,x2,y2,col,dash)=>{
+  const line=(x1,y1,x2,y2,col,dash,flow)=>{
     const l=document.createElementNS(ns,'line');
     l.setAttribute('x1',x1+'%'); l.setAttribute('y1',y1+'%');
     l.setAttribute('x2',x2+'%'); l.setAttribute('y2',y2+'%');
-    l.setAttribute('stroke',col); l.setAttribute('stroke-width','2');
+    l.setAttribute('stroke',col); l.setAttribute('stroke-width',flow?'2.6':'2');
     if(dash) l.setAttribute('stroke-dasharray','5 6');
+    if(flow) l.classList.add('flow');
     svg.appendChild(l);
   };
-  const node=(x,y,cls,id,st)=>{
+  const node=(x,y,cls,id,st,idx,meta)=>{
     const d=document.createElement('div');
     d.className='mnode '+cls;
     d.style.left=x+'%'; d.style.top=y+'%';
-    d.innerHTML='<div class="id">'+id+'</div><div class="st">'+st+'</div>';
+    d.innerHTML=(idx?'<div class="mi">'+idx+'</div>':'')+
+      '<div class="id">'+id+'</div><div class="st">'+st+'</div>'+
+      (meta?'<div class="mx">'+meta+'</div>':'');
     c.appendChild(d); return d;
   };
+  // what a system actually is, in numbers: how much heavier everything is,
+  // what it pays a wave, and the one enemy it introduces
+  const readout=(sy,i)=>
+    '<b>\u00d7'+sy.hp.toFixed(2)+'</b> THREAT &nbsp;\u00b7&nbsp; <b>'+CREDITS_PER_WAVE(i)+
+    '</b> CR / WAVE &nbsp;\u00b7&nbsp; '+(sy.adds?'+'+sy.adds.toUpperCase():'BASELINE');
 
   SYSTEMS.forEach((sy,i)=>{
     const y=MAP_Y(i), done=i<held, next=i===held;
-    if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':next?'#4d9dff':'#22293f');
+    if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':next?'#4d9dff':'#22293f',
+                 false, next);            // the segment you are about to fly runs
     const sec=SECRET(i), open=secretOffered(i);
-    line(MAP_X,y,SECRET_X,y, open?'#ffd24d':'#22293f', true);
+    line(MAP_X,y,SECRET_X,y, open?'#ffd24d':'#22293f', true, open);
     const sn=node(SECRET_X,y,'secret'+(open?' open':''),
       open?sec.n:'SECRET<br>MISSION',
       open?sec.sub:'NOT AVAILABLE YET');
     if(open) sn.onclick=()=>startMission(sec.k);
     node(MAP_X,y, done?'held':next?'next':'locked', sy.id,
-         done?'HELD':next?'NEXT':'LOCKED');
+         done?'HELD':next?'NEXT':'LOCKED',
+         String(i+1).padStart(2,'0'), readout(sy,i));
   });
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
   const run=mapMode==='run';
@@ -2163,10 +2691,90 @@ function buildMap(){
     ? 'FURTHEST HELD  '+SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length)-1].name
     : '';
 }
+/* The chart's backdrop runs off the main loop while the map is open: a grid,
+   a scan bar, and pulses climbing the part of the spine you already hold. It
+   reads the same MAP_X / MAP_Y percentages the nodes are placed with, so the
+   route it lights is always the route you are looking at.                   */
+let mapT=0;
+function mapArt(dt){
+  const cv2=$('mapArt'), box=$('chart');
+  if(!cv2||!box) return;
+  const w=box.clientWidth, h=box.clientHeight;
+  if(!w||!h) return;
+  if(cv2.width!==w||cv2.height!==h){ cv2.width=w; cv2.height=h; }
+  const g=cv2.getContext('2d');
+  mapT+=dt;
+  g.clearRect(0,0,w,h);
+
+  // grid
+  g.lineWidth=1;
+  g.strokeStyle='rgba(110,170,255,.11)';
+  for(let x=0;x<=w;x+=38){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); }
+  for(let y=0;y<=h;y+=38){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+  g.strokeStyle='rgba(130,185,255,.22)';
+  for(let x=0;x<=w;x+=38*4){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); }
+  for(let y=0;y<=h;y+=38*4){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+
+  // drifting motes, so the field is never completely still
+  g.fillStyle='rgba(175,205,250,.55)';
+  for(let i=0;i<48;i++){
+    const sx=(i*137.5)%w, sy=(h - ((i*91.3 + mapT*(11+i%7*4)) % (h+40)));
+    g.fillRect(sx,sy,1.6,1.6);
+  }
+
+  // the spine, glowing under the SVG route
+  const held=Math.min(runHeld,SYSTEMS.length);
+  const px=x=>x/100*w, py=y=>y/100*h;
+  const x0=px(MAP_X);
+  const yBot=py(MAP_Y(0)), yTop=py(MAP_Y(SYSTEMS.length-1));
+  const grad=g.createLinearGradient(x0,yBot,x0,yTop);
+  grad.addColorStop(0,'rgba(70,227,155,.34)'); grad.addColorStop(1,'rgba(157,134,232,.34)');
+  g.strokeStyle=grad; g.lineWidth=14; g.beginPath();
+  g.moveTo(x0,yBot); g.lineTo(x0,yTop); g.stroke();
+
+  // pulses climbing the part of it you hold
+  if(held>0){
+    const yEnd=py(MAP_Y(Math.min(held,SYSTEMS.length-1)));
+    for(let i=0;i<3;i++){
+      const k=((mapT*.42+i/3)%1);
+      const yy=yBot+(yEnd-yBot)*k;
+      g.beginPath(); g.arc(x0,yy,3.4,0,TAU);
+      g.fillStyle='rgba(70,227,155,'+(0.85*(1-Math.abs(k-.5)*1.1))+')';
+      g.shadowColor='#46e39b'; g.shadowBlur=14; g.fill(); g.shadowBlur=0;
+    }
+  }
+
+  // a scan bar crawling up the chart, the way the route reads
+  const sy2=h-((mapT*74)%(h+150))+75;
+  const sg=g.createLinearGradient(0,sy2-90,0,sy2+10);
+  sg.addColorStop(0,'rgba(77,157,255,0)'); sg.addColorStop(1,'rgba(100,170,255,.17)');
+  g.fillStyle=sg; g.fillRect(0,sy2-90,w,100);
+  g.fillStyle='rgba(190,222,255,.40)'; g.fillRect(0,sy2,w,1);
+}
+
 function openMap(mode,then){
   mapMode=mode||'menu'; mapThen=then||null;
   if(mapMode==='menu') runHeld=0;
   buildMap(); state='map'; show('map');
+}
+
+/* The node that was just bought, so a rebuild of the tree can re-apply the
+   animation to it rather than wiping it. */
+let landed=null;
+// how long a RESPEC click stays armed for its confirming second click
+let respecArmed=0;
+const spentPoints=()=>save.owned.reduce((a,id)=>{const k=byId(id); return a+(k?k.cost:0);},0);
+
+// the moment a skill lands: the screen flares and the tree stamps its name
+function unlockFx(s){
+  const sc=$('skills');
+  sc.classList.remove('pulse'); void sc.offsetWidth; sc.classList.add('pulse');
+  const old=$('unlockName'); if(old) old.remove();
+  const el=document.createElement('div');
+  el.id='unlockName';
+  el.innerHTML=s.n.replace(/\n/g,' ')+'<small>'+s.d+'</small>';
+  $('tree').appendChild(el);
+  setTimeout(()=>{ el.remove(); sc.classList.remove('pulse'); },1500);
 }
 
 function buildTree(){
@@ -2182,6 +2790,7 @@ function buildTree(){
       l.setAttribute('x2',s.x+'%'); l.setAttribute('y2',s.y+'%');
       l.setAttribute('stroke', has(s.id)?'#46e39b':has(s.req)?'#4d9dff':'#22293f');
       l.setAttribute('stroke-width','2');
+      if(s.id===landed) l.classList.add('surge');
       svg.appendChild(l);
     }
   }
@@ -2191,16 +2800,82 @@ function buildTree(){
     d.style.left=s.x+'%'; d.style.top=s.y+'%';
     d.innerHTML='<div class="nm">'+s.n.replace(/\n/g,'<br>')+'</div>'+
                 '<div class="cost">'+(has(s.id)?s.d:s.d+' · '+s.cost+'P')+'</div>';
-    d.onclick=()=>{ if(canBuy(s)){ save.points-=s.cost; save.owned.push(s.id); persist(); buildTree(); refreshMenu(); } };
+    if(s.id===landed) d.classList.add('landed');
+    d.onclick=()=>{ if(canBuy(s)){
+      save.points-=s.cost; save.owned.push(s.id); persist();
+      landed=s.id; unlockFx(s);
+      buildTree(); refreshMenu();
+      setTimeout(()=>{ if(landed===s.id){ landed=null; buildTree(); } },950);
+    } };
     t.appendChild(d);
   }
   $('pts').textContent=save.credits+' CR  ·  '+save.points+' POINT'+(save.points===1?'':'S');
+  const rs=$('btnRespec'), back=spentPoints();
+  rs.textContent = back?'RESPEC — REFUND '+back+'P':'RESPEC';
+  rs.className='ghost'; rs.disabled=!back; rs.style.opacity=back?'':'.4';
+  respecArmed=0;
   const e=$('btnExchange');
   e.textContent='EXCHANGE '+PER_POINT+' CR \u2192 1 POINT';
   e.className=save.credits>=PER_POINT?'':'ghost';
   e.disabled=save.credits<PER_POINT;
   e.style.opacity=save.credits>=PER_POINT?'':'.4';
 }
+/* ---- respec ----
+   Points are the scarce thing, and a tree you regret is a run you cannot fix.
+   Selling the whole tree back is free and total: every point you ever spent on
+   a skill comes back, and every skill goes. It asks twice, because a stray
+   click on a finished tree would be miserable.                              */
+$('btnRespec').onclick=()=>{
+  const back=spentPoints();
+  if(!back) return;
+  if(Date.now()>respecArmed){                 // first click arms it for four seconds
+    respecArmed=Date.now()+4000;
+    const b=$('btnRespec');
+    b.textContent='SELL '+save.owned.length+' SKILLS FOR '+back+'P?';
+    b.className='hot';
+    setTimeout(()=>{ if(Date.now()>respecArmed) buildTree(); },4100);
+    return;
+  }
+  respecArmed=0;
+  save.points+=back; save.owned=[]; persist();
+  landed=null; buildTree(); refreshMenu();
+  const sc=$('skills');
+  sc.classList.remove('pulse'); void sc.offsetWidth; sc.classList.add('pulse');
+  setTimeout(()=>sc.classList.remove('pulse'),1000);
+};
+
+/* ---- wipe ----
+   The only genuinely destructive control in the game, so it lives at the very
+   bottom of the title screen in red, states exactly what it is about to
+   destroy, and will not fire until it has been clicked twice.              */
+let wipeArmed=0;
+$('linkWipe').onclick=()=>{
+  const a=$('linkWipe');
+  if(Date.now()>wipeArmed){
+    wipeArmed=Date.now()+5000;
+    a.classList.add('armed');
+    a.textContent='ERASE '+save.credits+' CR · '+save.points+'P · '+save.owned.length+
+                  ' SKILLS · '+save.ships.length+' HULLS · BEST '+save.best+'? — CLICK AGAIN';
+    setTimeout(()=>{ if(Date.now()>wipeArmed) resetWipeLink(); },5100);
+    return;
+  }
+  wipeArmed=0;
+  try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
+  save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
+        schoolDone:false, taught:[], ships:[0], ship:0};
+  persist();
+  landed=null; respecArmed=0;
+  buildTree(); refreshMenu(); resetWipeLink();
+  a.classList.add('armed');
+  a.textContent='PROGRESS WIPED';
+  setTimeout(resetWipeLink,2200);
+};
+function resetWipeLink(){
+  const a=$('linkWipe');
+  a.classList.remove('armed');
+  a.textContent='WIPE ALL PROGRESS \u203a';
+}
+
 $('btnExchange').onclick=()=>{
   if(save.credits<PER_POINT) return;
   save.credits-=PER_POINT; save.points++; persist(); buildTree(); refreshMenu();
@@ -2214,40 +2889,50 @@ $('btnExchange').onclick=()=>{
 const CODEX={
   hostiles:{ label:'HOSTILES', sub:'what is out there', rows:[
     {c:'#4d9dff', n:'ITERATION', tag:'SYSTEM 001  ·  LINE UNIT', sys:0,
+     u:'grunt', a:[32,78,9,.48,10], ctr:'Cut inside its turn and get in close.',
      t:'Fires blue pulses. The basic enemy unit. It holds its distance, and orbits.'+
        'From System 003 it shoots twice as fast.'},
     {c:'#46e39b', n:'WATCHER', tag:'SYSTEM 001  ·  RAM', sys:0,
+     u:'dart', a:[14,122,9,0,9], ctr:'Kill it at range, it costs nothing there.',
      t:'Fast but weak. Tries to ram you. '+
        'Inside close range it accelerates. It '+
-       'dies on impact — but it takes your ship with it.'},
+       'dies on impact but it takes your ship with it.'},
     {c:'#ff4d5e', n:'PRIMARY', tag:'SYSTEM 001  ·  HEAVY', sys:0,
+     u:'heavy', a:[140,44,17,.37,20], ctr:'Slowest thing in the roster. Never fight it standing still.',
      t:"The enemy's elite. Strong tanks that will fire large bombs at you. It never "+
        'retreats, it leads its shots, and from System 002 it sometimes braces and '+
        'opens with a five-shell spread instead of three.'},
     {c:'#ffb44d', n:'TRACKER', tag:'SYSTEM 002  ·  SEEKER', sys:1,
+     u:'tracker', a:[55,120,12,.32,10], ctr:'Outrun the seekers for a few secondss and they go straight. Then close.',
      t:'Hangs back and launches homing seekers. Outrun them — they burn out after '+
        'about four and a half seconds and fly straight afterwards. From System 003 '+
        'it fires them two at a time.'},
     {c:'#3fd8e0', n:'OVERSEER', tag:'SYSTEM 003  ·  SHIELDED', sys:2,
+     u:'overseer', a:[110,62,9,.38,13], ctr:'The arc chases your gun. Keep moving around it, do not stop.',
      t:'Carries a spinning shield arc. Shoot it from behind. The arc now drifts '+
        'toward whichever side you are shooting from, so flanking it is something '+
        'you keep doing, not something you do once.'},
     {c:'#d9c6ff', n:'SPLINTER', tag:'SYSTEM 004  ·  BREEDER', sys:3,
+     u:'splinter', a:[70,105,12,0,12], ctr:'Two Watchers spawn where it dies. Kill it far from you.',
      t:'Bursts into two Watchers when it dies. It weaves in, and speeds up inside '+
        'close range. Kill it at distance.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'SYSTEM 001  ·  WAVE 5', sys:0,
+     u:'b_primary', a:[620,56,17,.45,15], ctr:'The dash is drawn before it fires. Do not be on that line.',
      t:'A Primary that outgrew its mindframe. It never retreats, it never stops '+
        'bracing, and once it is hurt it aims itself at you and blasts down the '+
        'line it showed you. Do not be standing on that line.'},
     {c:'#46e39b', n:'THE HIVE MIND', tag:'SYSTEM 002  ·  WAVE 5', sys:1,
+     u:'b_hive', a:[700,64,7,.44,15], ctr:'Ignore the swarm. Every point of damage on the core is a second it is not spitting.',
      t:'Not one enemy, a swarm around a core. It spits Watchers, and it sheds '+
        'two more every time you take an eighth of its hull off it. Killing the '+
        'core kills the swarm, so ignore the escorts and keep hitting the middle.'},
     {c:'#3fd8e0', n:'ITERATION 2117', tag:'SYSTEM 003  ·  WAVE 5', sys:2,
+     u:'b_overseer', a:[760,60,9,.46,15], ctr:'Shoot from where it is not looking.',
      t:'An Overseer that has learned. Its shield arc is wider and it '+
        'tracks you, so every shot has to come from somewhere it is not looking. '+
        'Hurt, it rakes a rotating wall of fire across the whole arena.'},
     {c:'#000', n:'THE RULER', tag:'SYSTEM 004  ·  POLYINTELLIGENCE', sys:3, void:1,
+     u:'b_ruler', a:[900,46,9,.43,15], ctr:'Everything it throws is telegraphed. Read the tell, not the shape.',
      t:'The enemy leader, and the creature the other three answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
   ]},
@@ -2279,28 +2964,140 @@ const CODEX={
      t:'Presses the main button on whatever screen you are looking at.'},
   ]},
 };
-let codexTab='hostiles';
+let codexTab='hostiles', codexSel=0;
+
+/* Bars are measured against the heaviest thing in the roster, not against a
+   number somebody typed, so adding an enemy re-scales every card at once. */
+const AS_LABELS=[['HULL','',0],['VELOCITY',' px/s',1],['POWER',' dmg',2],['CADENCE',' /s',3],['CONTACT',' dmg',4]];
+function asMax(i){
+  return CODEX.hostiles.rows.reduce((m,r)=>r.a&&r.a[i]>m?r.a[i]:m,1);
+}
+const asMet=r=>codexTab!=='hostiles'||save.deepestSys>=r.sys;
+// a name you have not earned yet, rendered as the block characters it is
+const scramble=n=>n.replace(/[^ ]/g,'\u2593');
+
 function buildCodex(){
   const tabs=$('codexTabs'); tabs.innerHTML='';
   for(const k in CODEX){
     const b=document.createElement('button');
     b.className='tab'+(k===codexTab?' on':''); b.textContent=CODEX[k].label;
-    b.onclick=()=>{ codexTab=k; buildCodex(); };
+    b.onclick=()=>{ codexTab=k; codexSel=0; buildCodex(); };
     tabs.appendChild(b);
   }
   const sec=CODEX[codexTab];
   $('codexSub').textContent=sec.sub;
-  let html='';
-  for(const r of sec.rows){
-    const met = codexTab!=='hostiles' || save.deepestSys>=r.sys;
-    const dot = r.void
-      ? '<span class="dot" style="background:#000;box-shadow:0 0 9px #9d86e8;border:1px solid #9d86e8"></span>'
-      : '<span class="dot" style="background:'+r.c+'"></span>';
-    html+='<div class="entry'+(met?'':' locked')+'"><div class="mark">'+dot+'</div><div class="body">'+
-      '<div class="nm">'+r.n+'</div><div class="tagline">'+r.tag+'</div>'+
-      '<div class="txt">'+(met?r.t:'Not yet encountered.')+'</div></div></div>';
+  codexSel=Math.min(codexSel,sec.rows.length-1);
+
+  const list=$('codexList'); list.innerHTML='';
+  sec.rows.forEach((r,i)=>{
+    const met=asMet(r);
+    const d=document.createElement('div');
+    d.className='rosterRow'+(i===codexSel?' on':'')+(met?'':' dark');
+    d.style.color = r.void?'#9d86e8':r.c;
+    d.innerHTML='<span class="rk"></span><span class="rn">'+(met?r.n:scramble(r.n))+
+                '</span><span class="ri">'+String(i+1).padStart(2,'0')+'</span>';
+    d.onclick=()=>{ codexSel=i; buildCodex(); };
+    list.appendChild(d);
+  });
+  drawAssess();
+}
+
+function drawAssess(){
+  const sec=CODEX[codexTab], r=sec.rows[codexSel];
+  const box=$('assess'); if(!r){ box.innerHTML=''; return; }
+  const met=asMet(r), col=r.void?'#9d86e8':r.c;
+
+  let h='<div class="asHead">'+
+    '<div><div class="asIdx">UNIT '+String(codexSel+1).padStart(2,'0')+' / '+
+      String(sec.rows.length).padStart(2,'0')+'</div>'+
+    '<div class="asName">'+(met?r.n:scramble(r.n))+'</div></div>'+
+    '<div class="asTag" style="color:'+col+'">'+(met?r.tag:'NO RECORD')+'</div></div>';
+
+  if(!met){
+    h+='<div class="asNodata"><span>\u2593\u2593\u2593\u2593\u2593</span>'+
+       'NOT YET ENCOUNTERED<br>TELEMETRY UNAVAILABLE</div>';
+    box.innerHTML=h; return;
   }
-  $('codexBody').innerHTML=html;
+
+  h+='<div class="asMain">'+
+     '<div class="asArt"><canvas id="assessArt" width="212" height="212"></canvas>'+
+     '<i class="cnr c1"></i><i class="cnr c2"></i><i class="cnr c3"></i><i class="cnr c4"></i></div>'+
+     '<div class="asStats">';
+  if(r.a){
+    AS_LABELS.forEach(([lab,unit,i])=>{
+      const v=r.a[i], pc=clamp(v/asMax(i),0,1)*100;
+      h+='<div class="asBar"><b>'+lab+'</b><div class="asTrack" style="color:'+col+'">'+
+         '<div class="tick" style="left:25%"></div><div class="tick" style="left:50%"></div>'+
+         '<div class="tick" style="left:75%"></div>'+
+         '<div class="asFill" style="width:'+pc.toFixed(1)+'%"></div></div>'+
+         '<i>'+(v?v+unit:'\u2014')+'</i></div>';
+    });
+  }else{
+    h+='<div class="asBar"><b>'+(codexTab==='cells'?'DURATION':'INPUT')+'</b>'+
+       '<div class="asTrack" style="color:'+col+'"><div class="asFill" style="width:100%"></div></div>'+
+       '<i>\u2014</i></div>'+
+       '<div class="asBlock"><h4>'+(codexTab==='cells'?'EFFECT':'BINDING')+'</h4><p>'+r.tag+'</p></div>';
+  }
+  h+='</div></div>';
+
+  h+='<div class="asBlock"><h4>TACTICAL ANALYSIS</h4><p>'+r.t+'</p></div>';
+  if(r.ctr) h+='<div class="asBlock ctr"><h4>COUNTERMEASURE</h4><p>'+r.ctr+'</p></div>';
+  box.innerHTML=h;
+}
+
+/* The art panel runs live off the main loop while the bestiary is open, using
+   the same unitPath() the arena draws with. */
+let asT=0;
+function assessArt(dt){
+  const cv2=document.getElementById('assessArt'); if(!cv2) return;
+  const g=cv2.getContext('2d'), w=cv2.width, h=cv2.height;
+  const sec=CODEX[codexTab], r=sec.rows[codexSel]; if(!r) return;
+  const col=r.void?'#9d86e8':r.c;
+  asT+=dt;
+  g.clearRect(0,0,w,h);
+
+  // a grid behind it, and rings around it
+  g.strokeStyle='rgba(120,175,255,.17)'; g.lineWidth=1;
+  for(let x=0;x<=w;x+=22){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); }
+  for(let y=0;y<=h;y+=22){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+  g.save(); g.translate(w/2,h/2);
+  for(let i=0;i<2;i++){
+    g.beginPath(); g.arc(0,0,62+i*22,0,TAU);
+    g.strokeStyle='rgba(120,180,255,'+(.5-i*.18)+')';
+    g.setLineDash([7,12]); g.lineDashOffset=asT*(i?26:-38); g.lineWidth=1.2; g.stroke();
+  }
+  g.setLineDash([]);
+
+  if(r.u){
+    // the real silhouette, at a size that fills the frame whatever it is
+    const big=r.a&&r.a[0]>300;
+    g.save();
+    g.rotate(r.u==='dart'||r.u==='b_s3295'?-Math.PI/2:0);
+    g.shadowColor=col; g.shadowBlur=20;
+    g.fillStyle=r.void?'#000':'rgba(0,0,0,.6)';
+    g.strokeStyle=col; g.lineWidth=big?3:2.4;
+    unitPath(g,r.u,big?46:38,asT*.7,asT);
+    g.fill(); g.stroke();
+    g.restore();
+  }else{
+    // cells and controls have no hull — draw the cell casing instead
+    g.rotate(asT*.5);
+    g.beginPath();
+    for(let i=0;i<6;i++){const a=i/6*TAU;
+      i?g.lineTo(Math.cos(a)*40,Math.sin(a)*40):g.moveTo(Math.cos(a)*40,Math.sin(a)*40);}
+    g.closePath();
+    g.fillStyle='rgba(5,6,13,.85)'; g.fill();
+    g.strokeStyle=col; g.lineWidth=2.4; g.shadowColor=col; g.shadowBlur=16; g.stroke();
+  }
+  g.restore(); g.shadowBlur=0;
+
+  // a reticle that breathes, so the frame never sits perfectly still
+  const p=1+Math.sin(asT*1.6)*.03;
+  g.strokeStyle='rgba(70,227,155,.32)'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(w/2,10); g.lineTo(w/2,26); g.moveTo(w/2,h-10); g.lineTo(w/2,h-26);
+  g.moveTo(10,h/2); g.lineTo(26,h/2); g.moveTo(w-10,h/2); g.lineTo(w-26,h/2); g.stroke();
+  g.beginPath(); g.arc(w/2,h/2,86*p,0,TAU);
+  g.strokeStyle='rgba(70,227,155,.14)'; g.stroke();
 }
 
 
