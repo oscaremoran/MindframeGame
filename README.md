@@ -91,17 +91,45 @@ System 001. It reads bottom to top like the skill tree — 001 on the floor, the
 Ruler's system at the ceiling.
 
 It is a roguelike route, not a level select: **nothing on it can be skipped**.
-Every run starts at System 001 and climbs. Each system also has a dashed side
-branch to a **Secret Mission** — see below.
+Every run starts at System 001 and climbs. Systems 002 and 003 carry a dashed
+side branch; 003 also carries the **Quantum Portal** on the opposite side. 001
+and 004 carry nothing, and draw nothing.
 
-The chart is a live readout rather than a static diagram: a clipped-corner frame
-with corner brackets, a grid, drifting motes, scanlines and a scan bar crawling
-up it, all on a canvas driven by the main loop. A gradient spine runs the length
-of the route, and **three pulses climb the part of it you already hold** — they
-read the same `MAP_X` / `MAP_Y` percentages the nodes are placed with, so the
-route they light is always the route you are looking at. The segment you are
-about to fly is a flowing dashed line; the `NEXT` node breathes, and an offered
-secret branch pulses yellow.
+The chart is a live readout rather than a static diagram, all on a canvas driven
+by the main loop:
+
+- **Three nebula clouds** drifting behind the grid, green through blue to
+  violet, so the field has depth rather than being a flat panel.
+- **The spine is a conduit**, not a line: a gradient core, a bright inner
+  filament and rungs every twenty pixels, so it reads as built.
+- **Earth**, out beside System 001 where that system's side branch would be, on
+  its own dashed tether — an ocean gradient, land turning across it on a slow
+  rotation, a terminator into the night side and an atmosphere. The thing at the
+  bottom of the route is the thing you are defending, so it is drawn rather than
+  named, and it sits clear of the node card rather than behind it.
+- **The Icarus**, beside the last system — the enemy battleship the route ends
+  at, drawn as a long violet wedge with rib detail, a blinking command block and
+  an engine wash trailing behind it. It occupies the space that system's side
+  branch used to, which is otherwise dead now.
+- **A station ring at every system** — two dashed rings counter-rotating, bright
+  green on what you hold, blue and breathing on the one you are about to fly.
+- **Charge climbing** the part of the route you already hold.
+- **You are here.** Your actual hull, drawn with `shipPath` in the ship you are
+  flying, bobbing beside the node you are about to take, on a dashed tether,
+  labelled `YOU`.
+- **The Portal**, drawn as a turning seven-lobed vortex with rings collapsing
+  into it — slow and dim while dormant, fast and lit when it is open to you.
+- Corner brackets, scanlines and a scan bar over all of it.
+
+Everything on the canvas is sized to **halo the info cards rather than sit
+behind them** — the station rings start outside the card's corner radius, the
+vortex lobes ride outside the portal card, and the ship marker sits clear of the
+node's left edge. The cards themselves were narrowed (19% → 16%, branches 14% →
+12%) to give the art the room. Nothing important is drawn where a card will
+cover it.
+
+Everything positional reads the same `MAP_X` / `MAP_Y` percentages the nodes are
+placed with, so the canvas can never drift out of sync with the chart.
 
 Every system node carries its own numbers under the status line — the real
 values from the `SYSTEMS` block, not a description of them:
@@ -130,19 +158,44 @@ branch beside the system you are about to fly lights up in yellow and you choose
 **CONTINUE** up the spine, or take the detour. One offer per system per run.
 
 A salvage or escort run pays half again what a system pays — 20 credits off
-System 002, 27 off 003. A secret boss pays two and a half times: **58 credits**.
-That is the only reason to go, because **failing one ends the run exactly like
-dying does**.
+System 002, 27 off 003. The Quantum Portal pays three and a half times:
+**63 credits**. That is the only reason to go, because **failing one ends the
+run exactly like dying does**.
 
-Which branch you get is fixed by where you are on the route: 002 is Salvage,
-003 is Escort, and 004 is a secret boss. One ship, one campaign, and this is the part
-of it you gambled.
+Which branch you get is fixed by where you are on the route: **002 is Salvage,
+003 is Escort**. System 001 has none and neither does 004 — a node on the map
+you can never reach is just a dead label, so those systems simply do not draw
+one.
+
+The two off-roster bosses are not a side branch at all. They are behind the
+**Quantum Portal**, which hangs off System 003 on the *other* side of the spine
+— the only violet thing on the chart, drawn as a turning vortex rather than a
+box. It pays **63 credits**, three and a half times what a system pays, and it is
+the same gamble: fail and the run is over.
+
+### You do not know what is down there
+
+A branch has **no name until you have flown it**. Every one of them — Salvage,
+Escort, the Portal — reads `MISSION BRANCH · UNSURVEYED` on the chart the first
+time, and the button says `TAKE THE MISSION BRANCH`. That is the whole
+reason taking one is a gamble: you are betting the run on something you cannot
+read.
+
+Fly one and it is surveyed for good — it becomes `SECRET MISSION · ESCORT`, or
+`QUANTUM PORTAL · DESTINATION UNKNOWN`, on that chart and every chart after it.
+Surveyed branches live in `save.seen` and persist across runs. Like Pilot
+School's completion flag they are **local to the browser and not carried in save
+codes**, so a code moved to a fresh machine arrives with the map's mysteries
+intact.
+
+003 therefore offers a choice rather than an offer: Escort on the right, the
+Portal on the left, one detour per system. Taking either forfeits the other.
 
 | | Mission | What it is |
 |---|---|---|
 | 🟡 | **Escort** | A yellow hauler crawls across the field on a 44-second run with 340 hull of its own. **Everything out there hunts the hauler, not you** — the whole enemy AI retargets, so you are the only thing between them and it. It is a stream, not a trickle: `11 + system×4` scheduled hostiles with Watchers arriving in pairs, plus Trackers, Overseers and Splinters as the systems allow, plus **two timed pushes** at a third and two thirds of the crossing. Escort is also the only place the arena runs **12 live hostiles instead of ten**. What reaches it hurts: a Watcher ram is 40, a Primary 34, anything else 24, and stray fire lands at 1.6×. |
 | 🟢 | **Salvage** | An open debris field with green credit motes scattered through it. No hostiles and **no clock** — just wreckage that costs **34 hull** and a hard shove on contact. It opens at `17 + system×5` pieces, gains another every **1.1 seconds**, and everything already out there accelerates on a `1 + t/17` ramp — up to **76 pieces at 3.4× drift**, where it levels off. Each mote is **1 credit, banked the moment you touch it**. The `EXIT` gate is open the whole time and nothing ever forces you through it: you leave when you decide another mote is not worth the field you would have to cross to reach it. |
-| 🟪 | **Secret Boss** | Nothing to collect and no clock — just the fight, off the last system's branch. One of two, picked at random each time you take it. |
+| 🟪 | **Quantum Portal** | Nothing to collect and no clock — just the fight, through the vortex beside System 003. One of two bosses, picked at random each time you go through. |
 
 Salvage is press-your-luck: what you have already picked up is yours even if the
 wreck kills you, and nothing but your own judgement ends the run — greed is the
@@ -151,14 +204,14 @@ either patches you up by 15% and drops you into the next system's briefing.
 
 ### The two off the roster
 
-The last system's branch puts you in front of one of these, chosen fresh every
-time. Both use the same three-tier escalation as the campaign bosses — nothing
+The Portal puts you in front of one of these, chosen fresh every time you go
+through it. Both use the same three-tier escalation as the campaign bosses — nothing
 they do is untelegraphed, there is just more of it and it comes faster.
 
 | | Name | What it is |
 |---|---|---|
-| 🟩 | **Iteration 3295** | The Watcher that held the record before 3296. Very fast, very close, and it will not hold still: scattered fire, telegraphed rams, blinking, and it throws Splinters at you. Three nested darts, drawn in pale green. |
-| 🟪 | **The Archive** | The Mindframe Upgrading Facility's core — a ring of stored minds around an empty middle. Slow, shielded by an arc you have to keep flanking, and it rakes the arena and summons Overseers. |
+| 🟩 | **Iteration 3295** | The Watcher that held the record before 3296. Very fast, very close, and it will not hold still: scattered fire, telegraphed rams, blinking, and it throws Splinters at you. Three nested darts, drawn in pale green. **Pitched at a BULWARK pilot carrying every tier-1 and tier-2 skill** — about a fifth harder than the Ruler for that build, and a real fight for it. |
+| 🟪 | **The Archive** | The Mindframe Upgrading Facility's core — a ring of stored minds around an empty middle. Shielded by an arc you have to keep flanking, and it rakes the arena and summons Overseers. **This is the game's Emerald Weapon.** 9,000 base hull, **four** tiers where everything else has three, seven `STORED MIND`s that come back **in full at every tier**, and rest windows about half a campaign boss's. A pilot who has bought the entire tree and flies the VERDICT still has a wall in front of them; anyone else should not be through the Portal at all. |
 
 ## Credits
 
@@ -169,7 +222,7 @@ Runs pay in **credits**, and credits are the only currency.
 | Holding a wave | **1** credit in System 001, **2** in 002, **3** in 003, **4** in 004 |
 | Killing a system's boss | **3** credits |
 | Escort or Salvage | half again the system's total — 20 / 27 |
-| A secret boss | two and a half times — 58 |
+| The Quantum Portal | three and a half times — 63 |
 
 A full clean campaign is 62 credits. Score is now purely the scoreboard — it
 earns nothing. Spend credits two ways:
@@ -277,18 +330,32 @@ has a beat where the right answer is to stop dodging and commit. The sequence
 restarts from its opener at each tier, so a boss you have fought before opens
 the same way — it is something you learn, not something you react to.
 
-### Armour
+### Weak spots
 
-Every boss carries a ring of **armour nodes** orbiting its hull — three `BRACE
-PLATE`s on 3296, three `SPAWN POD`s on the Hive, two `ARC EMITTER`s on 2117,
-four `THRONE ANCHOR`s on the Ruler, two `SPLINTER RACK`s on 3295, five `STORED
-MIND`s on the Archive. While one is alive the hull only takes **60%** of what
-you deal it, and rounds meet the ring before they meet the boss.
+Bosses are **big** — 54 to 88px of radius, up about 40% — and each carries
+glowing **weak spots set into its hull**: three `BRACE PLATE`s on 3296, three
+`SPAWN POD`s on the Hive, two `ARC EMITTER`s on 2117, four `THRONE ANCHOR`s on
+the Ruler, two `SPLINTER RACK`s on 3295, five `STORED MIND`s on the Archive.
 
-Strip the ring and it is wide open for a full **three seconds** at punish value.
-That makes clearing the nodes strictly faster than grinding through them — the
-mechanic rewards target priority rather than taxing you for ignoring it. They
-come back at every tier change, so a fight is three strips, not one.
+They sit at 55–66% of the hull radius and turn with the body, so **a spot on the
+far side is genuinely behind the thing** and reaching it means coming around.
+On 2117 and the Archive the tracking shield arc covers its own spots, so you
+have to flank the boss before you can even aim at them. Each spot draws as a
+socket in the plating with a hot core, a damage arc around it and a crosshair
+through it, so it reads as something to shoot rather than decoration.
+
+While any spot is alive the hull only takes **60%** of what you deal it, and
+rounds striking a spot are spent on the spot rather than the body.
+
+Burn all of them and the boss is wide open for a full **three seconds** at
+punish value. That makes clearing the spots strictly faster than grinding
+through them — the mechanic rewards target priority rather than taxing you for
+ignoring it.
+
+**Armour does not come back every tier.** Stripping a boss is most of the work
+of a fight, and having it instantly re-plate undoes that. It grows back **once**,
+at the last escalation, and only **half of it**. So a fight is one full strip, a
+long stretch of open hull, and one short second strip near the end.
 
 ### The shape
 
@@ -359,7 +426,7 @@ plays at the same speed no matter how slow the world it is playing in.
 
 Four hulls, pure stat trade-offs — no hidden rules. A hull is gated **twice**:
 you have to have flown deep enough to unlock it, and then pay skill points for
-it, so hulls compete with the Mindframe tree for the same currency.
+it, so hulls compete with the skill tree for the same currency.
 
 | Ship | Class | HULL | POWER | RATE | SPEED | GRIP | Unlock |
 |---|---|---|---|---|---|---|---|
@@ -395,10 +462,21 @@ The panel carries, for the selected unit:
 - **TACTICAL ANALYSIS** — what it is and how it behaves.
 - **COUNTERMEASURE** — one line, in green, on how to actually kill it.
 
-A hostile you have not met is not merely dimmed: its name renders as block
-characters in the roster, and its panel reads `NOT YET ENCOUNTERED · TELEMETRY
-UNAVAILABLE` with no silhouette and no bars. `CELLS` and `CONTROLS` use the same
-frame with a cell casing in the art panel in place of a hull.
+A hostile you have not met is **sealed**, not merely dimmed. The roster row
+carries a 🔒 beside a name rendered in block characters; the panel keeps every
+field it *would* have shown and locks each one — a 🔒 `NO VISUAL` plate over the
+art, an empty track and a 🔒 in place of each of the five numbers, and both prose
+blocks replaced with `NOT YET ENCOUNTERED · TELEMETRY UNAVAILABLE` and `FLY
+AGAINST IT TO UNSEAL THIS ENTRY`. You can see the shape of what you are missing
+rather than an empty page.
+
+The **Garage** seals the same way: a hull you have not flown deep enough to buy
+shows `🔒 LOCKED` in its bay header, a 🔒 `CLASSIFIED` plate over its silhouette,
+its name and class blurred, and every stat grade replaced with `?` over an unlit
+meter. A hull you *can* afford shows everything — you need the numbers to decide.
+
+`CELLS` and `CONTROLS` use the same frame with a cell casing in the art panel in
+place of a hull.
 
 ## Getting around
 
@@ -412,7 +490,7 @@ your score and points and ends the run.
 The skill tree is a screen you read and spend on, not a launch pad: it has no
 launch button, only **BACK** to wherever you opened it from.
 
-## The Mindframe tree
+## The skill tree
 
 Credits buy skill points at the tree's **EXCHANGE** button, 2 credits to the
 point. The tree stays locked until you first clear System 001, then opens
@@ -423,10 +501,10 @@ The tree is drawn **bottom-up**: the first tier of each branch sits at the
 bottom and the tier-3 skill at the top, so it grows upward as you buy into it.
 Four branches of three:
 
-- **Pulse Calibration → Focused Pulse → Phase Rounds** — damage, then piercing shots
-- **Feed Overclock → Twin Emitters → Triple Spread** — fire rate, then a 3-shot spread
-- **Hull Plating → Ablative Weave → Repair Field** — max HP, then passive regeneration
-- **Thrust Vectoring → Blink Drive → Deflector** — speed, then a dash with i-frames
+- **Pulse Upgrades → Focused Pulse → Phase Rounds** — damage, then piercing shots
+- **Weapon Overclock → Twin Emitters → Triple Spread** — fire rate, then a 3-shot spread
+- **Hull Plating → Hull Reinforcement → Repair Field** — max HP, then passive regeneration
+- **Thrust Boost → Dash Drive → Dash Deflector** — speed, then a dash with i-frames
 
 Buying a node is the only permanent thing in the game, so it lands like one: the
 node overloads white and punches out a ring, the branch line feeding it surges,
@@ -478,6 +556,119 @@ terminal output. Adding a fifth system is one more block; the waves, scaling and
 ending adapt.
 
 The full text of *Mindframe* is readable from the title screen.
+
+## The look
+
+Every screen outside the arena shares one vocabulary, defined once near the top
+of the stylesheet as `.panel`, `.scan`, `.hcnr`, `.hrule` and `.chip`:
+
+- **Clipped corners** — a `clip-path` polygon cutting the top-right and
+  bottom-left, on panels, nodes, cards, tabs and every button in the game.
+- **Corner brackets** (`.hcnr`) — four L-shaped marks inside a frame.
+- **Scanlines** and a **scan bar** crawling down or up the panel.
+- **Hairline rules** in the `#2c3a5c`–`#33456d` family, over a lifted slate
+  gradient rather than near-black.
+- **Chips** — the only way the game states a number: a small bordered cell with
+  a letterspaced label above the value.
+
+Four screens run a **live canvas** behind their content off the main loop —
+the world map, the skill tree, the bestiary's art panel, and the cold open —
+each with a grid, a scan bar, and something moving that means something:
+
+| Screen | What the canvas is saying |
+|---|---|
+| **World map** | Pulses climbing the part of the route you already hold |
+| **Skill tree** | Charge running up every branch you own, dimmer on what you can afford |
+| **Bestiary** | The selected unit's real silhouette, turning inside a reticle |
+| **Cold open** | Your hull assembling inside closing target rings |
+
+The **title screen** is a status board: a `MINDFRAME DEFENCE NET · LINK ACTIVE`
+strip across the top with a blinking indicator and your furthest sector on the
+right, corner brackets on the frame, a bar sweeping the wordmark, and the save
+stated as a row of chips — `BEST`, `FURTHEST`, `CREDITS`, `POINTS`,
+`MINDFRAME 7 / 12`. Its background is thin enough to keep the starfield drifting
+behind it.
+
+The **Garage** cards are bay readouts: a `BAY 01 · ● ACTIVE` header strip, and
+the five stat grades metered as **twelve segments** instead of a smooth bar, lit
+in the grade's own colour. The **skill tree** nodes carry their tier (`T1`–`T3`)
+in the corner and a node you can afford breathes.
+
+## Sound
+
+Every sound in the game is **synthesised at runtime**. There are no audio files,
+because there is no build step and no server — the whole game has to stay one
+`.html` you can double-click. Two buses (`SFX`, `MUS`) under one master, and
+the `AudioContext` cannot exist until you have touched something, so it boots
+off your first key or click and everything before that is a no-op.
+
+Sound effects are oscillators and filtered noise with an envelope and nothing
+else: the shot is a saw blip dropping 660→230Hz (and 520→150 while Overcharged,
+so the buff is audible), a hit is a 55ms bandpassed noise burst, a boss tier is
+a sine sweeping up under half a second of falling noise. Anything that could
+fire forty times in a frame is rate-gated, so a spread hitting five targets is
+one hit sound, not five.
+
+| | |
+|---|---|
+| Combat | fire · hit · kill (light/heavy) · hurt · dash |
+| Bosses | arrival drone · tier break · `EXPOSED` ping · node crack · armour stripped · the fall |
+| Telegraphs | a warning tone under `lance` and `charge`, gated to 180ms |
+| Pickups | a three-note rise, pitched per cell |
+| UI | one capture-phase listener covers every button, node, ship card and roster row |
+
+### The score
+
+Not one track — **a set of programs**, and the game chooses between them. Each
+is the same engine given a different tempo, chord road, ostinato, hook and lead
+timbre, so they are recognisably the same music and unmistakably not the same
+piece. A new program waits for the **bar line** rather than cutting in.
+
+| Program | Where | What it is |
+|---|---|---|
+| `menu` | title, tree, map, bestiary | the campaign theme at its quietest |
+| `garage` | the Garage | 100 BPM, no drums at all — the only cue in the game without them. A work tune: confident, unhurried, nothing at stake |
+| `intro` | the cold open | a chromatic climb that arrives on `LAUNCH` |
+| `run` | in a system | the campaign theme |
+| `boss:*` | a boss fight | one per boss, authored in that boss's own block |
+
+### Harmony
+
+**Phrygian with chromatic mediants** — `i – ♭VI – III(major) – ♭II`. The flat
+second is the most menacing note in Western music and the tune keeps leaning on
+it; the III major **does not belong to the key at all**. A progression that
+resolves is a progression with nothing at stake.
+
+Over that: an eight-bar hook on a **supersaw** (one note four times, detuned
+±14 cents), a **choir** (eight voices, saw and triangle an octave apart with a
+5.2Hz vibrato — not a pad, a crowd), **sidechain** ducking everything to 24% on
+each kick, and a structure with **drops**.
+
+### Six bosses, six themes
+
+Each boss carries a `mus` block beside its `tiers`, so adding a boss is still
+one block and nothing else:
+
+| Boss | BPM | Its theme |
+|---|---|---|
+| **Iteration 3296** | 138 | Blunt and hammering — four notes and no apology |
+| **The Hive Mind** | 152 | Restless. Never on the same note twice, with a swarming figure that never settles |
+| **Iteration 2117** | 134 | Cold and patient: long notes that hang and watch, over a shimmer |
+| **The Ruler** | 128 | A processional. It arrives; it does not hurry. Choir at 1.5× |
+| **Iteration 3295** | 166 | Nothing but speed — sixteenth-note runs, double ride |
+| **The Archive** | 120 | A hymn for the things it is keeping, over tolling bells |
+
+### Critical
+
+Below **30% hull** the whole score is dragged under a closing lowpass (18kHz →
+820Hz over half a second), the music bus drops, the tempo sags 6%, a
+**heartbeat** comes up beneath it on the timpani, and a **tritone drone** sits
+on top with a heavy vibrato. It is the one piece of information the game gives
+you without asking you to look at anything.
+
+`SOUND ON/OFF` and a volume slider sit on the title screen and in the pause
+menu — the same control, rendered into both, persisted in `localStorage`. It is
+a device preference, not progress, so **WIPE ALL PROGRESS leaves it alone**.
 
 ## Structure
 
