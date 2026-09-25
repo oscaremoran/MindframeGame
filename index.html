@@ -1690,13 +1690,13 @@ let launchGo=null;
    One per system, one per branch. Yours to write; the markers render in-game
    so a blank one is obvious. */
 const LAUNCH_TEXT={
-  sys:['\u00abWRITE: launch line for SYSTEM 001\u00bb',
-       '\u00abWRITE: launch line for SYSTEM 002\u00bb',
-       '\u00abWRITE: launch line for SYSTEM 003\u00bb',
-       '\u00abWRITE: launch line for SYSTEM 004\u00bb'],
-  salvage:'\u00abWRITE: launch line for SALVAGE\u00bb',
-  escort: '\u00abWRITE: launch line for ESCORT\u00bb',
-  boss:   '\u00abWRITE: launch line for the QUANTUM PORTAL\u00bb',
+  sys:['\u00abDefend Earth from the Iterations besieging it.\u00bb',
+       '\u00abEliminate the nearest Iteration outpost.\u00bb',
+       '\u00abDestroy a major Iteration bastion.\u00bb',
+       '\u00abCharge the Icarus in a final battle.\u00bb'],
+  salvage:'\u00abSalvage scrap by collecting the green dots, but escape before you are crushed.\u00bb',
+  escort: '\u00abDefend the shipment of resources from raiding parties of Iterations.\u00bb',
+  boss:   '\u00abEnter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.\u00bb',
 };
 function openLaunch(kind,i){
   $('launchKind').textContent = kind ? 'LAUNCHING A SIDE BRANCH' : 'LAUNCHING';
@@ -1732,10 +1732,10 @@ function beginSystem(){
 /* PROSE — your line for clearing each system. Shown on the level complete
    screen, under the result. */
 const SYS_CLEAR_TEXT=[
-  '\u00abWRITE: clear line for SYSTEM 001\u00bb',
-  '\u00abWRITE: clear line for SYSTEM 002\u00bb',
-  '\u00abWRITE: clear line for SYSTEM 003\u00bb',
-  '\u00abWRITE: clear line for SYSTEM 004 — the last one\u00bb',
+  '\u00abThe enemy leader Iteration has been destroyed! Congratulations. Prepare and continue.\u00bb',
+  '\u00abThe alien swarm has been destroyed! Congratulations. Prepare and continue.\u00bb',
+  '\u00abThe enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.\u00bb',
+  '\u00abThe Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.\u00bb',
 ];
 
 /* Clearing a system is where the flight ends. It does not roll into the next
@@ -2162,14 +2162,13 @@ const ARMOURED=.6, STRIP_OPEN=3.0;
    back once, at the last escalation, and only half of it — so a fight is one
    full strip, a long stretch of open hull, and one short second strip. */
 const REARMOUR_TIER=2;
-function bossNodes(e,frac){
-  const N=e.B.nodes; if(!N) return;
-  const n=Math.max(1,Math.round(N.n*(frac||1)));
-  e.nodes=[];
-  const r=Math.max(12,Math.round(e.r*.2));
-  for(let i=0;i<n;i++)
-    e.nodes.push({a:i/n*TAU, hp:N.hp, max:N.hp, r, flash:0});
-}
+/* Bosses no longer carry a ring of weak spots. A fight is about reading the
+   attack line and staying alive in it, not about flanking to a socket. The
+   spawner is the single switch: nodesUp() is false everywhere downstream, so
+   nothing draws them, no round is blocked on one, and the hull always takes
+   full damage. The ring data on each boss is left in place, unused, so the
+   mechanic can be put back by restoring this one function. */
+function bossNodes(e,frac){ e.nodes=null; }
 const nodesUp=e=> !!(e.nodes && e.nodes.length);
 // nodes ride the boss's spin, so flanking one is a moving problem
 const nodeXY=(e,nd)=>{
@@ -2267,12 +2266,7 @@ function bossAI(e,dt,dx,dy,d){
   if(tier!==e.tier){
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0;                         // the new tier opens with its opener
-    if(B.tiers[tier].bare){ e.nodes=null; shellBreak(e,B.tiers[tier].n); }
-    else if(B.nodes&&B.nodes.regrow) bossNodes(e);        // every tier, in full
-    else if(tier===REARMOUR_TIER && !e.reArmed){
-      // once, near the end, and half as much of it
-      e.reArmed=1; bossNodes(e,.5);
-    }
+    e.nodes=null;
     shake=Math.max(shake,20); flash=Math.max(flash,.45); SFX.tier();
     burst(e.x,e.y,e.col,46,430);
     ebullets.length=0;                        // the shockwave wipes the screen
@@ -2904,9 +2898,9 @@ function endRun(win,why){
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    (win?'':'<br><br>\u00abWRITE: one or two lines telling the player a loss costs only this system — '+
-          'everything already held is still held, and '+SYS().name+' is right there on the map to retry\u00bb')+
-    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades are permanent — take them into your next run.':'');
+    (win?'':'<br><br>\u00abIf your ship is destroyed, your progress in that system will be destroyed. You can re-launch to the system to try again.'+
+          'Everything already held is still held, and '+SYS().name+' is on the map to retry.\u00bb')+
+    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades to your ship are permanent, take them into your next attack.':'');
   document.getElementById('btnRetry').textContent = win?'WORLD MAP':'BACK TO THE MAP';
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   document.getElementById('btnTreeOver').style.display = save.unlocked?'':'none';
@@ -3256,23 +3250,6 @@ function schoolLessons(){
       player.hp=player.st.maxHp*.6;
     },
     tick(){ for(const u of pickups) u.t=0; return !pickups.length; }});
-
-  if(save.unlocked) L.push({ name:'SECRET MISSIONS', teach:'secret', lines:[
-    '\u00abWRITE: 4-5 caption lines for this drill. Facts to get across: branches hang off the',
-    'world map and are now launchable on their own; each needs a tier of skill tree first',
-    '(salvage t1, escort t2, portal t3); they pay half again what a system does; failing one',
-    'costs the payout, not the campaign. Then: this drill is salvage, grab four cells.\u00bb'],
-    goal:()=>'CELLS  '+school.motes.filter(m=>m.got).length+' / '+school.motes.length,
-    setup(){
-      for(let i=0;i<6;i++) makeJunk(school.junk);
-      for(const p of [[250,200],[750,200],[250,480],[750,480]])
-        school.motes.push({x:p[0],y:p[1],t:rand(0,TAU),got:false});
-    },
-    tick(dt){
-      junkStep(school.junk,dt,1,22);
-      moteStep(school.motes,dt);
-      return school.motes.every(m=>m.got);
-    }});
 
   if(has('dash')) L.push({ name:'BLINK DRIVE', lines:[
     'SHIFT blinks you the way you are already thrusting — hold a direction, then SHIFT.',
@@ -4249,22 +4226,6 @@ function mapArt(dt){
     }
   }
 
-  // ── you are here: a marker sitting on the node you are about to fly ──
-  {
-    const yi=Math.min(held,SYSTEMS.length-1), y=py(MAP_Y(yi));
-    const bob=Math.sin(mapT*2.2)*3, sx=px(MAP_X-18);   // clear of the card
-    g.save(); g.translate(sx,y+bob); g.rotate(0);
-    g.fillStyle='#0a1426'; g.strokeStyle='#dfe9ff'; g.lineWidth=2;
-    g.shadowColor='#9fd0ff'; g.shadowBlur=14;
-    shipPath(g,12,save.ship||0); g.fill(); g.stroke();
-    g.shadowBlur=0; g.restore();
-    g.beginPath(); g.moveTo(sx+15,y+bob); g.lineTo(px(MAP_X-14),y+bob);
-    g.strokeStyle='rgba(223,233,255,.35)'; g.setLineDash([3,5]); g.lineWidth=1;
-    g.stroke(); g.setLineDash([]);
-    g.font='9px Menlo,monospace'; g.textAlign='center';
-    g.fillStyle='rgba(223,233,255,.5)';
-    g.fillText('YOU',sx,y+bob+26); g.textAlign='left';
-  }
 
   // ── the portal, when there is one: a vortex rather than a box ──
   if(SYSTEMS.length>PORTAL_SYS){
