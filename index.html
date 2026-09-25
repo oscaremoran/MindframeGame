@@ -196,11 +196,94 @@
   .ship.sel .bayid{color:#46e39b; border-bottom-color:#1d4a37}
   .ship.locked{opacity:.5; cursor:not-allowed}
 
+  /* ---- title card ----
+     The screen in front of the menu. It is the game's name and nothing else:
+     no buttons, no chips, no save readout competing with the mark. Any key
+     goes through to the menu (or to Pilot School on a first load). */
+  #title{gap:0; justify-content:center}
+  #titleMark{text-align:center; animation:titleIn 1.1s cubic-bezier(.16,1,.3,1) both}
+  #title h1{
+    font-size:clamp(38px,9vw,104px); letter-spacing:.34em; margin:0 0 0 .34em;
+    color:#dff1ff; text-shadow:0 0 34px rgba(77,157,255,.55), 0 0 90px rgba(77,157,255,.22);
+  }
+  #titleRule{
+    height:1px; margin:16px auto 14px; width:min(62vw,560px);
+    background:linear-gradient(90deg,transparent,#4d9dff 18%,#46e39b 50%,#4d9dff 82%,transparent);
+    box-shadow:0 0 14px rgba(77,157,255,.7);
+    animation:titleRule 1.3s cubic-bezier(.16,1,.3,1) .25s both;
+  }
+  #title h2{
+    font-size:clamp(11px,1.9vw,19px); letter-spacing:.5em; margin:0 0 0 .5em; color:#6fb2ff;
+  }
+  #titleBy{
+    margin-top:30px; color:#4a5878; letter-spacing:.3em;
+    font-size:clamp(8px,1vw,10px); animation:titleIn 1s ease-out .6s both;
+  }
+  #titlePrompt{
+    margin-top:46px; color:#8fb6e6; letter-spacing:.34em;
+    font-size:clamp(9px,1.15vw,12px); animation:titleBlink 1.9s ease-in-out .9s infinite both;
+  }
+  #titleSave{
+    margin-top:10px; color:#3d4a66; letter-spacing:.2em; font-size:clamp(8px,.95vw,10px);
+  }
+  @keyframes titleIn{from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none}}
+  @keyframes titleRule{from{opacity:0; transform:scaleX(.2)} to{opacity:1; transform:none}}
+  @keyframes titleBlink{0%,100%{opacity:.25} 50%{opacity:1}}
+
   /* ---- pilot school ---- */
-  #btnSchoolExit,#btnSchoolSkip{position:absolute; right:16px; margin:0; display:none;
+  #btnSchoolQuit,#btnSchoolList,#btnSchoolSkip{position:absolute; margin:0; display:none;
     font-size:clamp(10px,1.15vw,12px); padding:9px 18px; z-index:5}
-  #btnSchoolExit{bottom:132px}
+  #btnSchoolList,#btnSchoolSkip{right:16px}
+  #btnSchoolList{bottom:132px}
   #btnSchoolSkip{bottom:178px}
+  /* leaving is the one control that is not about the drill, so it sits alone
+     in the opposite corner rather than under the two that are */
+  #btnSchoolQuit{left:16px; bottom:16px; border-color:#3a2030; color:#c98a9e}
+  #btnSchoolQuit:hover{border-color:#8d3a55; color:#ffd9e4; background:rgba(120,30,55,.2)}
+
+  /* ---- the launching screen ----
+     What you are about to fly, in numbers, above whatever story goes with it.
+     Two rows of chips: what is coming at you on the left of each pair, what you
+     are taking into it on the right. */
+  #briefKind{
+    margin:0 0 6px; color:#4d9dff; letter-spacing:.42em;
+    font-size:clamp(8px,.95vw,10px);
+  }
+  #briefStats{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+    gap:1px; width:min(94vw,860px); margin:18px 0 4px;
+    background:#1b2540; border:1px solid #1b2540;
+  }
+  #briefStats .bs{background:#080c18; padding:11px 13px; text-align:left}
+  #briefStats .bk{
+    font-size:clamp(7.5px,.85vw,9px); letter-spacing:.22em; color:#5d6c8f;
+  }
+  #briefStats .bv{
+    font-size:clamp(12px,1.6vw,17px); letter-spacing:.1em; color:#cfe0f8; margin-top:6px;
+  }
+  #briefStats .bs.warn .bv{color:#ffd24d}
+  #briefStats .bs.good .bv{color:#46e39b}
+  #briefStats .bs.bad  .bv{color:#ff6b8a}
+  #briefStats .bs.wide{grid-column:span 2}
+
+  /* ---- lesson select ---- */
+  #lessonList{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:10px; width:min(92vw,900px); margin-top:14px;
+  }
+  .lrow{
+    text-align:left; padding:12px 14px; background:rgba(8,12,24,.86);
+    border:1px solid #1d2743; border-left:3px solid #2a3350;
+    cursor:pointer; transition:border-color .12s, background .12s, transform .12s;
+  }
+  .lrow:hover{border-color:#4d9dff; background:rgba(18,32,60,.9); transform:translateY(-2px)}
+  .lrow .ln{font-size:clamp(11px,1.35vw,14px); letter-spacing:.16em; color:#cfe0f8}
+  .lrow .lm{font-size:clamp(8px,.95vw,10px); letter-spacing:.18em; color:#5d6c8f; margin-top:6px}
+  .lrow.now{border-color:#4d9dff; border-left-color:#4d9dff; background:rgba(20,40,73,.94)}
+  .lrow.now .ln{color:#dfe9ff}
+  .lrow.now .lm{color:#4d9dff}
+  .lrow.done{border-left-color:#46e39b}
+  .lrow.done .lm{color:#46e39b}
 
   /* ══════════ world map ══════════
      The campaign as a route, drawn bottom-up like the tree, on a live canvas:
@@ -264,6 +347,8 @@
   }
   .mnode.secret.open .id{color:#ffd24d} .mnode.secret.open .st{color:#8a7433}
   .mnode.secret.open:hover{transform:translate(-50%,-50%) scale(1.06)}
+  .mnode.secret.open.sel{border-width:2px; box-shadow:0 0 0 3px rgba(255,210,77,.16),0 0 26px rgba(255,210,77,.3)}
+  .mnode.secret.portal.open.sel{box-shadow:0 0 0 3px rgba(199,141,255,.16),0 0 26px rgba(199,141,255,.32)}
   /* the portal: the only violet thing on the chart, and it turns */
   .mnode.portal{width:11%; border-color:#3b2b57; border-style:solid}
   .mnode.portal .id{color:#7a5fa8}
@@ -459,10 +544,24 @@
 <body>
 <div id="wrap">
   <canvas id="c" width="1000" height="680"></canvas>
-  <button id="btnSchoolExit" class="ghost">EXIT SCHOOL</button>
+  <button id="btnSchoolQuit" class="ghost">QUIT</button>
+  <button id="btnSchoolList" class="ghost">LESSONS</button>
   <button id="btnSchoolSkip" class="ghost">SKIP LESSON</button>
 
-  <div id="menu" class="overlay on">
+  <div id="title" class="overlay on">
+    <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
+    <div id="titleMark">
+      <h1>MINDFRAME</h1>
+      <div id="titleRule"></div>
+      <h2>DEFENSE OF EARTH</h2>
+    </div>
+    <!-- PROSE: byline + prompt are yours to word -->
+    <p id="titleBy">«WRITE: the byline under the title mark»</p>
+    <p id="titlePrompt">«WRITE: the press-to-start prompt»</p>
+    <p id="titleSave"></p>
+  </div>
+
+  <div id="menu" class="overlay">
     <div id="netbar">
       <span class="lit">EARTH DEFENCE NET &nbsp;·&nbsp; LINK ACTIVE</span>
       <span id="netRight">SECTOR 001 &nbsp;·&nbsp; ONE HULL</span>
@@ -562,6 +661,19 @@
     </div>
   </div>
 
+  <div id="lessons" class="overlay">
+    <div id="treeHead">
+      <h1 style="font-size:clamp(20px,3.2vw,34px)">LESSONS</h1>
+      <span id="lessonSub"></span>
+    </div>
+    <!-- PROSE: one line on what lesson select is and that drills can be re-flown freely -->
+    <p style="margin:6px 0 0">«WRITE: one line — these are every drill unlocked, pick any, re-flying costs nothing»</p>
+    <div id="lessonList"></div>
+    <div class="row" style="margin-top:16px">
+      <button id="btnLessonBack" class="ghost">BACK — ESC</button>
+    </div>
+  </div>
+
   <div id="code" class="overlay">
     <h1 style="font-size:clamp(20px,3.2vw,34px)">SAVE CODE</h1>
     <p>Copy this to carry your points, skills and records to another browser or
@@ -578,8 +690,10 @@
   </div>
 
   <div id="brief" class="overlay">
+    <p id="briefKind">LAUNCHING</p>
     <h1 id="briefTitle" style="font-size:clamp(22px,3.6vw,40px)">SYSTEM 001</h1>
     <h2 id="briefSub">INBOUND</h2>
+    <div id="briefStats"></div>
     <div class="prose" id="briefText"></div>
     <div class="row">
       <button id="btnBriefGo">ENGAGE</button>
@@ -1281,6 +1395,7 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
   if(e.code==='Space'){e.preventDefault();}
+  if(state==='title'){ e.preventDefault(); titleGo(); return; }   // any key leaves the title card
   if(state==='intro'){ e.preventDefault(); cineEnd(); return; }   // any key skips the cold open
   if(e.code==='KeyP'&&state==='play') setPause(!paused);
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
@@ -1294,6 +1409,7 @@ function ptr(e){
 }
 cv.addEventListener('mousemove',ptr);
 cv.addEventListener('mousedown',e=>{SND.boot();SND.resume();ptr(e);mouse.down=true;if(state==='intro')cineEnd();});
+addEventListener('mousedown',()=>{ if(state==='title') titleGo(); });
 addEventListener('mouseup',()=>mouse.down=false);
 // any button anywhere clicks — one listener rather than forty
 addEventListener('mousedown',()=>{ SND.boot(); SND.resume(); },{capture:true});
@@ -1305,7 +1421,7 @@ addEventListener('click',e=>{
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 
 /* ================= world ================= */
-let state='menu', paused=false;
+let state='title', paused=false;
 let player, bullets, ebullets, enemies, parts, stars, pickups, buffs;
 let wave, waveTimer, spawnQ, score, shake, banner, bannerT, sysIdx;
 
@@ -1457,6 +1573,27 @@ function cineDraw(){
 /* A run starts at the system you picked on the map and climbs from there. Every
    system you have already taken stays taken, so falling in 003 costs you 003 —
    not the two systems underneath it. */
+const branchTitle=k=> k==='boss'?'QUANTUM PORTAL':k==='escort'?'ESCORT':'SALVAGE';
+
+/* A branch flown as a sortie of its own off the title map, rather than as a
+   detour partway up a campaign. One mission, paid the same, and then straight
+   back to the chart — which is what makes the branches worth owning a tier for
+   even on a save that has already held every system. */
+let pendingBranch=null, branchSortie=false;
+function newBranch(kind,i){
+  const st=stats();
+  player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
+  bullets=[];ebullets=[];enemies=[];parts=[];
+  clearBuffs();
+  score=0; shake=0; wave=0; sysIdx=i; paused=false; runHeld=i;
+  mission=null; runSecrets=[]; fxClear(); flash=0;
+  mapBrief=null; branchSortie=true; pendingBranch=kind;
+  MUS.crit=false;
+  if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
+  openBrief(branchTitle(kind),'SINGLE SORTIE  \u00b7  OFF '+SYSTEMS[i].name,
+            '',branchOverview(kind,i),'LAUNCHING A SIDE BRANCH');
+}
+
 function newRun(){
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
@@ -1464,12 +1601,12 @@ function newRun(){
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=mapPick; paused=false; runHeld=mapPick;
   mission=null; runSecrets=[]; fxClear(); flash=0;
+  branchSortie=false; pendingBranch=null;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   const S0=SYS();
   cineStart(()=>{
-    if(S0.brief.trim()) openBrief(S0.name,'INBOUND — FIVE WAVES',para(S0.brief));
-    else beginSystem();
+    openBrief(S0.name,'INBOUND — FIVE WAVES',para(S0.brief),sysOverview(sysIdx));
   });
 }
 
@@ -1483,9 +1620,59 @@ function para(t){
   }).join('');
 }
 
-function openBrief(title,sub,html){
+/* ---- the launching screen ----
+   The screen between picking something on the map and flying it. It answers
+   the two questions a pilot actually has — what is coming, and what am I
+   taking into it — from the live numbers rather than from prose about them.
+   The story text for the system sits underneath, where it always did. */
+const bsChip=(k,v,cls)=>'<div class="bs'+(cls?' '+cls:'')+'"><div class="bk">'+k+
+  '</div><div class="bv">'+v+'</div></div>';
+
+// what you are flying with — identical on every launch, so it is built once
+function loadoutChips(){
+  const st=stats(), sh=SHIP(), spent=spentPoints();
+  return bsChip('HULL', sh.n)+
+         bsChip('INTEGRITY', Math.round(st.maxHp))+
+         bsChip('LOADOUT', save.owned.length+' SKILL'+(save.owned.length===1?'':'S')+
+                           '  ·  '+spent+'P');
+}
+
+function sysOverview(i){
+  const sy=SYSTEMS[i], b=BOSS(i);
+  const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
+  // the frontier asks for a floor; anything already held never does
+  const floor=sysFloor(i), short=!sysHeld(i)&&spentPoints()<floor;
+  return bsChip('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
+         bsChip('WAVES','5  ·  THEN A BOSS')+
+         bsChip('BOSS', b.n, 'warn')+
+         bsChip('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':'')+
+         bsChip('PAYS','+'+pay+' CR','good')+
+         bsChip('STATUS', sysHeld(i)?'HELD — REFLYING':'FRONTIER', sysHeld(i)?'good':'warn')+
+         loadoutChips()+
+         (short?bsChip('LOADOUT FLOOR', floor+'P — SHORT','bad'):'');
+}
+
+function branchOverview(k,i){
+  // «WRITE: the two descriptive values per branch — [what it is, what opposes you].
+  //  Placeholders below are functional stand-ins, not final copy.»
+  const M={salvage:['\u00abWRITE: what salvage is\u00bb','\u00abWRITE: what opposes you\u00bb'],
+           escort:['\u00abWRITE: what escort is\u00bb','\u00abWRITE: what opposes you\u00bb'],
+           boss:['\u00abWRITE: what the portal is\u00bb','\u00abWRITE: what opposes you\u00bb']}[k];
+  return bsChip('BRANCH', M[0])+
+         bsChip('OPPOSITION', M[1], k==='salvage'?'':'bad')+
+         bsChip('PAYS','+'+SECRET_PAY(i,k)+' CR','good')+
+         bsChip('ON FAILURE','LOSE THE PAYOUT','warn')+
+         loadoutChips()+
+         bsChip('HANGS OFF', SYSTEMS[i].name);
+}
+
+function openBrief(title,sub,html,stats,kind){
+  $('briefKind').textContent=kind||'LAUNCHING';
   $('briefTitle').textContent=title;
   $('briefSub').textContent=sub;
+  const bs=$('briefStats');
+  bs.innerHTML=stats||'';
+  bs.style.display=stats?'':'none';
   $('briefText').innerHTML=html;
   $('briefText').style.display=html?'':'none';
   $('btnBriefTree').style.display=save.unlocked?'':'none';
@@ -1516,7 +1703,7 @@ function systemCleared(){
   const nxt=SYS();
   const a=para(done.clear), b=para(nxt.brief);
   mapBrief=[nxt.name,'SYSTEM '+done.id+' HELD  ·  HULL PARTIALLY RESTORED',
-            a + (a&&b?'<p class="rep">— — —</p>':'') + b];
+            a + (a&&b?'<p class="rep">— — —</p>':'') + b, sysOverview(sysIdx)];
   openMap('run','brief');
 }
 
@@ -2664,9 +2851,9 @@ function endRun(win,why){
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    (win?'':'<br><br>Every system you have taken stays taken. Fly '+SYS().name+
-          ' again from the map, or take a different one.')+
-    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades are permanent — take them into your next launch.':'');
+    (win?'':'<br><br>\u00abWRITE: one or two lines telling the player a loss costs only this system — '+
+          'everything already held is still held, and '+SYS().name+' is right there on the map to retry\u00bb')+
+    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades are permanent — take them into your next run.':'');
   document.getElementById('btnRetry').textContent = win?'WORLD MAP':'BACK TO THE MAP';
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   document.getElementById('btnTreeOver').style.display = save.unlocked?'':'none';
@@ -2895,7 +3082,8 @@ function missionEnd(win,why){
     // second attempt at this branch, and you carry on up the spine.
     player.hp=Math.max(player.hp, player.st.maxHp*.25);
     toast='BRANCH LOST — '+why+'  ·  NO CREDITS'; toastT=3.6;
-    if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
+    if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2],mapBrief[3]);
+    else if(branchSortie){ branchSortie=false; openMap('menu'); }
     else { state='menu'; refreshMenu(); show('menu'); }
     return;
   }
@@ -2903,7 +3091,8 @@ function missionEnd(win,why){
   player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*.15);
   toast=(M.k==='boss'?'RETURNED THROUGH THE PORTAL':'SIDE BRANCH HELD')+
         '  ·  +'+(M.k==='salvage'?M.got:M.pay)+' CR'; toastT=3.4;
-  if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
+  if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2],mapBrief[3]);
+  else if(branchSortie){ branchSortie=false; openMap('menu'); }
   else { state='menu'; refreshMenu(); show('menu'); }
 }
 
@@ -3021,11 +3210,10 @@ function schoolLessons(){
     tick(){ for(const u of pickups) u.t=0; return !pickups.length; }});
 
   if(save.unlocked) L.push({ name:'SECRET MISSIONS', teach:'secret', lines:[
-    'Between systems the world map offers a side branch, if your tree is deep enough:',
-    'ESCORT keeps a yellow hauler alive across the field while everything shoots at it.',
-    'SALVAGE is a debris field of credits that only ever gets thicker — you leave when you',
-    'choose. Both pay half again what a system does. Fail one and you lose the payout,',
-    'not the campaign. This is salvage: grab four cells.'],
+    '\u00abWRITE: 4-5 caption lines for this drill. Facts to get across: branches hang off the',
+    'world map and are now launchable on their own; each needs a tier of skill tree first',
+    '(salvage t1, escort t2, portal t3); they pay half again what a system does; failing one',
+    'costs the payout, not the campaign. Then: this drill is salvage, grab four cells.\u00bb'],
     goal:()=>'CELLS  '+school.motes.filter(m=>m.got).length+' / '+school.motes.length,
     setup(){
       for(let i=0;i<6;i++) makeJunk(school.junk);
@@ -3096,8 +3284,7 @@ function schoolStart(){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[]; clearBuffs(); fxClear(); flash=0;
   score=0; shake=0; wave=1; sysIdx=0; paused=false; waveTimer=0; bannerT=0;
   school={i:-1,list:schoolLessons(),t:0,rings:[],junk:[],motes:[],dashes:0,clean:0,hold:0,frozen:false};
-  $('btnSchoolExit').style.display='';
-  $('btnSchoolSkip').style.display='';
+  schoolBtns('');
   state='play';
   schoolNext();
 }
@@ -3158,8 +3345,7 @@ function schoolTick(dt){
 
 function schoolLeave(){
   school=null; paused=false; state='menu';
-  $('btnSchoolExit').style.display='none';
-  $('btnSchoolSkip').style.display='none';
+  schoolBtns('none');
 }
 function schoolFinish(){
   schoolLeave();
@@ -3167,6 +3353,39 @@ function schoolFinish(){
   refreshMenu(); show('schoolEnd');
 }
 function schoolExit(){ schoolLeave(); refreshMenu(); show('menu'); }
+
+// the three in-flight school controls travel together
+function schoolBtns(d){
+  for(const b of ['btnSchoolQuit','btnSchoolList','btnSchoolSkip']) $(b).style.display=d;
+}
+
+/* ---- lesson select ----
+   The drills are a menu, not a queue. Every one this save has unlocked is
+   listed and any of them can be flown now: the order only ever mattered the
+   first time through, and a pilot who wants the Repair Field drill again
+   should not have to sit through Thrust to reach it. */
+function openLessons(){
+  if(!school) return;
+  const box=$('lessonList'); box.innerHTML='';
+  school.list.forEach((L,i)=>{
+    const d=document.createElement('div');
+    const done=L.teach && save.taught.includes(L.teach);
+    d.className='lrow'+(i===school.i?' now':done?' done':'');
+    d.innerHTML='<div class="ln">'+String(i+1).padStart(2,'0')+'  '+L.name+'</div>'+
+                '<div class="lm">'+(i===school.i?'FLYING NOW':done?'FLOWN':'READY')+'</div>';
+    d.onclick=()=>schoolJump(i);
+    box.appendChild(d);
+  });
+  $('lessonSub').textContent=school.list.length+' DRILL'+(school.list.length===1?'':'S');
+  schoolBtns('none');
+  state='lessons'; show('lessons');
+}
+function closeLessons(){ hideAll(); schoolBtns(''); state='play'; }
+function schoolJump(i){
+  closeLessons();
+  school.i=i-1;          // schoolNext() steps onto it and does the whole reset
+  schoolNext();
+}
 
 function schoolPanel(){
   const L=school.list[school.i]; if(!L) return;
@@ -3682,7 +3901,7 @@ function quitRun(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage','map']) $(o).classList.toggle('on', o===which);
+  for(const o of ['title','menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage','map','lessons']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -3703,7 +3922,12 @@ const MAP_X=38, SECRET_X=74, PORTAL_X=9;
    save remembers is `deepestSys` — how many systems have fallen — and that is
    the unlock line. `mapMode` is 'menu' before a run and 'run' between systems,
    and `mapPick` is the node LAUNCH will drop you into. */
-let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null, mapPick=0;
+let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null, mapPick=0, mapPickK=null;
+/* On the title map a branch is a launch target like a system is: it is
+   selectable once you have reached the system it hangs off and own the tier
+   that opens it. `mapPickK` being set means LAUNCH flies the branch at
+   `mapPick` rather than the system there. */
+const branchPickable=(i,k)=> mapMode==='menu' && sysReached(i) && branchReady(k);
 
 /* Reaching a system unlocks it, but flying it still asks for a bare minimum of
    tree. These are points *spent*, so a respec never strands you above a floor
@@ -3768,27 +3992,27 @@ function buildMap(){
     const y=MAP_Y(i), done=i<held;
     // mid-run the blue node is the one you are about to fly; on the title map
     // it is the one you have picked to launch into
-    const sel=run ? i===held : i===mapPick;
+    const sel=run ? i===held : (i===mapPick && !mapPickK);
     const open=run ? false : sysOpen(i);
     if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':sel?'#4d9dff':'#22293f',
                  false, sel);            // the segment you are about to fly runs
+    // a branch: taken as a detour mid-run, or flown on its own off the title map
+    const branch=(k,bx,cls,col,dim)=>{
+      const offer=run ? (k==='boss'?portalOffered():secretOffered(i)) : false;
+      const pick=branchPickable(i,k), selB=pick && mapPickK===k && mapPick===i;
+      const lit=offer||pick;
+      line(bx,y,MAP_X,y, lit?col:dim, true, offer);
+      const bn=node(bx,y,cls+(lit?' open':'')+(selB?' sel':''), branchName(k),
+        selB   ? 'SELECTED'
+        : lit  ? branchSub(k)
+        : branchReady(k) ? 'OFFERED AT '+sy.id
+        : 'NEEDS A TIER '+branchTier(k)+' SKILL');
+      if(offer) bn.onclick=()=>{ if(k==='boss') runSecrets.push(-1); startMission(k); };
+      else if(pick && !selB) bn.onclick=()=>{ mapPick=i; mapPickK=k; buildMap(); };
+    };
     const sec=SECRET(i);
-    if(secretFlyable(sec.k)){                  // no branch where there is no mission
-      const lit=secretOffered(i), ready=branchReady(sec.k);
-      line(MAP_X,y,SECRET_X,y, lit?'#ffd24d':'#22293f', true, lit);
-      const sn=node(SECRET_X,y,'secret'+(lit?' open':''),
-        branchName(sec.k),
-        lit?branchSub(sec.k):ready?'OFFERED AT '+sy.id:'NEEDS A TIER '+branchTier(sec.k)+' SKILL');
-      if(lit) sn.onclick=()=>startMission(sec.k);
-    }
-    if(i===PORTAL_SYS){                        // and the portal, on the other side
-      const lit=portalOffered(), ready=branchReady('boss');
-      line(PORTAL_X,y,MAP_X,y, lit?'#c78dff':'#241d38', true, lit);
-      const pn=node(PORTAL_X,y,'secret portal'+(lit?' open':''),
-        branchName('boss'),
-        lit?branchSub('boss'):ready?'OFFERED AT '+sy.id:'NEEDS A TIER '+branchTier('boss')+' SKILL');
-      if(lit) pn.onclick=()=>{ runSecrets.push(-1); startMission('boss'); };
-    }
+    if(secretFlyable(sec.k)) branch(sec.k,SECRET_X,'secret','#ffd24d','#22293f');
+    if(i===PORTAL_SYS)       branch('boss',PORTAL_X,'secret portal','#c78dff','#241d38');
     // OPEN is the level-select state: cleared or not, you may fly it right now
     const st = done ? 'HELD'
              : sel ? (run?'NEXT':'SELECTED')
@@ -3798,15 +4022,17 @@ function buildMap(){
     const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sy.id, st,
          String(i+1).padStart(2,'0'), readout(sy,i));
     // on the title map every unlocked node is a launch point you can click
-    if(!run && (open||done) && !sel){ n.style.cursor='pointer';
-      n.onclick=()=>{ mapPick=i; buildMap(); }; }
+    if(!run && (open||done) && !(sel&&!mapPickK)){ n.style.cursor='pointer';
+      n.onclick=()=>{ mapPick=i; mapPickK=null; buildMap(); }; }
   });
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
-  const go=$('btnMapGo'), pickOk=run||sysOpen(mapPick);
+  const go=$('btnMapGo');
+  const pickOk = run || (mapPickK ? branchPickable(mapPick,mapPickK) : sysOpen(mapPick));
   go.textContent = run
     ? (mapThen==='end' ? 'CAMPAIGN COMPLETE — RESULTS' : 'CONTINUE — '+SYS().name)
-    : pickOk ? 'LAUNCH — '+SYSTEMS[mapPick].name
-             : 'NEEDS '+sysFloor(mapPick)+'P SPENT — '+SYSTEMS[mapPick].name;
+    : mapPickK ? 'LAUNCH — '+branchTitle(mapPickK)
+    : pickOk   ? 'LAUNCH — '+SYSTEMS[mapPick].name
+               : 'NEEDS '+sysFloor(mapPick)+'P SPENT — '+SYSTEMS[mapPick].name;
   go.disabled=!pickOk; go.classList.toggle('ghost',!pickOk);
   $('btnMapBack').style.display = run ? 'none' : '';   // mid-run, the pause menu is the only way out
   const sec=$('btnMapSecret'), off=secretOffered(sysIdx);
@@ -3883,49 +4109,6 @@ function mapArt(dt){
     g.beginPath(); g.moveTo(x0-11,y); g.lineTo(x0+11,y); g.stroke();
   }
   g.lineCap='butt';
-
-  /* ── EARTH, behind System 001 ──
-     The thing at the bottom of the route is the thing you are defending, so it
-     is drawn rather than named: an ocean, land turning across it, a terminator
-     and an atmosphere. It sits behind the node card on purpose. */
-  {
-    // out where 001's side branch would sit, so it never fights the node card
-    const ex=px(SECRET_X), y=py(MAP_Y(0)), R=Math.max(52,Math.min(w,h)*.125);
-    const x0=ex;
-    const glow=g.createRadialGradient(x0,y,R*.9,x0,y,R*1.7);
-    glow.addColorStop(0,'rgba(90,170,255,.30)'); glow.addColorStop(1,'rgba(90,170,255,0)');
-    g.fillStyle=glow; g.beginPath(); g.arc(x0,y,R*1.7,0,TAU); g.fill();
-    // a hairline from the route out to it, the way the branches are drawn
-    g.strokeStyle='rgba(90,170,255,.22)'; g.setLineDash([5,6]); g.lineWidth=1.5;
-    g.beginPath(); g.moveTo(px(MAP_X),y); g.lineTo(x0-R,y); g.stroke(); g.setLineDash([]);
-    g.save();
-    g.beginPath(); g.arc(x0,y,R,0,TAU); g.clip();
-    const oc=g.createLinearGradient(x0-R,y-R,x0+R,y+R);
-    oc.addColorStop(0,'#2a6bb8'); oc.addColorStop(1,'#12305c');
-    g.fillStyle=oc; g.fillRect(x0-R,y-R,R*2,R*2);
-    // land, turning
-    g.fillStyle='rgba(60,150,105,.85)';
-    for(let i=0;i<5;i++){
-      const a=i*1.9+mapT*.16;
-      const lx=x0+Math.sin(a)*R*.72, ly=y+Math.cos(i*2.3)*R*.5;
-      const vis=Math.cos(a);
-      if(vis<=0) continue;
-      g.save(); g.translate(lx,ly); g.scale(Math.max(.15,vis),1);
-      g.beginPath(); g.ellipse(0,0,R*(.22+.06*(i%3)),R*(.16+.05*(i%3)),i*1.1,0,TAU); g.fill();
-      g.restore();
-    }
-    // the night side
-    const term=g.createLinearGradient(x0-R*.2,y-R,x0+R,y+R);
-    term.addColorStop(0,'rgba(3,6,16,0)'); term.addColorStop(.55,'rgba(3,6,16,.55)');
-    term.addColorStop(1,'rgba(3,6,16,.92)');
-    g.fillStyle=term; g.fillRect(x0-R,y-R,R*2,R*2);
-    g.restore();
-    g.beginPath(); g.arc(x0,y,R,0,TAU);
-    g.strokeStyle='rgba(150,205,255,.5)'; g.lineWidth=1.4; g.stroke();
-    g.font='9px Menlo,monospace'; g.textAlign='center';
-    g.fillStyle='rgba(150,205,255,.55)';
-    g.fillText('EARTH',x0,Math.min(y+R+15,h-7)); g.textAlign='left';
-  }
 
   /* ── the ICARUS, beside the last system ──
      The enemy battleship the route ends at. It sits where that system's side
@@ -4047,7 +4230,7 @@ function openMap(mode,then){
     // default the cursor to the furthest thing you are cleared to fly, so
     // LAUNCH picks up where the save left off rather than at 001 every time
     let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i)) best=i;
-    mapPick=best;
+    mapPick=best; mapPickK=null;
   }
   buildMap(); state='map'; show('map');
 }
@@ -4667,7 +4850,13 @@ $('btnLoadCode').onclick=()=>{
 
 let treeReturn='menu';
 $('linkStory').onclick=()=>{buildStory();show('story');};
-$('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
+// ENGAGE: a system starts its waves; a branch launched off the title map
+// spins up a one-mission sortie instead
+$('btnBriefGo').onclick=()=>{
+  hideAll();
+  if(pendingBranch){ const k=pendingBranch; pendingBranch=null; startMission(k); return; }
+  beginSystem();
+};
 $('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();show('skills');};
 $('btnStoryBack').onclick=()=>{refreshMenu();show('menu');};
 
@@ -4675,9 +4864,13 @@ $('btnStart').onclick=()=>openMap('menu');
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRetry').onclick=()=>{hideAll();openMap('menu');};
 $('btnMapGo').onclick=()=>{
-  if(mapMode!=='run'){ hideAll(); newRun(); return; }
+  if(mapMode!=='run'){
+    hideAll();
+    if(mapPickK) newBranch(mapPickK,mapPick); else newRun();
+    return;
+  }
   if(mapThen==='end'){ endRun(true); return; }
-  openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
+  openBrief(mapBrief[0],mapBrief[1],mapBrief[2],mapBrief[3]);
 };
 $('btnMapSecret').onclick=()=>{ if(secretOffered(sysIdx)) startMission(SECRET(sysIdx).k); };
 $('btnMapPortal').onclick=()=>{ if(portalOffered()){ runSecrets.push(-1); startMission('boss'); } };
@@ -4695,7 +4888,7 @@ $('btnTreeOver').onclick=()=>{treeReturn='over';buildTree();show('skills');};
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage','map']
+const openOverlay=()=>['title','menu','over','skills','story','brief','code','schoolEnd','codex','pause','garage','map','lessons']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -4703,6 +4896,7 @@ function onEscape(){
   if(state==='play'&&!o){ setPause(true); return; }
   if(o==='pause'){ setPause(false); return; }
   if(o==='garage'){ closeGarage(); return; }
+  if(o==='lessons'){ closeLessons(); return; }   // back to the drill you were flying
   if(o==='skills'){ $('btnTreeBack').onclick(); return; }
   if(o==='brief'||o==='menu') return;          // mid-campaign: no accidental exits
   if(o==='map'&&mapMode==='run') return;       // ditto: CONTINUE or TITLE SCREEN, deliberately
@@ -4712,7 +4906,8 @@ function onEnter(){
   const o=openOverlay();
   const main={menu:'btnStart',over:'btnRetry',pause:'btnResume',brief:'btnBriefGo',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',map:'btnMapGo',
-              story:'btnStoryBack',code:'btnCodeBack',schoolEnd:'btnSchoolLaunch'}[o];
+              story:'btnStoryBack',code:'btnCodeBack',schoolEnd:'btnSchoolLaunch',
+              lessons:'btnLessonBack'}[o];
   if(!main) return;
   const b=$(main);
   if(b && b.style.display!=='none' && b.onclick) b.onclick();
@@ -4734,7 +4929,9 @@ $('btnGarageBack').onclick=closeGarage;
 
 /* ---- pilot school ---- */
 $('btnSchool').onclick=schoolStart;
-$('btnSchoolExit').onclick=schoolExit;
+$('btnSchoolQuit').onclick=schoolExit;
+$('btnSchoolList').onclick=openLessons;
+$('btnLessonBack').onclick=closeLessons;
 // skipping a lesson still counts it as flown — the school is a teacher, not a gate
 $('btnSchoolSkip').onclick=()=>{
   if(!school||school.frozen) return;
@@ -4745,8 +4942,27 @@ $('btnSchoolSkip').onclick=()=>{
 };
 $('btnSchoolMenu').onclick=()=>{refreshMenu();show('menu');};
 $('btnSchoolLaunch').onclick=()=>{hideAll();newRun();};
-// opens itself every time the window opens, until it has been finished once
-if(!save.schoolDone) schoolStart();
+/* ---- the title card ----
+   The first thing the game shows. It holds until you touch something, and then
+   hands you to Pilot School on a save that has never finished it, or to the
+   menu on one that has. The boot sequence is: title → school-or-menu. */
+let titleDone=false;
+function titleGo(){
+  if(titleDone) return;
+  titleDone=true;
+  SFX.ui();
+  if(!save.schoolDone){ schoolStart(); return; }
+  refreshMenu(); state='menu'; show('menu');
+}
+function showTitle(){
+  titleDone=false; state='title';
+  $('titleSave').textContent = save.deepestSys
+    ? 'SAVE FOUND  ·  '+save.deepestSys+' SYSTEM'+(save.deepestSys===1?'':'S')+' HELD  ·  '+
+      save.credits+' CR'
+    : '';
+  show('title');
+}
+showTitle();
 })();
 </script>
 </body>
