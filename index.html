@@ -234,9 +234,10 @@
   #btnSchoolQuit,#btnSchoolExit,#btnSchoolList,#btnSchoolSkip{position:absolute; margin:0;
     display:none; font-size:clamp(10px,1.15vw,12px); padding:9px 18px; z-index:5}
   #btnSchoolExit,#btnSchoolList,#btnSchoolSkip{right:16px}
-  #btnSchoolList{bottom:86px}
+  /* stacked clear of the caption panel, which owns the bottom ~150px */
   #btnSchoolExit{bottom:132px}
   #btnSchoolSkip{bottom:178px}
+  #btnSchoolList{bottom:224px}
   /* leaving is the one control that is not about the drill, so it sits alone
      in the opposite corner rather than under the two that are */
   #btnSchoolQuit{left:16px; bottom:16px; border-color:#3a2030; color:#c98a9e}
@@ -251,21 +252,27 @@
     font-size:clamp(8px,.95vw,10px);
   }
   #launchStats{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
-    gap:1px; width:min(94vw,860px); margin:18px 0 4px;
-    background:#1b2540; border:1px solid #1b2540;
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    width:min(92vw,720px); margin:22px 0 4px; text-align:left;
   }
-  #launchStats .bs{background:#080c18; padding:11px 13px; text-align:left}
-  #launchStats .bk{
-    font-size:clamp(7.5px,.85vw,9px); letter-spacing:.22em; color:#5d6c8f;
+  .lpanel{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:14px 16px 12px}
+  .lpanel h3{
+    margin:0 0 10px; font-size:clamp(8px,.92vw,10px); font-weight:400;
+    letter-spacing:.3em; color:#4d9dff; border-bottom:1px solid #16203a; padding-bottom:9px;
   }
-  #launchStats .bv{
-    font-size:clamp(12px,1.6vw,17px); letter-spacing:.1em; color:#cfe0f8; margin-top:6px;
+  .lpanel.you h3{color:#46e39b; border-bottom-color:#14301f}
+  .lr{display:flex; align-items:baseline; gap:10px; padding:7px 0}
+  .lr + .lr{border-top:1px solid rgba(27,37,64,.6)}
+  .lr span{
+    flex:0 0 auto; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.2em; color:#5d6c8f;
   }
-  #launchStats .bs.warn .bv{color:#ffd24d}
-  #launchStats .bs.good .bv{color:#46e39b}
-  #launchStats .bs.bad  .bv{color:#ff6b8a}
-  #launchStats .bs.wide{grid-column:span 2}
+  .lr i{flex:1 1 auto; border-bottom:1px dotted #1b2540; transform:translateY(-3px)}
+  .lr b{
+    flex:0 0 auto; font-weight:400; font-size:clamp(10px,1.25vw,13px);
+    letter-spacing:.08em; color:#cfe0f8; text-align:right;
+  }
+  .lr b.warn{color:#ffd24d} .lr b.good{color:#46e39b} .lr b.bad{color:#ff6b8a}
+  @media (max-width:620px){ #launchStats{grid-template-columns:1fr} }
 
   /* ---- lesson select ---- */
   #lessonList{
@@ -671,7 +678,6 @@
     <div id="launchStats"></div>
     <div class="row" style="margin-top:22px">
       <button id="btnLaunchGo">ENGAGE</button>
-      <button id="btnLaunchTree" class="ghost" style="display:none">SKILL TREE</button>
       <button id="btnLaunchBack" class="ghost">BACK — ESC</button>
     </div>
   </div>
@@ -711,6 +717,7 @@
     <div class="row">
       <button id="btnBriefGo">ENGAGE</button>
       <button id="btnBriefTree" class="ghost" style="display:none">SKILL TREE</button>
+      <button id="btnBriefBack" class="ghost">BACK — ESC</button>
     </div>
   </div>
 
@@ -1637,16 +1644,21 @@ function para(t){
    the two questions a pilot actually has — what is coming, and what am I
    taking into it — from the live numbers rather than from prose about them.
    The story text for the system sits underneath, where it always did. */
-const bsChip=(k,v,cls)=>'<div class="bs'+(cls?' '+cls:'')+'"><div class="bk">'+k+
-  '</div><div class="bv">'+v+'</div></div>';
+// one label-to-value row, with a dotted leader between the two
+const lrow=(k,v,cls)=>'<div class="lr"><span>'+k+'</span><i></i><b'+
+  (cls?' class="'+cls+'"':'')+'>'+v+'</b></div>';
+const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>'+title+
+  '</h3>'+rows+'</section>';
 
-// what you are flying with — identical on every launch, so it is built once
-function loadoutChips(){
-  const st=stats(), sh=SHIP(), spent=spentPoints();
-  return bsChip('HULL', sh.n)+
-         bsChip('INTEGRITY', Math.round(st.maxHp))+
-         bsChip('LOADOUT', save.owned.length+' SKILL'+(save.owned.length===1?'':'S')+
-                           '  ·  '+spent+'P');
+// the right-hand column: what you are taking into it. Identical either way.
+function youPanel(extra){
+  const st=stats(), sh=SHIP(), n=save.owned.length;
+  return lpanel('YOUR SHIP',
+    lrow('HULL', sh.n)+
+    lrow('INTEGRITY', Math.round(st.maxHp))+
+    lrow('DAMAGE', st.dmg)+
+    lrow('SKILLS', n+' \u00b7 '+spentPoints()+'P')+
+    (extra||''), 'you');
 }
 
 function sysOverview(i){
@@ -1654,28 +1666,26 @@ function sysOverview(i){
   const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
   // the frontier asks for a floor; anything already held never does
   const floor=sysFloor(i), short=!sysHeld(i)&&spentPoints()<floor;
-  return bsChip('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
-         bsChip('WAVES','5  ·  THEN A BOSS')+
-         bsChip('BOSS', b.n, 'warn')+
-         bsChip('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':'')+
-         bsChip('PAYS','+'+pay+' CR','good')+
-         bsChip('STATUS', sysHeld(i)?'HELD — REFLYING':'FRONTIER', sysHeld(i)?'good':'warn')+
-         loadoutChips()+
-         (short?bsChip('LOADOUT FLOOR', floor+'P — SHORT','bad'):'');
+  return lpanel('WHAT IS COMING',
+           lrow('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
+           lrow('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':'')+
+           lrow('BOSS', b.n,'warn')+
+           lrow('PAYOUT','+'+pay+' CR','good'))+
+         youPanel(short?lrow('NEEDS', floor+'P SPENT','bad'):'');
 }
 
 function branchOverview(k,i){
   // «WRITE: the two descriptive values per branch — [what it is, what opposes you].
   //  Placeholders below are functional stand-ins, not final copy.»
-  const M={salvage:['\u00abWRITE: what salvage is\u00bb','\u00abWRITE: what opposes you\u00bb'],
-           escort:['\u00abWRITE: what escort is\u00bb','\u00abWRITE: what opposes you\u00bb'],
-           boss:['\u00abWRITE: what the portal is\u00bb','\u00abWRITE: what opposes you\u00bb']}[k];
-  return bsChip('BRANCH', M[0])+
-         bsChip('OPPOSITION', M[1], k==='salvage'?'':'bad')+
-         bsChip('PAYS','+'+SECRET_PAY(i,k)+' CR','good')+
-         bsChip('ON FAILURE','LOSE THE PAYOUT','warn')+
-         loadoutChips()+
-         bsChip('HANGS OFF', SYSTEMS[i].name);
+  const M={salvage:['\u00abWRITE\u00bb','\u00abWRITE\u00bb'],
+           escort: ['\u00abWRITE\u00bb','\u00abWRITE\u00bb'],
+           boss:   ['\u00abWRITE\u00bb','\u00abWRITE\u00bb']}[k];
+  return lpanel('WHAT IS COMING',
+           lrow('THE RUN', M[0])+
+           lrow('OPPOSITION', M[1], k==='salvage'?'':'bad')+
+           lrow('PAYOUT','+'+SECRET_PAY(i,k)+' CR','good')+
+           lrow('IF YOU FAIL','LOSE THE PAYOUT','warn'))+
+         youPanel();
 }
 
 /* ---- the launching screen ----
@@ -1688,14 +1698,8 @@ function openLaunch(kind,i,sub){
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
   $('launchSub').textContent = sub||'';
   $('launchStats').innerHTML = kind ? branchOverview(kind,i) : sysOverview(i);
-  $('btnLaunchTree').style.display = save.unlocked?'':'none';
-  launchWas=[kind,i,sub];
   state='launch'; show('launch');
 }
-
-// re-open the launching screen with whatever the tree now says
-let launchWas=null;
-function launchRefresh(){ if(launchWas) openLaunch(...launchWas); }
 
 function openBrief(title,sub,html){
   $('briefTitle').textContent=title;
@@ -3311,7 +3315,7 @@ function schoolStart(){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[]; clearBuffs(); fxClear(); flash=0;
   score=0; shake=0; wave=1; sysIdx=0; paused=false; waveTimer=0; bannerT=0;
   school={i:-1,list:schoolLessons(),t:0,rings:[],junk:[],motes:[],dashes:0,clean:0,hold:0,frozen:false};
-  schoolBtns('');
+  schoolBtns(true);
   state='play';
   schoolNext();
 }
@@ -3372,7 +3376,7 @@ function schoolTick(dt){
 
 function schoolLeave(){
   school=null; paused=false; state='menu';
-  schoolBtns('none');
+  schoolBtns(false);
 }
 function schoolFinish(){
   schoolLeave();
@@ -3383,7 +3387,8 @@ function schoolExit(){ schoolLeave(); refreshMenu(); show('menu'); }
 
 // the three in-flight school controls travel together
 function schoolBtns(d){
-  for(const b of ['btnSchoolQuit','btnSchoolExit','btnSchoolList','btnSchoolSkip']) $(b).style.display=d;
+  for(const b of ['btnSchoolQuit','btnSchoolExit','btnSchoolList','btnSchoolSkip'])
+    $(b).style.display = d ? 'block' : 'none';
 }
 
 /* ---- lesson select ----
@@ -3404,10 +3409,10 @@ function openLessons(){
     box.appendChild(d);
   });
   $('lessonSub').textContent=school.list.length+' DRILL'+(school.list.length===1?'':'S');
-  schoolBtns('none');
+  schoolBtns(false);
   state='lessons'; show('lessons');
 }
-function closeLessons(){ hideAll(); schoolBtns(''); state='play'; }
+function closeLessons(){ hideAll(); schoolBtns(true); state='play'; }
 function schoolJump(i){
   closeLessons();
   school.i=i-1;          // schoolNext() steps onto it and does the whole reset
@@ -4879,6 +4884,9 @@ $('linkStory').onclick=()=>{buildStory();show('story');};
 // ENGAGE: a system starts its waves; a branch launched off the title map
 // spins up a one-mission sortie instead
 $('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
+// the briefing's way back: to the launching screen mid-campaign, the map otherwise
+$('btnBriefBack').onclick=()=>{ if(mapMode==='run'){ buildMap(); state='map'; show('map'); }
+                                else { openLaunch(null,sysIdx,'INBOUND'); } };
 $('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();show('skills');};
 $('btnStoryBack').onclick=()=>{refreshMenu();show('menu');};
 
@@ -4905,7 +4913,6 @@ $('btnMapGo').onclick=()=>{
   launchGo=()=>openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
 };
 $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
-$('btnLaunchTree').onclick=()=>{ treeReturn='launch'; buildTree(); show('skills'); };
 $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
 $('btnMapSecret').onclick=()=>{ if(secretOffered(sysIdx)) startMission(SECRET(sysIdx).k); };
 $('btnMapPortal').onclick=()=>{ if(portalOffered()){ runSecrets.push(-1); startMission('boss'); } };
@@ -4913,8 +4920,6 @@ $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnTreeBack').onclick=()=>{
   if(treeReturn==='brief'){ show('brief'); }
-  // points spent on the tree change the readout, so rebuild it on the way back
-  else if(treeReturn==='launch'){ launchRefresh(); }
   else if(treeReturn==='pause'){ show('pause'); }
   else if(treeReturn==='over'){ show('over'); }
   else { state='menu'; refreshMenu(); show('menu'); }
