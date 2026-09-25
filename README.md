@@ -540,10 +540,10 @@ hulls compete with the skill tree for the same currency.
 
 | Ship | Class | HULL | POWER | RATE | SPEED | GRIP | Unlock |
 |---|---|---|---|---|---|---|---|
-| **LANCER** | Standard pattern | C | C | C | C | C | free |
+| **LANCER** | Standard pattern | D | D | D | D | D | free |
 | **BULWARK** | Assault hull | A | B | D | D | C | clear System 001 · 10 CR |
-| **NEEDLE** | Interceptor | E | D | B | A | A | clear System 002 · 20 CR |
-| **VERDICT** | Siege gunship | C | A | B | D | D | clear System 003 · 32 CR |
+| **NEEDLE** | Interceptor | E | C | B | A | A | clear System 002 · 20 CR |
+| **VERDICT** | Siege gunship | B | A | B | D | D | clear System 003 · 32 CR |
 
 GRIP is handling — how hard the ship can push against its own drift. The letter
 grades are *computed* from the multipliers rather than written by hand, so a
