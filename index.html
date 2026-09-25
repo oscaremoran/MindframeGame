@@ -253,7 +253,7 @@
   }
   #launchStats{
     display:grid; grid-template-columns:1fr; gap:14px;
-    width:min(92vw,440px); margin:22px 0 4px; text-align:left;
+    width:min(92vw,470px); margin:22px 0 4px; text-align:left;
   }
   .lpanel{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:14px 16px 12px}
   .lpanel h3{
@@ -271,6 +271,9 @@
     letter-spacing:.08em; color:#cfe0f8; text-align:right;
   }
   .lr b.warn{color:#ffd24d} .lr b.good{color:#46e39b} .lr b.bad{color:#ff6b8a}
+  /* a row whose value is a sentence rather than a figure */
+  .lr.col{flex-direction:column; align-items:stretch; gap:5px; padding:9px 0}
+  .lr.col b{text-align:left; line-height:1.65; font-size:clamp(10px,1.15vw,12.5px)}
 
 
   /* ---- lesson select ---- */
@@ -1650,8 +1653,8 @@ function para(t){
    taking into it — from the live numbers rather than from prose about them.
    The story text for the system sits underneath, where it always did. */
 // one label-to-value row, with a dotted leader between the two
-const lrow=(k,v,cls)=>'<div class="lr"><span>'+k+'</span><i></i><b'+
-  (cls?' class="'+cls+'"':'')+'>'+v+'</b></div>';
+const lrow=(k,v,cls,stack)=>'<div class="lr'+(stack?' col':'')+'"><span>'+k+'</span>'+
+  (stack?'':'<i></i>')+'<b'+(cls?' class="'+cls+'"':'')+'>'+v+'</b></div>';
 const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>'+title+
   '</h3>'+rows+'</section>';
 
@@ -1669,16 +1672,14 @@ function sysOverview(i){
 }
 
 function branchOverview(k,i){
-  // «WRITE: the two descriptive values per branch — [what it is, what opposes you].
-  //  Placeholders below are functional stand-ins, not final copy.»
-  const M={salvage:['\u00abWRITE\u00bb','\u00abWRITE\u00bb'],
-           escort: ['\u00abWRITE\u00bb','\u00abWRITE\u00bb'],
-           boss:   ['\u00abWRITE\u00bb','\u00abWRITE\u00bb']}[k];
+  const M={salvage:['Grab the green salvage to get credits, but avoid the asteroids.','No iterations, only a growing number of asteroids.'],
+           escort: ['Protect the yellow supply ship from damage and get it across the line.','Swarms of Iterations attacking you and the supply ship.'],
+           boss:   ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   return lpanel('ENEMY FORCES',
-           lrow('THE RUN', M[0])+
-           lrow('OPPOSITION', M[1], k==='salvage'?'':'bad')+
+           lrow('THE RUN', M[0], '', 1)+
+           lrow('OPPOSITION', M[1], k==='salvage'?'':'bad', 1)+
            lrow('PAYOUT','+'+SECRET_PAY(i,k)+' CR','good')+
-           lrow('IF YOU FAIL','LOSE THE PAYOUT','warn'));
+           lrow('IF YOU FAIL','LOSE THE MONEY','warn'));
 }
 
 /* ---- the launching screen ----
@@ -1690,13 +1691,13 @@ let launchGo=null;
    One per system, one per branch. Yours to write; the markers render in-game
    so a blank one is obvious. */
 const LAUNCH_TEXT={
-  sys:['\u00abDefend Earth from the Iterations besieging it.\u00bb',
-       '\u00abEliminate the nearest Iteration outpost.\u00bb',
-       '\u00abDestroy a major Iteration bastion.\u00bb',
-       '\u00abCharge the Icarus in a final battle.\u00bb'],
-  salvage:'\u00abSalvage scrap by collecting the green dots, but escape before you are crushed.\u00bb',
-  escort: '\u00abDefend the shipment of resources from raiding parties of Iterations.\u00bb',
-  boss:   '\u00abEnter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.\u00bb',
+  sys:['Defend Earth from the Iterations besieging it.',
+       'Eliminate the nearest Iteration outpost.',
+       'Destroy a major Iteration bastion.',
+       'Charge the Icarus in a final battle.'],
+  salvage:'Salvage scrap by collecting the green dots, but escape before you are crushed.',
+  escort: 'Defend the shipment of resources from raiding parties of Iterations.',
+  boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function openLaunch(kind,i){
   $('launchKind').textContent = kind ? 'LAUNCHING A SIDE BRANCH' : 'LAUNCHING';
@@ -1732,10 +1733,10 @@ function beginSystem(){
 /* PROSE — your line for clearing each system. Shown on the level complete
    screen, under the result. */
 const SYS_CLEAR_TEXT=[
-  '\u00abThe enemy leader Iteration has been destroyed! Congratulations. Prepare and continue.\u00bb',
-  '\u00abThe alien swarm has been destroyed! Congratulations. Prepare and continue.\u00bb',
-  '\u00abThe enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.\u00bb',
-  '\u00abThe Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.\u00bb',
+  'The enemy leader Iteration has been destroyed! Congratulations. Prepare and continue.',
+  'The alien swarm has been destroyed! Congratulations. Prepare and continue.',
+  'The enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.',
+  'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
 /* Clearing a system is where the flight ends. It does not roll into the next
@@ -2898,8 +2899,8 @@ function endRun(win,why){
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    (win?'':'<br><br>\u00abIf your ship is destroyed, your progress in that system will be destroyed. You can re-launch to the system to try again.'+
-          'Everything already held is still held, and '+SYS().name+' is on the map to retry.\u00bb')+
+    (win?'':'<br><br>If your ship is destroyed, your progress in that system will be destroyed. '+
+            'You can re-launch to the system to try again.')+
     (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades to your ship are permanent, take them into your next attack.':'');
   document.getElementById('btnRetry').textContent = win?'WORLD MAP':'BACK TO THE MAP';
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
