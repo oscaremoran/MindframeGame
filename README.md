@@ -18,6 +18,14 @@ you take stays taken. Fall in one and you lose that system, never the campaign.
 | `Esc` | Back one screen — and pauses a run |
 | `Enter` | Presses the main button on the current screen |
 
+## The title card
+
+The first screen the game shows: the mark, a rule, and a prompt, over the live
+starfield. It holds until you touch anything, then hands you to **Pilot School**
+on a save that has never finished it, or to the menu on one that has. A save
+that has held ground reads its own line under the prompt — systems held and
+credits banked.
+
 ## The cold open
 
 **LAUNCH** does not drop you into a briefing. The defence net comes up first: a
@@ -47,9 +55,18 @@ when you actually do the thing:
 4. **Engage** — clear a live Iteration and two Watchers
 5. **Supply** — collect three powerup cells
 
-**SKIP LESSON** sits under **EXIT SCHOOL** and moves you straight to the next
-drill. It counts the lesson as flown, so skipping does not leave the title
-screen nagging you about it.
+**SKIP LESSON** moves you straight to the next drill. It counts the lesson as
+flown, so skipping does not leave the title screen nagging you about it.
+
+**LESSONS** sits above it and opens the lesson select: every drill this save has
+unlocked, listed with its state (`FLYING NOW` / `FLOWN` / `READY`), any of which
+can be flown immediately. The order only ever mattered the first time through —
+a pilot who wants the Repair Field drill again should not have to sit through
+Thrust to reach it.
+
+There is exactly one way out of a drill: **`P`**. It leaves the school outright.
+`ESC` does nothing inside one and `P` does not open the pause menu there, so the
+school cannot be quit three different ways by accident.
 
 A sixth drill, **Secret Missions**, appears only once you have finished a run
 and first held System 001 — the point at which the map starts offering side
@@ -79,8 +96,8 @@ Primaries bolted to the floor that still lead and fire, but never close.
   back full. The far-left corner is out of everything's range on purpose.
 
 Nothing dies in the simulator: hitting zero hull just restores it. It scores
-nothing and earns no points, and leaving early (**ESC** or **EXIT SCHOOL**)
-does not count as finishing, so it will open again next time. **PILOT SCHOOL**
+nothing and earns no points, and leaving early (**`P`**) does not count as
+finishing, so it will open again next time. **PILOT SCHOOL**
 on the title screen replays it. The completion flag is local to the browser and
 is not carried in save codes.
 
@@ -100,18 +117,23 @@ Click any node you have opened to move the launch cursor onto it; **LAUNCH**
 names whichever system the cursor is on, and the map opens with the cursor
 already on the furthest thing you are cleared to fly.
 
+Every system node carries its **name and state and nothing else**. The numbers
+that used to sit on the card — threat, credits a wave, the hostile it adds —
+live on the launching screen now, which is the screen that exists to carry them.
+A route you are choosing from wants to be readable at a glance; a flight you have
+chosen wants the detail.
+
 The chart is a live readout rather than a static diagram, all on a canvas driven
 by the main loop:
 
+- **A starfield** under everything: 210 stars in three parallax layers drifting
+  at different rates, placed off a fixed pseudo-random seed so they hold still
+  between rebuilds rather than reshuffling every frame. The chart is a map of
+  space, so the ground under it reads as sky rather than as a panel.
 - **Three nebula clouds** drifting behind the grid, green through blue to
   violet, so the field has depth rather than being a flat panel.
 - **The spine is a conduit**, not a line: a gradient core, a bright inner
   filament and rungs every twenty pixels, so it reads as built.
-- **Earth**, out beside System 001 where that system's side branch would be, on
-  its own dashed tether — an ocean gradient, land turning across it on a slow
-  rotation, a terminator into the night side and an atmosphere. The thing at the
-  bottom of the route is the thing you are defending, so it is drawn rather than
-  named, and it sits clear of the node card rather than behind it.
 - **The Icarus**, beside the last system — the enemy battleship the route ends
   at, drawn as a long violet wedge with rib detail, a blinking command block and
   an engine wash trailing behind it. It occupies the space that system's side
@@ -136,15 +158,15 @@ cover it.
 Everything positional reads the same `MAP_X` / `MAP_Y` percentages the nodes are
 placed with, so the canvas can never drift out of sync with the chart.
 
-Every system node carries its own numbers under the status line — the real
-values from the `SYSTEMS` block, not a description of them:
+### The route past 004
 
-```
-    01
-SYSTEM 002
-   NEXT
-×1.32 THREAT · 2 CR / WAVE · +TRACKER
-```
+Three more systems and two more branches are drawn above the last real one,
+dashed and dimmer than anything you can reach, in `MAP_PH`. Nothing on them is
+flyable — they exist so the chart reads as a campaign that keeps going rather
+than one that stops at the top of the screen. Their names are `«WRITE»` markers.
+
+`MAP_Y` spaces every node, placeholders included, over the same band, so adding
+or removing one re-spaces the whole route rather than leaving a gap.
 
 **HELD is a record.** A node turns green the moment you kill the thing guarding
 it and stays green on every map you ever open. Node states read:
@@ -174,6 +196,37 @@ with the node you just took now green, and **CONTINUE** carries on to the next
 briefing. Clearing the last system shows the whole route held before the
 results.
 
+## The launching screen
+
+Between picking something on the map and flying it, one screen: what you are
+about to fly, in numbers. It answers the question the map deliberately no longer
+answers on its cards.
+
+```
+                     LAUNCHING
+                    SYSTEM 004
+
+          ENEMY FORCES
+          THREAT ············· ×2.15
+          NEW HOSTILE ········ SPLINTER
+          BOSS ··············· THE RULER
+          PAYOUT ············· +48 CR
+
+          «your line for this system»
+
+              ENGAGE      BACK — ESC
+```
+
+One panel, label-to-value rows with dotted leaders. A red `NEEDS 16P SPENT` row
+appears only when your tree is short of the system's loadout floor. Branches get
+the same screen with their own rows — the run, the opposition, the payout, and
+what failing costs.
+
+Under the readout is a line of your own per system and per branch, held in
+`LAUNCH_TEXT`. There is no **SKILL TREE** button here: the tree is a place you go
+to spend, not something to open with a hand on the throttle. **BACK** returns to
+the chart, and the story briefing behind **ENGAGE** has one too.
+
 ## Secret Missions
 
 The side branches off the world map. When the map comes up between systems, the
@@ -187,6 +240,13 @@ System 002, 57 off 003. The Quantum Portal pays three and a half times:
 **Failing one costs you the branch, not the campaign.** You lose the payout and
 the second attempt at that branch, take a hull floor of 25%, and carry straight
 on to the next system's briefing. The detour is a detour.
+
+Branches are also **launch targets in their own right**. On the title map, click
+one to put the launch cursor on it and **LAUNCH** flies it as a single sortie —
+one mission, paid the same, and then straight back to the chart. That is what
+makes a branch worth owning a tier for on a save that has already held every
+system. Mid-run they behave as they always did: an offer on the map beside the
+system you are about to fly.
 
 Which branch you get is fixed by where you are on the route: **002 is Salvage,
 003 is Escort**. System 001 has none and neither does 004 — a node on the map
@@ -512,7 +572,9 @@ place of a hull.
 ## Getting around
 
 `Esc` backs out of any screen and pauses a run; `Enter` presses the main button
-on whatever is in front of you. Once a run is under way the pause menu's
+on whatever is in front of you. Pilot School is the exception: `ESC` does nothing
+in a drill and `P` leaves the school rather than pausing it, because the school
+should have one door, not four. Once a run is under way the pause menu's
 **QUIT TO TITLE** is the only way out of it — the briefing and the
 between-systems map deliberately have none. `P` or `Esc` in flight opens a pause menu with
 **RESUME**, the skill tree, the bestiary, and **QUIT TO TITLE** — quitting banks
