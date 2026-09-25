@@ -245,7 +245,12 @@
     margin:0 0 6px; color:#4d9dff; letter-spacing:.42em;
     font-size:clamp(8px,.95vw,10px);
   }
-  #launchText{max-width:min(92vw,560px); margin-top:4px}
+  #launchText,#doneText{max-width:min(92vw,560px); margin-top:4px; flex:0 0 auto; text-align:center}
+  #doneKind{margin:0 0 6px; color:#46e39b; letter-spacing:.42em; font-size:clamp(8px,.95vw,10px)}
+  #doneStats{
+    display:grid; grid-template-columns:1fr; gap:14px;
+    width:min(92vw,440px); margin:22px 0 4px; text-align:left;
+  }
   #launchStats{
     display:grid; grid-template-columns:1fr; gap:14px;
     width:min(92vw,440px); margin:22px 0 4px; text-align:left;
@@ -311,14 +316,14 @@
 
   .mnode{
     position:absolute; transform:translate(-50%,-50%); z-index:2;
-    width:21%; padding:9px 8px 8px; border:1px solid #38466b;
+    width:27%; padding:15px 14px 13px; border:1px solid #38466b;
     background:rgba(21,28,48,.94); text-align:center; cursor:default;
     clip-path:polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 11px 100%, 0 calc(100% - 11px));
     transition:border-color .15s, box-shadow .15s;
   }
-  .mnode .mi{position:absolute; top:5px; left:8px; font-size:8px; letter-spacing:.16em; color:#5d6c8f}
-  .mnode .id{font-size:clamp(12px,1.6vw,18px); letter-spacing:.14em; color:#b6c4de}
-  .mnode .st{font-size:clamp(7.5px,.88vw,9.5px); letter-spacing:.16em; color:#6b7ca3; margin-top:5px}
+  .mnode .mi{position:absolute; top:8px; left:11px; font-size:9.5px; letter-spacing:.16em; color:#5d6c8f}
+  .mnode .id{font-size:clamp(17px,2.4vw,27px); letter-spacing:.16em; color:#b6c4de}
+  .mnode .st{font-size:clamp(9px,1.1vw,12px); letter-spacing:.2em; color:#6b7ca3; margin-top:8px}
   .mnode .mx{
     margin-top:6px; padding-top:5px; border-top:1px solid #18213a;
     font-size:clamp(6.5px,.8vw,9px); letter-spacing:.06em; color:#7182a8; line-height:1.55;
@@ -338,9 +343,9 @@
   .mnode.next .mx{border-top-color:#1e3358; color:#5d6c8f}
   .mnode.locked{opacity:.52}
   .mnode.locked.ph{opacity:.3; border-style:dashed}
-  .mnode.secret{width:12%; padding:7px 5px; border-style:dashed; opacity:.5}
-  .mnode.secret .id{font-size:clamp(8.5px,1.05vw,12px); line-height:1.35}
-  .mnode.secret .st{margin-top:5px}
+  .mnode.secret{width:17%; padding:12px 9px; border-style:dashed; opacity:.5}
+  .mnode.secret .id{font-size:clamp(11px,1.45vw,16px); line-height:1.35}
+  .mnode.secret .st{margin-top:7px; font-size:clamp(8px,.95vw,10.5px)}
   .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
     background:rgba(48,38,12,.95); cursor:pointer;
     animation:mapSecret 1.5s ease-in-out infinite}
@@ -353,7 +358,7 @@
   .mnode.secret.open.sel{border-width:2px; box-shadow:0 0 0 3px rgba(255,210,77,.16),0 0 26px rgba(255,210,77,.3)}
   .mnode.secret.portal.open.sel{box-shadow:0 0 0 3px rgba(199,141,255,.16),0 0 26px rgba(199,141,255,.32)}
   /* the portal: the only violet thing on the chart, and it turns */
-  .mnode.portal{width:11%; border-color:#3b2b57; border-style:solid}
+  .mnode.portal{width:16%; border-color:#3b2b57; border-style:solid}
   .mnode.portal .id{color:#7a5fa8}
   .mnode.portal.open{border-color:#c78dff; background:rgba(38,22,58,.95);
     animation:mapPortal 1.9s ease-in-out infinite}
@@ -564,10 +569,6 @@
   </div>
 
   <div id="menu" class="overlay">
-    <div id="netbar">
-      <span class="lit">EARTH DEFENCE NET &nbsp;·&nbsp; LINK ACTIVE</span>
-      <span id="netRight">SECTOR 001 &nbsp;·&nbsp; ONE HULL</span>
-    </div>
     <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     <h1>MINDFRAME</h1>
     <h2>DEFENSE OF EARTH</h2>
@@ -677,6 +678,19 @@
     </div>
   </div>
 
+  <div id="done" class="overlay">
+    <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
+    <p id="doneKind">LEVEL COMPLETE</p>
+    <h1 id="doneTitle" style="font-size:clamp(22px,3.6vw,40px)">SYSTEM 001</h1>
+    <h2 id="doneSub">HELD</h2>
+    <div id="doneStats"></div>
+    <!-- PROSE: your line(s) for clearing this system — SYS_CLEAR_TEXT below -->
+    <div class="prose" id="doneText"></div>
+    <div class="row" style="margin-top:20px">
+      <button id="btnDoneGo">WORLD MAP</button>
+    </div>
+  </div>
+
   <div id="lessons" class="overlay">
     <div id="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">LESSONS</h1>
@@ -740,7 +754,6 @@
     <p style="margin:6px 0 0">Upgrades are permanent. Runs pay in
        <span class="key">credits</span>, trade them for points here, or for a hull in the Garage.</p>
     <div class="row" style="margin:10px 0 0; justify-content:flex-start">
-      <button id="btnExchange" class="ghost">EXCHANGE</button>
       <button id="btnRespec" class="ghost">RESPEC</button>
     </div>
     <div id="tree">
@@ -1297,7 +1310,10 @@ const SAVE='mindframe.001';
    playthrough, not be ground out over several campaigns.                   */
 const CREDITS_PER_WAVE=i=>(i+1)*2;   // i = system index
 const CREDIT_BOSS=8;
-const PER_POINT=2;               // credits it costs to buy one skill point
+/* Skills are paid for in credits directly — there is no second currency and no
+   exchange. A skill costs twice its tier weight, and that weight is still what
+   the map's loadout floors are measured in. */
+const SKILL_CR=s=>s.cost*2;
 let save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
           schoolDone:false, taught:[], ships:[0], ship:0, vol:.7, sound:true, seen:[]};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
@@ -1310,7 +1326,8 @@ SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 const has=id=>save.owned.includes(id);
 // nothing in the simulator pays, so school runs never bank anything
-function credit(n){ if(school||!n) return; save.credits+=n; persist(); }
+let runCr=0;
+function credit(n){ if(school||!n) return; save.credits+=n; runCr+=n; persist(); }
 
 /* ================= skill tree ================= */
 // col/row are percentages inside #tree — the tree is drawn bottom-up, so the
@@ -1333,7 +1350,7 @@ const SKILLS=[
   {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:16, req:'dash'},
 ];
 const byId=id=>SKILLS.find(s=>s.id===id);
-const canBuy=s=>!has(s.id) && save.points>=s.cost && (!s.req || has(s.req));
+const canBuy=s=>!has(s.id) && save.credits>=SKILL_CR(s) && (!s.req || has(s.req));
 /* Which tier of its branch a skill sits in: tier 1 has no prerequisite, tier 3
    is the top of a branch. Mission branches are gated on tier rather than on a
    point total, so they open as the tree grows instead of on a number you have
@@ -1464,8 +1481,6 @@ function cineStart(then){
     [2.55,'> SKILL NUMBER  . . . . . . . .  '+save.owned.length+' / '+SKILLS.length+' NODES'],
     [3.05,'> INTEGRITY  . . . . . . . .  '+Math.round(st.maxHp)+' HP'],
     [3.55,'> SYSTEMS INBOUND  . . . .  '+SYSTEMS.length],
-    [4.15,'> RESUPPLY  . . . . . . . . .  NONE'],
-    [4.55,'> FALLBACK  . . . . . . . . .  NONE'],
   ]};
   hideAll(); state='intro';
 }
@@ -1566,8 +1581,6 @@ function cineDraw(){
     ctx.fillStyle='#dfe9ff';
     ctx.fillText('DEFENCE OF SYSTEM 001',0,0);
     ctx.shadowBlur=0;
-    ctx.font='12px Menlo,monospace'; ctx.fillStyle='#ff4d5e';
-    ctx.fillText('ONE HULL  ·  ONE RUN  ·  NO RESUPPLY',0,26);
     ctx.restore();
     ctx.globalAlpha=1;
   }
@@ -1602,7 +1615,7 @@ function newBranch(kind,i){
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=i; paused=false; runHeld=i;
   mission=null; runSecrets=[]; fxClear(); flash=0;
-  mapBrief=null; branchSortie=true;
+  mapBrief=null; branchSortie=true; runCr=0;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   hideAll(); startMission(kind);
@@ -1615,13 +1628,10 @@ function newRun(){
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=mapPick; paused=false; runHeld=mapPick;
   mission=null; runSecrets=[]; fxClear(); flash=0;
-  branchSortie=false;
+  branchSortie=false; runCr=0;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
-  const S0=SYS();
-  cineStart(()=>{
-    openBrief(S0.name,'INBOUND — FIVE WAVES',para(S0.brief));
-  });
+  cineStart(beginSystem);
 }
 
 // text -> paragraphs; [BRACKETED] lines render as terminal output
@@ -1649,13 +1659,13 @@ function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
   const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
   // the frontier asks for a floor; anything already held never does
-  const floor=sysFloor(i), short=!sysHeld(i)&&spentPoints()<floor;
+  const floor=sysFloor(i), short=!sysHeld(i)&&spentCredits()<floor;
   return lpanel('ENEMY FORCES',
            lrow('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
            lrow('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':'')+
            lrow('BOSS', b.n,'warn')+
            lrow('PAYOUT','+'+pay+' CR','good')+
-           (short?lrow('NEEDS', floor+'P SPENT','bad'):''));
+           (short?lrow('NEEDS', floor+' CR INVESTED','bad'):''));
 }
 
 function branchOverview(k,i){
@@ -1719,19 +1729,35 @@ function beginSystem(){
 
 /* Clearing a system hands you the map, with the node you just took now green.
    The briefing for the next one is behind CONTINUE. */
+/* PROSE — your line for clearing each system. Shown on the level complete
+   screen, under the result. */
+const SYS_CLEAR_TEXT=[
+  '\u00abWRITE: clear line for SYSTEM 001\u00bb',
+  '\u00abWRITE: clear line for SYSTEM 002\u00bb',
+  '\u00abWRITE: clear line for SYSTEM 003\u00bb',
+  '\u00abWRITE: clear line for SYSTEM 004 — the last one\u00bb',
+];
+
+/* Clearing a system is where the flight ends. It does not roll into the next
+   one: you get the result, and then the chart, and you choose again. */
 function systemCleared(){
-  const done=SYS();
+  const i=sysIdx, done=SYS(), last=i>=SYSTEMS.length-1;
   save.unlocked=true;
-  save.deepestSys=Math.max(save.deepestSys,sysIdx+1);
+  save.best=Math.max(save.best,score);
+  save.deepestSys=Math.max(save.deepestSys,i+1);
   persist();
-  runHeld=sysIdx+1;
-  if(sysIdx>=SYSTEMS.length-1){ openMap('run','end'); return; }
-  sysIdx++;
-  const nxt=SYS();
-  const a=para(done.clear), b=para(nxt.brief);
-  mapBrief=[nxt.name,'SYSTEM '+done.id+' HELD  ·  HULL PARTIALLY RESTORED',
-            a + (a&&b?'<p class="rep">— — —</p>':'') + b];
-  openMap('run','brief');
+  runHeld=i+1; mission=null;
+  $('doneKind').textContent = last?'CAMPAIGN COMPLETE':'LEVEL COMPLETE';
+  $('doneTitle').textContent = done.name;
+  $('doneSub').textContent = last?'THE ROUTE IS YOURS':'HELD';
+  $('doneStats').innerHTML = lpanel('RESULT',
+    lrow('CREDITS EARNED','+'+runCr+' CR','good')+
+    lrow('CREDITS BANKED', save.credits)+
+    lrow('SCORE', score)+
+    lrow('BEST', save.best));
+  const t=SYS_CLEAR_TEXT[i];
+  $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
+  state='done'; show('done');
 }
 
 /* ---- waves ---- */
@@ -3108,18 +3134,14 @@ function missionEnd(win,why){
     // second attempt at this branch, and you carry on up the spine.
     player.hp=Math.max(player.hp, player.st.maxHp*.25);
     toast='BRANCH LOST — '+why+'  ·  NO CREDITS'; toastT=3.6;
-    if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
-    else if(branchSortie){ branchSortie=false; openMap('menu'); }
-    else { state='menu'; refreshMenu(); show('menu'); }
+    branchSortie=false; openMap('menu');
     return;
   }
   if(M.k!=='salvage') credit(M.pay);          // salvage paid as you picked it up
   player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*.15);
   toast=(M.k==='boss'?'RETURNED THROUGH THE PORTAL':'SIDE BRANCH HELD')+
         '  ·  +'+(M.k==='salvage'?M.got:M.pay)+' CR'; toastT=3.4;
-  if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
-  else if(branchSortie){ branchSortie=false; openMap('menu'); }
-  else { state='menu'; refreshMenu(); show('menu'); }
+  branchSortie=false; openMap('menu');
 }
 
 function missionDraw(){
@@ -3928,7 +3950,7 @@ function quitRun(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['title','menu','over','skills','story','brief','launch','code','schoolEnd','codex','pause','garage','map','lessons']) $(o).classList.toggle('on', o===which);
+  for(const o of ['title','menu','over','skills','story','brief','launch','done','code','schoolEnd','codex','pause','garage','map','lessons']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -3940,17 +3962,13 @@ function hideAll(){ show(''); }
    number of skill points it expects you to have spent before you fly it. */
 /* PROSE: the names of the systems past 004 are yours. These nodes are drawn
    and locked — nothing on them is flyable, they only show the route continues. */
-const MAP_PH=[
-  {id:'005', st:'\u00abWRITE: status\u00bb', branch:'\u00abWRITE: branch name\u00bb'},
-  {id:'006', st:'\u00abWRITE: status\u00bb', branch:null},
-  {id:'007', st:'\u00abWRITE: status\u00bb', branch:'\u00abWRITE: branch name\u00bb'},
-];
+const MAP_PH=[];
 const MAP_N=()=>SYSTEMS.length+MAP_PH.length;
 const MAP_Y=i=>{                       // 001 at the bottom, the last node at the top
   const n=MAP_N();
-  return n<2 ? 50 : 91-i*(84/(n-1));
+  return n<2 ? 50 : 85-i*(70/(n-1));   // the cards are tall, so keep them inside the frame
 };
-const MAP_X=38, SECRET_X=74, PORTAL_X=9;
+const MAP_X=40, SECRET_X=78, PORTAL_X=11;
 
 /* HELD is a record, not run state: a system you have cleared once reads HELD on
    every map you ever open, and you can launch straight back into it. What the
@@ -3967,13 +3985,13 @@ const branchPickable=(i,k)=> mapMode==='menu' && sysReached(i) && branchReady(k)
 /* Reaching a system unlocks it, but flying it still asks for a bare minimum of
    tree. These are points *spent*, so a respec never strands you above a floor
    you can no longer meet — it just closes the node until you re-spend them. */
-const SYS_FLOOR=[0,3,8,16];
+const SYS_FLOOR=[0,6,16,32];   // credits invested in the tree
 const sysFloor=i=>SYS_FLOOR[i]||0;
 const sysReached=i=>i<=Math.min(save.deepestSys,SYSTEMS.length-1);
 // a system you have already held is always re-flyable; the floor only ever
 // gates the frontier — the one node you have reached but never taken
 const sysHeld=i=>i<Math.min(save.deepestSys,SYSTEMS.length);
-const sysOpen=i=>sysReached(i) && (sysHeld(i) || spentPoints()>=sysFloor(i));
+const sysOpen=i=>sysReached(i) && (sysHeld(i) || spentCredits()>=sysFloor(i));
 
 /* The side branch beside the system you are about to fly, offered once per run
    and only while you are actually on the route. Each one asks for a tier of the
@@ -4048,7 +4066,7 @@ function buildMap(){
     const st = done ? 'HELD'
              : sel ? (run?'NEXT':'SELECTED')
              : open ? 'OPEN'
-             : sysReached(i) ? 'NEEDS '+sysFloor(i)+'P'
+             : sysReached(i) ? 'NEEDS '+sysFloor(i)+' CR'
              : 'LOCKED';
     const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sy.id, st,
          String(i+1).padStart(2,'0'));
@@ -4074,7 +4092,7 @@ function buildMap(){
     ? (mapThen==='end' ? 'CAMPAIGN COMPLETE — RESULTS' : 'CONTINUE — '+SYS().name)
     : mapPickK ? 'LAUNCH — '+branchTitle(mapPickK)
     : pickOk   ? 'LAUNCH — '+SYSTEMS[mapPick].name
-               : 'NEEDS '+sysFloor(mapPick)+'P SPENT — '+SYSTEMS[mapPick].name;
+               : 'NEEDS '+sysFloor(mapPick)+' CR INVESTED — '+SYSTEMS[mapPick].name;
   go.disabled=!pickOk; go.classList.toggle('ghost',!pickOk);
   $('btnMapBack').style.display = run ? 'none' : '';   // mid-run, the pause menu is the only way out
   const sec=$('btnMapSecret'), off=secretOffered(sysIdx);
@@ -4086,7 +4104,7 @@ function buildMap(){
   por.style.display=pOff?'':'none';
   por.textContent='ENTER THE QUANTUM PORTAL';
   $('mapBest').textContent = run ? ''
-    : spent+' POINT'+(spent===1?'':'S')+' SPENT'+
+    : spentCredits()+' CR INVESTED'+
       (save.deepestSys ? '  ·  FURTHEST HELD  '+
         SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length)-1].name : '');
 }
@@ -4234,13 +4252,13 @@ function mapArt(dt){
   // ── you are here: a marker sitting on the node you are about to fly ──
   {
     const yi=Math.min(held,SYSTEMS.length-1), y=py(MAP_Y(yi));
-    const bob=Math.sin(mapT*2.2)*3, sx=px(MAP_X-13);   // clear of the card
+    const bob=Math.sin(mapT*2.2)*3, sx=px(MAP_X-18);   // clear of the card
     g.save(); g.translate(sx,y+bob); g.rotate(0);
     g.fillStyle='#0a1426'; g.strokeStyle='#dfe9ff'; g.lineWidth=2;
     g.shadowColor='#9fd0ff'; g.shadowBlur=14;
     shipPath(g,12,save.ship||0); g.fill(); g.stroke();
     g.shadowBlur=0; g.restore();
-    g.beginPath(); g.moveTo(sx+15,y+bob); g.lineTo(px(MAP_X-9),y+bob);
+    g.beginPath(); g.moveTo(sx+15,y+bob); g.lineTo(px(MAP_X-14),y+bob);
     g.strokeStyle='rgba(223,233,255,.35)'; g.setLineDash([3,5]); g.lineWidth=1;
     g.stroke(); g.setLineDash([]);
     g.font='9px Menlo,monospace'; g.textAlign='center';
@@ -4298,6 +4316,8 @@ let landed=null;
 // how long a RESPEC click stays armed for its confirming second click
 let respecArmed=0;
 const spentPoints=()=>save.owned.reduce((a,id)=>{const k=byId(id); return a+(k?k.cost:0);},0);
+// what the tree has cost you, in the currency you actually paid
+const spentCredits=()=>spentPoints()*2;
 
 // the moment a skill lands: the screen flares and the tree stamps its name
 function unlockFx(s){
@@ -4381,26 +4401,21 @@ function buildTree(){
     const tier = !s.req ? 1 : !byId(s.req).req ? 2 : 3;
     d.innerHTML='<div class="tr">T'+tier+'</div>'+
                 '<div class="nm">'+s.n.replace(/\n/g,'<br>')+'</div>'+
-                '<div class="cost">'+(has(s.id)?s.d:s.d+' · '+s.cost+'P')+'</div>';
+                '<div class="cost">'+(has(s.id)?s.d:s.d+' · '+SKILL_CR(s)+' CR')+'</div>';
     if(s.id===landed) d.classList.add('landed');
     d.onclick=()=>{ if(canBuy(s)){
-      save.points-=s.cost; save.owned.push(s.id); persist();
+      save.credits-=SKILL_CR(s); save.owned.push(s.id); persist();
       landed=s.id; unlockFx(s); SFX.buy();
       buildTree(); refreshMenu();
       setTimeout(()=>{ if(landed===s.id){ landed=null; buildTree(); } },950);
     } };
     t.appendChild(d);
   }
-  $('pts').textContent=save.credits+' CR  ·  '+save.points+' POINT'+(save.points===1?'':'S');
-  const rs=$('btnRespec'), back=spentPoints();
-  rs.textContent = back?'RESPEC — REFUND '+back+'P':'RESPEC';
+  $('pts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
+  const rs=$('btnRespec'), back=spentCredits();
+  rs.textContent = back?'RESPEC — REFUND '+back+' CR':'RESPEC';
   rs.className='ghost'; rs.disabled=!back; rs.style.opacity=back?'':'.4';
   respecArmed=0;
-  const e=$('btnExchange');
-  e.textContent='EXCHANGE '+PER_POINT+' CR \u2192 1 POINT';
-  e.className=save.credits>=PER_POINT?'':'ghost';
-  e.disabled=save.credits<PER_POINT;
-  e.style.opacity=save.credits>=PER_POINT?'':'.4';
 }
 /* ---- respec ----
    Points are the scarce thing, and a tree you regret is a run you cannot fix.
@@ -4419,7 +4434,7 @@ $('btnRespec').onclick=()=>{
     return;
   }
   respecArmed=0;
-  save.points+=back; save.owned=[]; persist();
+  save.credits+=back; save.owned=[]; persist();
   landed=null; buildTree(); refreshMenu();
   const sc=$('skills');
   sc.classList.remove('pulse'); void sc.offsetWidth; sc.classList.add('pulse');
@@ -4436,7 +4451,7 @@ $('linkWipe').onclick=()=>{
   if(Date.now()>wipeArmed){
     wipeArmed=Date.now()+5000;
     a.classList.add('armed');
-    a.textContent='ERASE '+save.credits+' CR · '+save.points+'P · '+save.owned.length+
+    a.textContent='ERASE '+save.credits+' CR · '+save.owned.length+
                   ' SKILLS · '+save.ships.length+' HULLS · BEST '+save.best+'? — CLICK AGAIN';
     setTimeout(()=>{ if(Date.now()>wipeArmed) resetWipeLink(); },5100);
     return;
@@ -4458,10 +4473,6 @@ function resetWipeLink(){
   a.textContent='WIPE ALL PROGRESS \u203a';
 }
 
-$('btnExchange').onclick=()=>{
-  if(save.credits<PER_POINT) return;
-  save.credits-=PER_POINT; save.points++; persist(); buildTree(); refreshMenu();
-};
 
 
 /* ════════════ BESTIARY — the reference, in tabs ════════════
@@ -4798,12 +4809,8 @@ function refreshMenu(){
     ? chip('BEST',save.best)+
       chip('FURTHEST',SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length-1)].name.replace('SYSTEM ',''))+
       chip('CREDITS',save.credits,1)+
-      chip('POINTS',save.points)+
       chip('SKILLS',save.owned.length+' / '+SKILLS.length)
-    : chip('STATUS','NO RECORD ON FILE');
-  $('netRight').textContent =
-    (save.deepestSys?'FURTHEST SECTOR '+SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length-1)].id:'SECTOR 001')
-    +'  \u00b7  ONE HULL';
+    : '';
 }
 refreshMenu();
 
@@ -4939,6 +4946,7 @@ $('btnMapGo').onclick=()=>{
   launchGo=()=>openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
 };
 $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
+$('btnDoneGo').onclick=()=>{ hideAll(); openMap('menu'); };
 $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
 $('btnMapSecret').onclick=()=>{ if(secretOffered(sysIdx)) startMission(SECRET(sysIdx).k); };
 $('btnMapPortal').onclick=()=>{ if(portalOffered()){ runSecrets.push(-1); startMission('boss'); } };
@@ -4956,7 +4964,7 @@ $('btnTreeOver').onclick=()=>{treeReturn='over';buildTree();show('skills');};
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['title','menu','over','skills','story','brief','launch','code','schoolEnd','codex','pause','garage','map','lessons']
+const openOverlay=()=>['title','menu','over','skills','story','brief','launch','done','code','schoolEnd','codex','pause','garage','map','lessons']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -4977,7 +4985,7 @@ function onEnter(){
   const main={menu:'btnStart',over:'btnRetry',pause:'btnResume',brief:'btnBriefGo',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',map:'btnMapGo',
               story:'btnStoryBack',code:'btnCodeBack',schoolEnd:'btnSchoolLaunch',
-              lessons:'btnLessonBack',launch:'btnLaunchGo'}[o];
+              lessons:'btnLessonBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
   const b=$(main);
   if(b && b.style.display!=='none' && b.onclick) b.onclick();
