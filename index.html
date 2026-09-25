@@ -196,6 +196,97 @@
   .ship.sel .bayid{color:#46e39b; border-bottom-color:#1d4a37}
   .ship.locked{opacity:.5; cursor:not-allowed}
 
+  /* ---- the home screen ----
+     Two columns: everything you read and press on the left, a live feed of the
+     game itself on the right. Nothing is centred — the eye starts top-left and
+     runs down the stack. */
+  #menu{justify-content:center; align-items:stretch; padding:4% 5%;
+    flex-direction:row; gap:clamp(20px,4vw,56px)}
+  #menuLeft{
+    flex:1 1 0; min-width:0; display:flex; flex-direction:column;
+    align-items:flex-start; justify-content:center; text-align:left;
+  }
+  #menu h1{
+    font-size:clamp(26px,5.2vw,56px); letter-spacing:.2em; margin:0;
+    color:#dff1ff; text-shadow:0 0 30px rgba(77,157,255,.5);
+  }
+  #menuRule{
+    height:1px; width:100%; max-width:420px; margin:14px 0 12px;
+    background:linear-gradient(90deg,#4d9dff,#46e39b 55%,transparent);
+    box-shadow:0 0 12px rgba(77,157,255,.6);
+  }
+  #menu h2{
+    font-size:clamp(10px,1.6vw,16px); letter-spacing:.44em; margin:0; color:#6fb2ff;
+  }
+  #menuBtns{
+    display:flex; flex-direction:column; align-items:stretch; gap:9px;
+    margin-top:clamp(22px,3.4vw,40px); width:min(100%,290px);
+  }
+  #menuBtns button{margin:0; text-align:left; padding-left:20px}
+  #menuLeft .storylink{margin-top:22px; text-align:left}
+
+  /* the live feed: the game playing itself, so the home screen shows the game */
+  #menuRight{
+    flex:1 1 0; min-width:0; display:flex; flex-direction:column;
+    justify-content:center; gap:8px;
+  }
+  #demoHead{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:clamp(7.5px,.86vw,9.5px); letter-spacing:.26em; color:#4d9dff;
+  }
+  #demoHead #demoTag{color:#3d4a66}
+  #demoBox{
+    position:relative; width:100%; aspect-ratio:4/3; border:1px solid #23304e;
+    background:#05070f; overflow:hidden;
+  }
+  #demo{position:absolute; inset:0; width:100%; height:100%; display:block}
+  #demoBox::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);
+  }
+  #demoKeys{
+    display:flex; flex-wrap:wrap; gap:4px 16px;
+    font-size:clamp(7.5px,.86vw,9.5px); letter-spacing:.16em; color:#4a5878;
+  }
+  #demoKeys b{font-weight:400; color:#8fb6e6}
+  @media (max-width:760px){
+    #menu{flex-direction:column; gap:18px}
+    #menuRight{display:none}
+  }
+
+/* ---- the gear ----
+     One cluster of everything that is not the game: volume, leaving a level,
+     the bestiary, save codes and the wipe. It sits in the same corner on every
+     screen so it is never somewhere new. */
+  #gearBtn{
+    position:absolute; top:12px; right:14px; z-index:30; margin:0;
+    width:36px; height:36px; padding:0; line-height:1;
+    font-size:19px; clip-path:none; border-radius:2px;
+    background:rgba(10,16,30,.85); border:1px solid #2c3a5c; color:#8fb6e6;
+  }
+  #gearBtn:hover{border-color:#4d9dff; color:#dfe9ff; transform:rotate(45deg)}
+  #gearBtn{transition:transform .25s, border-color .15s, color .15s}
+  #gearPanel{
+    display:none; position:absolute; top:56px; right:14px; z-index:31;
+    width:min(86vw,268px); padding:16px; text-align:left;
+    background:rgba(8,12,24,.97); border:1px solid #2c3a5c;
+    clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+  #gearPanel.on{display:block}
+  #gearHead{
+    font-size:9px; letter-spacing:.3em; color:#4d9dff;
+    border-bottom:1px solid #1b2540; padding-bottom:10px; margin-bottom:12px;
+  }
+  #gearPanel .snd{margin:0 0 14px; flex-wrap:wrap; gap:8px}
+  #gearPanel .snd button{font-size:10px; padding:7px 11px; margin:0}
+  #gearPanel .snd input[type=range]{flex:1 1 100%; min-width:0; order:3}
+  #gearPanel .snd .vnum{min-width:26px; text-align:right}
+  #gearBtns{display:flex; flex-direction:column; gap:7px}
+  #gearBtns button{margin:0; width:100%; text-align:left; font-size:10.5px; padding:9px 13px}
+  #gearBtns button.danger{border-color:#3a2030; color:#c98a9e}
+  #gearBtns button.danger:hover{border-color:#8d3a55; color:#ffd9e4; background:rgba(120,30,55,.2)}
+  #gearClose{margin-top:12px; font-size:8.5px; letter-spacing:.2em; color:#3d4a66}
+
   /* ---- title card ----
      The screen in front of the menu. It is the game's name and nothing else:
      no buttons, no chips, no save readout competing with the mark. Any key
@@ -555,6 +646,19 @@
 <body>
 <div id="wrap">
   <canvas id="c" width="1000" height="680"></canvas>
+  <button id="gearBtn" title="Settings">&#9881;</button>
+  <div id="gearPanel">
+    <div id="gearHead">SETTINGS</div>
+    <div class="snd" id="sndGear"></div>
+    <div id="gearBtns">
+      <button id="gearQuit" class="ghost">QUIT LEVEL</button>
+      <button id="gearCodex" class="ghost">BESTIARY</button>
+      <button id="gearCode" class="ghost">SAVE CODE</button>
+      <button id="gearWipe" class="ghost danger">WIPE ALL PROGRESS</button>
+    </div>
+    <div id="gearClose">CLOSE — ESC</div>
+  </div>
+
   <button id="btnSchoolList" class="ghost">LESSONS</button>
   <button id="btnSchoolSkip" class="ghost">SKIP LESSON</button>
 
@@ -573,25 +677,28 @@
 
   <div id="menu" class="overlay">
     <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
-    <h1>MINDFRAME</h1>
-    <h2>DEFENSE OF EARTH</h2>
-    <p>Five waves of enemy Iterations are inbound. You are the only pilot in the space system and you have
-       <span class="key">one ship</span>. Hold the system. You are Earth's last hope.<br><br>
-       <span class="key">WASD</span> thrust &nbsp;·&nbsp; <span class="key">MOUSE</span> aim &nbsp;·&nbsp;
-       <span class="key">CLICK / SPACE</span> fire &nbsp;·&nbsp; <span class="key">P</span> pause</p>
-    <div class="row">
-      <button id="btnStart">LAUNCH</button>
-      <button id="btnTreeMenu" class="ghost" style="display:none">SKILL TREE</button>
-      <button id="btnSchool" class="ghost">PILOT SCHOOL</button>
-      <button id="btnGarage" class="hot">GARAGE</button>
-      <button id="btnCodex" class="ghost">BESTIARY</button>
-    </div>
-    <div id="menuChips"></div>
-    <div class="snd" id="sndMenu"></div>
-    <div class="links">
+    <div id="menuLeft">
+      <h1>MINDFRAME</h1>
+      <div id="menuRule"></div>
+      <h2>DEFENSE OF EARTH</h2>
+      <div id="menuBtns">
+        <button id="btnStart">LAUNCH</button>
+        <button id="btnSchool" class="ghost">PILOT SCHOOL</button>
+        <button id="btnTreeMenu" class="ghost" style="display:none">SKILL TREE</button>
+        <button id="btnGarage" class="hot">GARAGE</button>
+      </div>
       <a class="storylink" id="linkStory">READ THE STORY — “MINDFRAME” BY OSCAR MORAN &rsaquo;</a>
-      <a class="storylink" id="linkCode">SAVE CODE &rsaquo;</a>
-      <a class="storylink danger" id="linkWipe">WIPE ALL PROGRESS &rsaquo;</a>
+    </div>
+    <div id="menuRight">
+      <div id="demoHead"><span>LIVE FEED</span><span id="demoTag">SECTOR PATROL</span></div>
+      <div id="demoBox">
+        <canvas id="demo"></canvas>
+        <i class="mcnr k1"></i><i class="mcnr k2"></i><i class="mcnr k3"></i><i class="mcnr k4"></i>
+      </div>
+      <div id="demoKeys">
+        <span><b>WASD</b> THRUST</span><span><b>MOUSE</b> AIM</span>
+        <span><b>CLICK</b> FIRE</span><span><b>P</b> PAUSE</span>
+      </div>
     </div>
   </div>
 
@@ -3897,6 +4004,7 @@ function frame(now){
   if($('codex').classList.contains('on')) assessArt(raw);
   if($('map').classList.contains('on')) mapArt(raw);
   if($('skills').classList.contains('on')) treeArt(raw);
+  if($('menu').classList.contains('on')) demoArt(raw);
   MUS.tick();
   requestAnimationFrame(frame);
 }
@@ -3923,6 +4031,174 @@ function quitRun(){
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
   persist();
   state='menu'; refreshMenu(); show('menu');
+}
+
+/* ════════════ LIVE FEED ════════════
+   The home screen shows the game rather than describing it: a small autonomous
+   sortie on its own canvas, flying, leading its shots and taking hits. It is a
+   purpose-built loop rather than the real simulation — the real one is bound to
+   run state, and a menu should not be able to start a wave — but it draws with
+   the same shipPath and the same palette, so what you see is the game's hand. */
+const DEMO={t:0, p:null, e:[], b:[], eb:[], fx:[], st:[], w:0, h:0};
+function demoReset(w,h){
+  DEMO.w=w; DEMO.h=h;
+  DEMO.p={x:w*.5, y:h*.62, vx:0, vy:0, a:-Math.PI/2, cool:0, hp:1, tgt:null, wob:rand(0,TAU)};
+  DEMO.e=[]; DEMO.b=[]; DEMO.eb=[]; DEMO.fx=[];
+  // open with the fight already under way rather than an empty starfield
+  for(let i=0;i<3;i++)
+    DEMO.e.push({x:rand(w*.15,w*.85), y:rand(h*.08,h*.4), vx:0, vy:rand(20,40), r:9,
+                 hp:2, cool:rand(.4,1.4), col:i===1?'#ff6b8a':'#9d86e8'});
+  DEMO.st=[]; for(let i=0;i<60;i++) DEMO.st.push({x:rand(0,w),y:rand(0,h),z:rand(.25,1)});
+}
+function demoBurst(x,y,col,n){
+  for(let i=0;i<n;i++){
+    const a=rand(0,TAU), v=rand(30,130);
+    DEMO.fx.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,t:0,life:rand(.3,.7),col});
+  }
+}
+function demoTick(dt,w,h){
+  if(DEMO.w!==w||DEMO.h!==h) demoReset(w,h);
+  const D=DEMO, P=D.p; D.t+=dt;
+  for(const s of D.st){ s.y+=s.z*22*dt; if(s.y>h){ s.y=0; s.x=rand(0,w); } }
+
+  // keep three or four hostiles on the feed, arriving from the top
+  if(D.e.length<5 && Math.random()<dt*2.6)
+    D.e.push({x:rand(w*.12,w*.88), y:-14, vx:0, vy:rand(26,48), r:9,
+              hp:2, cool:rand(.6,1.8), col:Math.random()<.35?'#ff6b8a':'#9d86e8'});
+
+  // --- the pilot: pick the nearest hostile, lead it, and keep moving ---
+  let best=null,bd=1e9;
+  for(const e of D.e){ const d=(e.x-P.x)**2+(e.y-P.y)**2; if(d<bd){bd=d;best=e;} }
+  P.tgt=best;
+  P.wob+=dt*.8;
+  // drift toward a slow figure-of-eight so it never sits still
+  const gx=w*.5+Math.sin(P.wob)*w*.26, gy=h*.66+Math.sin(P.wob*2)*h*.14;
+  P.vx+=(gx-P.x)*dt*1.9; P.vy+=(gy-P.y)*dt*1.9;
+  // and slide away from anything close, the way a player would
+  for(const e of D.e){
+    const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
+    if(d<90){ P.vx+=dx/d*dt*260; P.vy+=dy/d*dt*260; }
+  }
+  P.vx*=.94; P.vy*=.94;
+  P.x=clamp(P.x+P.vx*dt,14,w-14); P.y=clamp(P.y+P.vy*dt,14,h-14);
+  if(best){
+    const t=Math.hypot(best.x-P.x,best.y-P.y)/420;
+    P.a=Math.atan2(best.y+best.vy*t-P.y, best.x+best.vx*t-P.x);
+  }
+  P.cool-=dt;
+  if(best && P.cool<=0){
+    P.cool=.22;
+    D.b.push({x:P.x+Math.cos(P.a)*13, y:P.y+Math.sin(P.a)*13,
+              vx:Math.cos(P.a)*420, vy:Math.sin(P.a)*420, t:0});
+  }
+
+  // --- hostiles ---
+  for(let i=D.e.length-1;i>=0;i--){
+    const e=D.e[i];
+    e.x+=e.vx*dt; e.y+=e.vy*dt;
+    e.cool-=dt;
+    if(e.cool<=0 && e.y>10 && e.y<h*.8){
+      e.cool=rand(1.4,2.8);
+      const a=Math.atan2(P.y-e.y,P.x-e.x);
+      D.eb.push({x:e.x,y:e.y,vx:Math.cos(a)*170,vy:Math.sin(a)*170,t:0});
+    }
+    if(e.y>h+20) D.e.splice(i,1);
+  }
+  // --- rounds ---
+  for(let i=D.b.length-1;i>=0;i--){
+    const b=D.b[i]; b.x+=b.vx*dt; b.y+=b.vy*dt; b.t+=dt;
+    let gone=b.t>1.4||b.x<-10||b.x>w+10||b.y<-10||b.y>h+10;
+    for(let j=D.e.length-1;j>=0 && !gone;j--){
+      const e=D.e[j];
+      if((b.x-e.x)**2+(b.y-e.y)**2 < (e.r+4)**2){
+        gone=true;
+        if(--e.hp<=0){ demoBurst(e.x,e.y,e.col,16); D.e.splice(j,1); }
+        else demoBurst(b.x,b.y,'#dfe9ff',4);
+      }
+    }
+    if(gone) D.b.splice(i,1);
+  }
+  for(let i=D.eb.length-1;i>=0;i--){
+    const b=D.eb[i]; b.x+=b.vx*dt; b.y+=b.vy*dt; b.t+=dt;
+    if((b.x-P.x)**2+(b.y-P.y)**2 < 130){ demoBurst(P.x,P.y,'#4d9dff',10); D.eb.splice(i,1); continue; }
+    if(b.t>3||b.x<-10||b.x>w+10||b.y<-10||b.y>h+10) D.eb.splice(i,1);
+  }
+  for(let i=D.fx.length-1;i>=0;i--){
+    const f=D.fx[i]; f.t+=dt;
+    if(f.t>=f.life){ D.fx.splice(i,1); continue; }
+    f.x+=f.vx*dt; f.y+=f.vy*dt; f.vx*=.93; f.vy*=.93;
+  }
+}
+function demoArt(dt){
+  const cv3=$('demo'), box=$('demoBox');
+  if(!cv3||!box) return;
+  const w=box.clientWidth, h=box.clientHeight;
+  if(!w||!h) return;
+  const dpr=Math.min(2,devicePixelRatio||1);
+  if(cv3.width!==Math.round(w*dpr)||cv3.height!==Math.round(h*dpr)){
+    cv3.width=Math.round(w*dpr); cv3.height=Math.round(h*dpr);
+  }
+  const g=cv3.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  demoTick(Math.min(.033,dt),w,h);
+  const D=DEMO;
+  g.fillStyle='#05070f'; g.fillRect(0,0,w,h);
+  for(const s of D.st){
+    g.fillStyle='rgba(200,224,255,'+(.15+s.z*.4).toFixed(2)+')';
+    g.fillRect(s.x,s.y,s.z>.7?1.6:1,s.z>.7?1.6:1);
+  }
+  for(const f of D.fx){
+    g.globalAlpha=1-f.t/f.life; g.fillStyle=f.col;
+    g.fillRect(f.x-1.4,f.y-1.4,2.8,2.8);
+  }
+  g.globalAlpha=1;
+  for(const e of D.e){
+    g.save(); g.translate(e.x,e.y); g.rotate(D.t*1.6);
+    g.strokeStyle=e.col; g.fillStyle='rgba(10,14,28,.9)'; g.lineWidth=1.6;
+    g.shadowColor=e.col; g.shadowBlur=9;
+    g.beginPath();
+    g.moveTo(0,-e.r); g.lineTo(e.r*.86,e.r*.6); g.lineTo(-e.r*.86,e.r*.6);
+    g.closePath(); g.fill(); g.stroke();
+    g.shadowBlur=0; g.restore();
+  }
+  g.fillStyle='#ffd24d'; g.shadowColor='#ffd24d'; g.shadowBlur=7;
+  for(const b of D.eb){ g.fillRect(b.x-1.6,b.y-1.6,3.2,3.2); }
+  g.fillStyle='#8ff0c0'; g.shadowColor='#46e39b';
+  for(const b of D.b){ g.fillRect(b.x-1.5,b.y-3,3,6); }
+  g.shadowBlur=0;
+  const P=D.p;
+  g.save(); g.translate(P.x,P.y); g.rotate(P.a);
+  g.fillStyle='#0a1426'; g.strokeStyle='#dfe9ff'; g.lineWidth=1.8;
+  g.shadowColor='#9fd0ff'; g.shadowBlur=11;
+  shipPath(g,11,save.ship||0); g.fill(); g.stroke();
+  g.shadowBlur=0; g.restore();
+}
+
+
+/* ---- the gear ----
+   Everything that is not the game, in one cluster, in the same corner of every
+   screen. It remembers which screen it was opened over so BACK out of the
+   bestiary or the save code returns there rather than dumping you at the menu. */
+let gearFrom=null;
+function gearOpen(){
+  $('gearQuit').style.display = (state==='play'||state==='dying'||paused) ? '' : 'none';
+  buildSound(); resetWipeLink();
+  $('gearPanel').classList.add('on');
+}
+function gearClose(){ $('gearPanel').classList.remove('on'); }
+const gearIsOpen=()=>$('gearPanel').classList.contains('on');
+// where to come back to when a gear destination is closed
+function gearGo(fn){
+  gearFrom = openOverlay() || (state==='play'?'play':null);
+  gearClose();
+  if(state==='play'&&!paused) setPause(true);
+  fn();
+}
+function gearBack(){
+  const f=gearFrom; gearFrom=null;
+  if(f==='play'){ show(''); setPause(true); show('pause'); return; }
+  if(f&&f!=='codex'&&f!=='code'){ show(f); return; }
+  refreshMenu(); show('menu');
 }
 
 /* ================= UI ================= */
@@ -4408,8 +4684,8 @@ $('btnRespec').onclick=()=>{
    bottom of the title screen in red, states exactly what it is about to
    destroy, and will not fire until it has been clicked twice.              */
 let wipeArmed=0;
-$('linkWipe').onclick=()=>{
-  const a=$('linkWipe');
+$('gearWipe').onclick=()=>{
+  const a=$('gearWipe');
   if(Date.now()>wipeArmed){
     wipeArmed=Date.now()+5000;
     a.classList.add('armed');
@@ -4430,9 +4706,9 @@ $('linkWipe').onclick=()=>{
   setTimeout(resetWipeLink,2200);
 };
 function resetWipeLink(){
-  const a=$('linkWipe');
+  const a=$('gearWipe');
   a.classList.remove('armed');
-  a.textContent='WIPE ALL PROGRESS \u203a';
+  a.textContent='WIPE ALL PROGRESS';
 }
 
 
@@ -4735,7 +5011,7 @@ function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
 /* The same control in the pause menu and on the title screen, kept in step by
    rebuilding both whenever either one moves. */
 function buildSound(){
-  for(const id of ['sndMenu','sndPause']){
+  for(const id of ['sndGear','sndPause']){
     const box=$(id); if(!box) continue;
     box.innerHTML='<button class="ghost">'+(SND.on?'SOUND ON':'SOUND OFF')+'</button>'+
       '<input type="range" min="0" max="100" value="'+Math.round(SND.vol*100)+'">'+
@@ -4764,15 +5040,7 @@ function refreshMenu(){
   const n=newLessons();
   $('btnSchool').className = n?'hot':'ghost';
   $('btnSchool').innerHTML = 'PILOT SCHOOL'+(n?'<span class="new">'+n+' NEW</span>':'');
-  // the save, stated the way every other readout on this ship states a number
-  const chip=(l,v,g)=>'<div class="chip'+(g?' g':'')+'"><b>'+l+'</b><span>'+v+'</span></div>';
   buildSound();
-  $('menuChips').innerHTML = save.best
-    ? chip('BEST',save.best)+
-      chip('FURTHEST',SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length-1)].name.replace('SYSTEM ',''))+
-      chip('CREDITS',save.credits,1)+
-      chip('SKILLS',save.owned.length+' / '+SKILLS.length)
-    : '';
 }
 refreshMenu();
 
@@ -4855,8 +5123,8 @@ function openCode(){
   $('codeIn').value=''; $('codeMsg').textContent=''; $('codeMsg').style.color='';
   show('code');
 }
-$('linkCode').onclick=openCode;
-$('btnCodeBack').onclick=()=>{refreshMenu();show('menu');};
+
+$('btnCodeBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('btnCopy').onclick=()=>{
   const el=$('codeOut'); el.select(); el.setSelectionRange(0,999);
   let done=false;
@@ -4876,6 +5144,12 @@ $('btnLoadCode').onclick=()=>{
 
 let treeReturn='menu';
 $('linkStory').onclick=()=>{buildStory();show('story');};
+$('gearBtn').onclick=()=>{ gearIsOpen()?gearClose():gearOpen(); };
+$('gearClose').onclick=gearClose;
+$('gearCodex').onclick=()=>gearGo(()=>{ buildCodex(); show('codex'); });
+$('gearCode').onclick=()=>gearGo(openCode);
+$('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
+
 // ENGAGE: a system starts its waves; a branch launched off the title map
 // spins up a one-mission sortie instead
 $('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
@@ -4930,6 +5204,7 @@ const openOverlay=()=>['title','menu','over','skills','story','brief','launch','
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
+  if(gearIsOpen()){ gearClose(); return; }
   const o=openOverlay();
   if(state==='play'&&school) return;            // school has one way out, and it is P
   if(state==='play'&&!o){ setPause(true); return; }
@@ -4960,8 +5235,9 @@ $('btnPauseCodex').onclick=()=>{ buildCodex(); show('codex'); };
 $('btnPauseTree').onclick=()=>{ treeReturn='pause'; buildTree(); show('skills'); };
 
 /* ---- bestiary ---- */
-$('btnCodex').onclick=()=>{ buildCodex(); show('codex'); };
-$('btnCodexBack').onclick=()=>{ if(paused){ show('pause'); } else { refreshMenu(); show('menu'); } };
+
+$('btnCodexBack').onclick=()=>{ if(gearFrom){ gearBack(); return; }
+  if(paused){ show('pause'); } else { refreshMenu(); show('menu'); } };
 
 /* ---- garage ---- */
 $('btnGarage').onclick=openGarage;
