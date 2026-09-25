@@ -1160,12 +1160,14 @@ const MUS={
 
 /* ================= persistence ================= */
 const SAVE='mindframe.001';
-/* CREDITS are what a run pays out: one per wave held in System 001, two per
-   wave in 002, and so on, plus three for putting down a system's boss. They
-   are the only currency — spend them on hulls in the Garage, or exchange them
-   for skill points on the tree. Score is now just the scoreboard.          */
-const CREDITS_PER_WAVE=i=>i+1;   // i = system index
-const CREDIT_BOSS=3;
+/* CREDITS are what a system pays out: two per wave held in System 001, four
+   per wave in 002, and so on, plus eight for putting down a system's boss.
+   They are the only currency — spend them on hulls in the Garage, or exchange
+   them for skill points on the tree. Score is now just the scoreboard.
+   The rates are deliberately generous: the tree is meant to open across one
+   playthrough, not be ground out over several campaigns.                   */
+const CREDITS_PER_WAVE=i=>(i+1)*2;   // i = system index
+const CREDIT_BOSS=8;
 const PER_POINT=2;               // credits it costs to buy one skill point
 let save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
           schoolDone:false, taught:[], ships:[0], ship:0, vol:.7, sound:true, seen:[]};
@@ -1203,6 +1205,12 @@ const SKILLS=[
 ];
 const byId=id=>SKILLS.find(s=>s.id===id);
 const canBuy=s=>!has(s.id) && save.points>=s.cost && (!s.req || has(s.req));
+/* Which tier of its branch a skill sits in: tier 1 has no prerequisite, tier 3
+   is the top of a branch. Mission branches are gated on tier rather than on a
+   point total, so they open as the tree grows instead of on a number you have
+   to go and look up. */
+const tierOf=id=>{ const s=byId(id); return !s?0 : !s.req?1 : (byId(s.req)&&!byId(s.req).req)?2:3; };
+const ownsTier=t=>save.owned.some(id=>tierOf(id)>=t);
 
 /* ================= the garage =================
    Four hulls, pure stat trade-offs — no hidden rules, everything a pilot needs
@@ -1446,13 +1454,15 @@ function cineDraw(){
   ctx.textAlign='left';
 }
 
-/* A run is always the whole climb: it starts at System 001 and goes up. */
+/* A run starts at the system you picked on the map and climbs from there. Every
+   system you have already taken stays taken, so falling in 003 costs you 003 —
+   not the two systems underneath it. */
 function newRun(){
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
-  score=0; shake=0; wave=0; sysIdx=0; paused=false; runHeld=0;
+  score=0; shake=0; wave=0; sysIdx=mapPick; paused=false; runHeld=mapPick;
   mission=null; runSecrets=[]; fxClear(); flash=0;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
@@ -2654,7 +2664,10 @@ function endRun(win,why){
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades are permanent — take them into your next run.':'');
+    (win?'':'<br><br>Every system you have taken stays taken. Fly '+SYS().name+
+          ' again from the map, or take a different one.')+
+    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades are permanent — take them into your next launch.':'');
+  document.getElementById('btnRetry').textContent = win?'WORLD MAP':'BACK TO THE MAP';
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   document.getElementById('btnTreeOver').style.display = save.unlocked?'':'none';
   if(win){ state='over'; show('over'); return; }
@@ -2665,9 +2678,12 @@ function endRun(win,why){
 
 /* ══════════════════════ SECRET MISSIONS ══════════════════════
    The side branches off the world map. You are offered one on the map between
-   systems, once per run per system, and taking it is a gamble with the whole
-   campaign: failing a secret mission ends the run exactly like dying does.
-   They pay about double what a system pays, which is the only reason to go.
+   systems, once per run per system. Each is named from the first time you see
+   it and each asks for a tier of the skill tree before it will open — salvage a
+   tier-1 skill, escort a tier-2, the Portal a tier-3 — so a branch is something
+   your loadout earns rather than a blind coin flip. Failing one costs you the
+   payout and the second attempt, and drops you back on the route: the campaign
+   is never on the table. They pay half again what a system pays.
 
    Two are flyable. The third is a placeholder for the secret bosses.       */
 /* One branch per system, and only where there is something to fly. System 001
@@ -2683,18 +2699,15 @@ const SECRETS=[
 // the portal hangs off System 003 and leads nowhere on the route at all
 const PORTAL_SYS=2;
 const PORTAL={k:'boss', n:'QUANTUM PORTAL', sub:'DESTINATION UNKNOWN'};
-/* You do not know what is down a branch until you have been down it. Until
-   then every one of them is the same unlabelled thing on the chart, which is
-   the whole reason taking one is a gamble. Surveyed branches are remembered
-   across runs, so a save that has seen an Escort always sees it named. */
+/* A branch says what it is from the first time you see it. The draw is the
+   payout and the fight, not a blind pick — you know what you are flying into,
+   you know what it pays, and the only question is whether your loadout is up
+   to it. `save.seen` still records what you have flown, for the bestiary. */
 const surveyed=k=>save.seen.includes(k);
 function survey(k){ if(k&&!save.seen.includes(k)){ save.seen.push(k); persist(); } }
-const branchName=k=> !surveyed(k) ? 'MISSION<br>BRANCH'
-  : k==='boss' ? 'QUANTUM<br>PORTAL'
+const branchName=k=> k==='boss' ? 'QUANTUM<br>PORTAL'
   : 'SECRET MISSION<br>'+(k==='escort'?'ESCORT':'SALVAGE');
-const branchSub=(k,open)=> !surveyed(k) ? (open?'UNSURVEYED':'DORMANT')
-  : k==='boss' ? PORTAL.sub
-  : SECRETS.find(x=>x.k===k).sub;
+const branchSub=k=> k==='boss' ? PORTAL.sub : SECRETS.find(x=>x.k===k).sub;
 const SECRET=i=>SECRETS[Math.min(i,SECRETS.length-1)];
 const secretFlyable=k=>k==='salvage'||k==='escort'||k==='boss';
 /* A system pays 5 waves plus its boss. A salvage or escort run pays half again
@@ -2703,7 +2716,7 @@ const secretFlyable=k=>k==='salvage'||k==='escort'||k==='boss';
    just the fight.                                                          */
 // a side branch pays half again what the system does; the Portal pays for the
 // fact that what is through it is harder than anything on the route
-const SECRET_PAY=(i,k)=>Math.round((k==='boss'?3.5:1.5)*(5*(i+1)+3));
+const SECRET_PAY=(i,k)=>Math.round((k==='boss'?3.5:1.5)*(5*CREDITS_PER_WAVE(i)+CREDIT_BOSS));
 
 let mission=null, runSecrets=[];
 
@@ -2878,8 +2891,12 @@ function missionEnd(win,why){
   const M=mission; mission=null;
   bullets=[];ebullets=[];enemies=[];spawnQ=[];
   if(!win){
-    banner=why; bannerT=2.4;
-    player.hp=0; endRun(false, why);
+    // the detour failed; the route is untouched. You lose the payout and the
+    // second attempt at this branch, and you carry on up the spine.
+    player.hp=Math.max(player.hp, player.st.maxHp*.25);
+    toast='BRANCH LOST — '+why+'  ·  NO CREDITS'; toastT=3.6;
+    if(mapBrief) openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
+    else { state='menu'; refreshMenu(); show('menu'); }
     return;
   }
   if(M.k!=='salvage') credit(M.pay);          // salvage paid as you picked it up
@@ -3004,10 +3021,11 @@ function schoolLessons(){
     tick(){ for(const u of pickups) u.t=0; return !pickups.length; }});
 
   if(save.unlocked) L.push({ name:'SECRET MISSIONS', teach:'secret', lines:[
-    'Between systems the world map offers a side branch. Taking it is a gamble:',
+    'Between systems the world map offers a side branch, if your tree is deep enough:',
     'ESCORT keeps a yellow hauler alive across the field while everything shoots at it.',
     'SALVAGE is a debris field of credits that only ever gets thicker — you leave when you',
-    'choose. Both pay well, and failing one ends the run. This is salvage: grab four cells.'],
+    'choose. Both pay half again what a system does. Fail one and you lose the payout,',
+    'not the campaign. This is salvage: grab four cells.'],
     goal:()=>'CELLS  '+school.motes.filter(m=>m.got).length+' / '+school.motes.length,
     setup(){
       for(let i=0;i<6;i++) makeJunk(school.junk);
@@ -3668,34 +3686,55 @@ function show(which){
 }
 function hideAll(){ show(''); }
 
-/* ════════════ WORLD MAP — the campaign as one climb ════════════
-   A roguelike route, not a level select: it reads bottom to top, 001 at the
-   floor and the Ruler's system at the ceiling, and there is no way to start
-   part-way up. What the map does show is how far you have got, and the side
-   branch off each system to a SECRET MISSION — none of which are flyable yet. */
+/* ════════════ WORLD MAP — the campaign as a level select ════════════
+   It reads bottom to top, 001 at the floor and the Ruler's system at the
+   ceiling, but nothing about it is a one-shot climb any more: every system you
+   have cleared stays open forever, and you launch into whichever one you pick.
+   What still gates a node is your loadout — each system names the minimum
+   number of skill points it expects you to have spent before you fly it. */
 const MAP_Y=i=>{                       // 001 at the bottom, the last system at the top
   const n=SYSTEMS.length;
   return n<2 ? 50 : 88-i*(76/(n-1));
 };
 const MAP_X=38, SECRET_X=74, PORTAL_X=9;
 
-/* HELD means "you killed the thing guarding it, on this run" — it is run state,
-   not a record. A fresh map has nothing held and 001 as NEXT, however deep the
-   save has been before; what the save remembers is a line of text under the
-   title instead. `mapMode` is 'menu' before a run and 'run' between systems. */
-let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null;
+/* HELD is a record, not run state: a system you have cleared once reads HELD on
+   every map you ever open, and you can launch straight back into it. What the
+   save remembers is `deepestSys` — how many systems have fallen — and that is
+   the unlock line. `mapMode` is 'menu' before a run and 'run' between systems,
+   and `mapPick` is the node LAUNCH will drop you into. */
+let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null, mapPick=0;
+
+/* Reaching a system unlocks it, but flying it still asks for a bare minimum of
+   tree. These are points *spent*, so a respec never strands you above a floor
+   you can no longer meet — it just closes the node until you re-spend them. */
+const SYS_FLOOR=[0,3,8,16];
+const sysFloor=i=>SYS_FLOOR[i]||0;
+const sysReached=i=>i<=Math.min(save.deepestSys,SYSTEMS.length-1);
+// a system you have already held is always re-flyable; the floor only ever
+// gates the frontier — the one node you have reached but never taken
+const sysHeld=i=>i<Math.min(save.deepestSys,SYSTEMS.length);
+const sysOpen=i=>sysReached(i) && (sysHeld(i) || spentPoints()>=sysFloor(i));
 
 /* The side branch beside the system you are about to fly, offered once per run
-   and only while you are actually on the route. Taking it risks the campaign. */
+   and only while you are actually on the route. Each one asks for a tier of the
+   skill tree first — salvage a tier-1 skill, escort a tier-2, the portal a
+   tier-3 — so a branch is something you grow into rather than a coin flip. */
+const BRANCH_TIER={salvage:1, escort:2, boss:3};
+const branchTier=k=>BRANCH_TIER[k]||1;
+const branchReady=k=>ownsTier(branchTier(k));
 const secretOffered=i=> mapMode==='run' && mapThen==='brief' && i===sysIdx
-  && secretFlyable(SECRET(i).k) && !runSecrets.includes(i);
+  && secretFlyable(SECRET(i).k) && branchReady(SECRET(i).k) && !runSecrets.includes(i);
 // the portal is its own offer, on its own system, taken at most once a run
 const portalOffered=()=> mapMode==='run' && mapThen==='brief' && sysIdx===PORTAL_SYS
-  && !runSecrets.includes(-1);
+  && branchReady('boss') && !runSecrets.includes(-1);
 
 function buildMap(){
   const c=$('chart'), svg=$('mlines'), ns='http://www.w3.org/2000/svg';
-  const held=Math.min(runHeld,SYSTEMS.length);
+  const run=mapMode==='run';
+  // mid-run the green nodes are this run's progress; on the title map they are
+  // the save's record, which is the whole point of a level select
+  const held=Math.min(run?runHeld:save.deepestSys, SYSTEMS.length);
   c.querySelectorAll('.mnode').forEach(n=>n.remove());
   svg.innerHTML='';
   const line=(x1,y1,x2,y2,col,dash,flow)=>{
@@ -3719,53 +3758,69 @@ function buildMap(){
   // what a system actually is, in numbers: how much heavier everything is,
   // what it pays a wave, and the one enemy it introduces
   // two short lines rather than one long one that runs off the card
+  const spent=spentPoints();
   const readout=(sy,i)=>
     '<b>\u00d7'+sy.hp.toFixed(2)+'</b> THREAT &nbsp;\u00b7&nbsp; <b>'+CREDITS_PER_WAVE(i)+'</b> CR/WAVE<br>'+
-    (sy.adds?'ADDS <b>'+sy.adds.toUpperCase()+'</b>':'BASELINE ROSTER');
+    (sy.adds?'ADDS <b>'+sy.adds.toUpperCase()+'</b>':'BASELINE ROSTER')+
+    (sysFloor(i)&&!sysHeld(i)?'<br>LOADOUT <b>'+sysFloor(i)+'P</b> SPENT &nbsp;\u00b7&nbsp; YOU <b>'+spent+'P</b>':'');
 
   SYSTEMS.forEach((sy,i)=>{
-    const y=MAP_Y(i), done=i<held, next=i===held;
-    if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':next?'#4d9dff':'#22293f',
-                 false, next);            // the segment you are about to fly runs
+    const y=MAP_Y(i), done=i<held;
+    // mid-run the blue node is the one you are about to fly; on the title map
+    // it is the one you have picked to launch into
+    const sel=run ? i===held : i===mapPick;
+    const open=run ? false : sysOpen(i);
+    if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':sel?'#4d9dff':'#22293f',
+                 false, sel);            // the segment you are about to fly runs
     const sec=SECRET(i);
     if(secretFlyable(sec.k)){                  // no branch where there is no mission
-      const open=secretOffered(i);
-      line(MAP_X,y,SECRET_X,y, open?'#ffd24d':'#22293f', true, open);
-      const sn=node(SECRET_X,y,'secret'+(open?' open':''),
-        branchName(sec.k), open?branchSub(sec.k,1):'LOCKED');
-      if(open) sn.onclick=()=>startMission(sec.k);
+      const lit=secretOffered(i), ready=branchReady(sec.k);
+      line(MAP_X,y,SECRET_X,y, lit?'#ffd24d':'#22293f', true, lit);
+      const sn=node(SECRET_X,y,'secret'+(lit?' open':''),
+        branchName(sec.k),
+        lit?branchSub(sec.k,1):ready?'STANDING BY':'NEEDS A TIER '+branchTier(sec.k)+' SKILL');
+      if(lit) sn.onclick=()=>startMission(sec.k);
     }
     if(i===PORTAL_SYS){                        // and the portal, on the other side
-      const open=portalOffered();
-      line(PORTAL_X,y,MAP_X,y, open?'#c78dff':'#241d38', true, open);
-      const pn=node(PORTAL_X,y,'secret portal'+(open?' open':''),
-        branchName('boss'), branchSub('boss',open));
-      if(open) pn.onclick=()=>{ runSecrets.push(-1); startMission('boss'); };
+      const lit=portalOffered(), ready=branchReady('boss');
+      line(PORTAL_X,y,MAP_X,y, lit?'#c78dff':'#241d38', true, lit);
+      const pn=node(PORTAL_X,y,'secret portal'+(lit?' open':''),
+        branchName('boss'),
+        lit?branchSub('boss',1):ready?'DORMANT':'NEEDS A TIER '+branchTier('boss')+' SKILL');
+      if(lit) pn.onclick=()=>{ runSecrets.push(-1); startMission('boss'); };
     }
-    node(MAP_X,y, done?'held':next?'next':'locked', sy.id,
-         done?'HELD':next?'NEXT':'LOCKED',
+    // OPEN is the level-select state: cleared or not, you may fly it right now
+    const st = done ? 'HELD'
+             : sel ? (run?'NEXT':'SELECTED')
+             : open ? 'OPEN'
+             : sysReached(i) ? 'NEEDS '+sysFloor(i)+'P'
+             : 'LOCKED';
+    const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sy.id, st,
          String(i+1).padStart(2,'0'), readout(sy,i));
+    // on the title map every unlocked node is a launch point you can click
+    if(!run && (open||done) && !sel){ n.style.cursor='pointer';
+      n.onclick=()=>{ mapPick=i; buildMap(); }; }
   });
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
-  const run=mapMode==='run';
-  $('btnMapGo').textContent = run
+  const go=$('btnMapGo'), pickOk=run||sysOpen(mapPick);
+  go.textContent = run
     ? (mapThen==='end' ? 'CAMPAIGN COMPLETE — RESULTS' : 'CONTINUE — '+SYS().name)
-    : 'LAUNCH — '+SYSTEMS[0].name;
+    : pickOk ? 'LAUNCH — '+SYSTEMS[mapPick].name
+             : 'NEEDS '+sysFloor(mapPick)+'P SPENT — '+SYSTEMS[mapPick].name;
+  go.disabled=!pickOk; go.classList.toggle('ghost',!pickOk);
   $('btnMapBack').style.display = run ? 'none' : '';   // mid-run, the pause menu is the only way out
   const sec=$('btnMapSecret'), off=secretOffered(sysIdx);
   sec.style.display=off?'':'none';
   if(off){
-    const k=SECRET(sysIdx).k;
-    sec.textContent = surveyed(k) ? 'SECRET MISSION — '+SECRET(sysIdx).n
-                                  : 'TAKE THE MISSION BRANCH';
+    sec.textContent='SECRET MISSION — '+SECRET(sysIdx).n;
   }
   const por=$('btnMapPortal'), pOff=portalOffered();
   por.style.display=pOff?'':'none';
-  por.textContent = surveyed('boss') ? 'ENTER THE QUANTUM PORTAL'
-                                     : 'ENTER THE MISSION BRANCH';
-  $('mapBest').textContent = save.deepestSys
-    ? 'FURTHEST HELD  '+SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length)-1].name
-    : '';
+  por.textContent='ENTER THE QUANTUM PORTAL';
+  $('mapBest').textContent = run ? ''
+    : spent+' POINT'+(spent===1?'':'S')+' SPENT'+
+      (save.deepestSys ? '  ·  FURTHEST HELD  '+
+        SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length)-1].name : '');
 }
 /* The chart's backdrop runs off the main loop while the map is open: a grid,
    a scan bar, and pulses climbing the part of the spine you already hold. It
@@ -3987,7 +4042,13 @@ function mapArt(dt){
 
 function openMap(mode,then){
   mapMode=mode||'menu'; mapThen=then||null;
-  if(mapMode==='menu') runHeld=0;
+  if(mapMode==='menu'){
+    runHeld=Math.min(save.deepestSys,SYSTEMS.length);
+    // default the cursor to the furthest thing you are cleared to fly, so
+    // LAUNCH picks up where the save left off rather than at 001 every time
+    let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i)) best=i;
+    mapPick=best;
+  }
   buildMap(); state='map'; show('map');
 }
 
@@ -4611,7 +4672,8 @@ $('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();show('skills');};
 $('btnStoryBack').onclick=()=>{refreshMenu();show('menu');};
 
 $('btnStart').onclick=()=>openMap('menu');
-$('btnRetry').onclick=()=>{hideAll();newRun();};
+// a loss is a lost system, not a lost campaign: it drops you back on the chart
+$('btnRetry').onclick=()=>{hideAll();openMap('menu');};
 $('btnMapGo').onclick=()=>{
   if(mapMode!=='run'){ hideAll(); newRun(); return; }
   if(mapThen==='end'){ endRun(true); return; }

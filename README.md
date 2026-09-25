@@ -1,8 +1,8 @@
 # Mindframe — Defense of System 001
 
 A single-file browser space shooter set in the world of **"Mindframe"** by Oscar Moran.
-You are the last human pilot. Four systems, five waves each, and one life for the
-whole campaign.
+You are the last human pilot. Four systems, five waves each — and every system
+you take stays taken. Fall in one and you lose that system, never the campaign.
 
 **[Play it](index.html)** — no install, no build step, no server. Open `index.html` in any browser.
 
@@ -90,10 +90,15 @@ is not carried in save codes.
 System 001. It reads bottom to top like the skill tree — 001 on the floor, the
 Ruler's system at the ceiling.
 
-It is a roguelike route, not a level select: **nothing on it can be skipped**.
-Every run starts at System 001 and climbs. Systems 002 and 003 carry a dashed
-side branch; 003 also carries the **Quantum Portal** on the opposite side. 001
-and 004 carry nothing, and draw nothing.
+It is a **level select**. Clearing a system holds it for good, and from then on
+you can launch straight back into it — the climb is the first time through, not
+every time. Systems 002 and 003 carry a dashed side branch; 003 also carries the
+**Quantum Portal** on the opposite side. 001 and 004 carry nothing, and draw
+nothing.
+
+Click any node you have opened to move the launch cursor onto it; **LAUNCH**
+names whichever system the cursor is on, and the map opens with the cursor
+already on the furthest thing you are cleared to fly.
 
 The chart is a live readout rather than a static diagram, all on a canvas driven
 by the main loop:
@@ -141,10 +146,28 @@ SYSTEM 002
 ×1.32 THREAT · 2 CR / WAVE · +TRACKER
 ```
 
-**HELD is run state, not a record.** A node only turns green once you have
-killed the thing guarding it *on this run*, so the map you launch from always
-shows 001 as `NEXT` and everything above it locked, however deep the save has
-been. What the save remembers is a `FURTHEST HELD` line under the title.
+**HELD is a record.** A node turns green the moment you kill the thing guarding
+it and stays green on every map you ever open. Node states read:
+
+| State | Meaning |
+|---|---|
+| `HELD` | Cleared. Always re-flyable, whatever your loadout says. |
+| `SELECTED` | Where **LAUNCH** will drop you. |
+| `OPEN` | Reached and cleared to fly — click to select. |
+| `NEEDS 8P` | Reached, but your tree is too thin. See below. |
+| `LOCKED` | You have not got this far yet. |
+
+### The loadout floor
+
+Reaching a system unlocks it; flying it for the first time still asks for a bare
+minimum of skill tree. Each node names the number of **points spent** it expects
+— 001 asks for nothing, then **3P**, **8P**, **16P** — and shows yours beside it.
+Miss it and **LAUNCH** reads `NEEDS 16P SPENT — SYSTEM 004` and will not fire.
+
+It is points *spent*, not points *earned*, so the number on the card is the
+number on your tree. A **RESPEC** therefore closes the frontier node until you
+re-spend, but it can never strand you: anything already `HELD` ignores the floor
+entirely.
 
 The map is also the screen between systems: clearing one puts you back on it
 with the node you just took now green, and **CONTINUE** carries on to the next
@@ -157,10 +180,13 @@ The side branches off the world map. When the map comes up between systems, the
 branch beside the system you are about to fly lights up in yellow and you choose:
 **CONTINUE** up the spine, or take the detour. One offer per system per run.
 
-A salvage or escort run pays half again what a system pays — 20 credits off
-System 002, 27 off 003. The Quantum Portal pays three and a half times:
-**63 credits**. That is the only reason to go, because **failing one ends the
-run exactly like dying does**.
+A salvage or escort run pays half again what a system pays — 42 credits off
+System 002, 57 off 003. The Quantum Portal pays three and a half times:
+**133 credits**.
+
+**Failing one costs you the branch, not the campaign.** You lose the payout and
+the second attempt at that branch, take a hull floor of 25%, and carry straight
+on to the next system's briefing. The detour is a detour.
 
 Which branch you get is fixed by where you are on the route: **002 is Salvage,
 003 is Escort**. System 001 has none and neither does 004 — a node on the map
@@ -170,23 +196,26 @@ one.
 The two off-roster bosses are not a side branch at all. They are behind the
 **Quantum Portal**, which hangs off System 003 on the *other* side of the spine
 — the only violet thing on the chart, drawn as a turning vortex rather than a
-box. It pays **63 credits**, three and a half times what a system pays, and it is
-the same gamble: fail and the run is over.
+box. It pays **133 credits**, three and a half times what a system pays, and it is
+what a system pays.
 
-### You do not know what is down there
+### A branch is something you grow into
 
-A branch has **no name until you have flown it**. Every one of them — Salvage,
-Escort, the Portal — reads `MISSION BRANCH · UNSURVEYED` on the chart the first
-time, and the button says `TAKE THE MISSION BRANCH`. That is the whole
-reason taking one is a gamble: you are betting the run on something you cannot
-read.
+Every branch is **named from the first time you see it** — `SECRET MISSION ·
+ESCORT`, `QUANTUM PORTAL · DESTINATION UNKNOWN`. You know what you are flying
+into and what it pays; the only open question is whether your loadout is up to
+it. What gates a branch is the **tier of skill tree you own**:
 
-Fly one and it is surveyed for good — it becomes `SECRET MISSION · ESCORT`, or
-`QUANTUM PORTAL · DESTINATION UNKNOWN`, on that chart and every chart after it.
-Surveyed branches live in `save.seen` and persist across runs. Like Pilot
-School's completion flag they are **local to the browser and not carried in save
-codes**, so a code moved to a fresh machine arrives with the map's mysteries
-intact.
+| Branch | Opens once you own |
+|---|---|
+| **Salvage** (002) | any **tier-1** skill |
+| **Escort** (003) | any **tier-2** skill |
+| **Quantum Portal** (003) | any **tier-3** skill |
+
+Until then the node on the chart reads `NEEDS A TIER 2 SKILL` and cannot be
+taken; once the tier is yours it reads `STANDING BY` between runs and lights
+yellow on the map beside the system it hangs off. The Portal's tier-3 gate is
+doing real work — what is through it is harder than anything on the route.
 
 003 therefore offers a choice rather than an offer: Escort on the right, the
 Portal on the left, one detour per system. Taking either forfeits the other.
@@ -198,8 +227,8 @@ Portal on the left, one detour per system. Taking either forfeits the other.
 | 🟪 | **Quantum Portal** | Nothing to collect and no clock — just the fight, through the vortex beside System 003. One of two bosses, picked at random each time you go through. |
 
 Salvage is press-your-luck: what you have already picked up is yours even if the
-wreck kills you, and nothing but your own judgement ends the run — greed is the
-only clock. Escort pays nothing at all unless the hauler makes it. Clearing
+wreck kills you, and nothing but your own judgement ends it — greed is the only
+clock. Escort pays nothing at all unless the hauler makes it. Clearing
 either patches you up by 15% and drops you into the next system's briefing.
 
 ### The two off the roster
@@ -219,12 +248,13 @@ Runs pay in **credits**, and credits are the only currency.
 
 | | |
 |---|---|
-| Holding a wave | **1** credit in System 001, **2** in 002, **3** in 003, **4** in 004 |
-| Killing a system's boss | **3** credits |
-| Escort or Salvage | half again the system's total — 20 / 27 |
-| The Quantum Portal | three and a half times — 63 |
+| Holding a wave | **2** credits in System 001, **4** in 002, **6** in 003, **8** in 004 |
+| Killing a system's boss | **8** credits |
+| Escort or Salvage | half again the system's total — 42 / 57 |
+| The Quantum Portal | three and a half times — 133 |
 
-A full clean campaign is 62 credits. Score is now purely the scoreboard — it
+A full clean campaign is **132 credits** — 66 skill points, enough to take most
+of the tree in a single playthrough rather than across several campaigns. Score is now purely the scoreboard — it
 earns nothing. Spend credits two ways:
 
 - **Skill points** — the skill tree has an **EXCHANGE** button: 2 credits buys
@@ -485,7 +515,7 @@ on whatever is in front of you. Once a run is under way the pause menu's
 **QUIT TO TITLE** is the only way out of it — the briefing and the
 between-systems map deliberately have none. `P` or `Esc` in flight opens a pause menu with
 **RESUME**, the skill tree, the bestiary, and **QUIT TO TITLE** — quitting banks
-your score and points and ends the run.
+your score and points and abandons the system you are in.
 
 The skill tree is a screen you read and spend on, not a launch pad: it has no
 launch button, only **BACK** to wherever you opened it from.
@@ -494,8 +524,9 @@ launch button, only **BACK** to wherever you opened it from.
 
 Credits buy skill points at the tree's **EXCHANGE** button, 2 credits to the
 point. The tree stays locked until you first clear System 001, then opens
-permanently — spend points, relaunch stronger, push deeper.
-Tiers cost 2 / 4 / 7 points, so mastering all four branches takes several campaigns.
+permanently — spend points, relaunch stronger, push deeper. Payouts are pitched
+so one clean playthrough funds most of the tree; it is a build you assemble, not
+a grind you serve.
 It is also reachable between systems, so points spent mid-run apply immediately.
 The tree is drawn **bottom-up**: the first tier of each branch sits at the
 bottom and the tier-3 skill at the top, so it grows upward as you buy into it.
@@ -523,7 +554,8 @@ will refund (`RESPEC — REFUND 21P`), and a first click arms it into
 Hulls are bought with credits, so a respec never touches the Garage, and
 lessons you have already flown stay flown.
 
-Progress, points, best score and furthest wave persist in `localStorage`.
+Progress, points, best score, furthest wave and **which systems you hold**
+persist in `localStorage`. `save.deepestSys` is the unlock line the map reads.
 
 ## Starting over
 
