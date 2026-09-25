@@ -2,9 +2,17 @@
 
 A single-file browser space shooter set in the world of **"Mindframe"** by Oscar Moran.
 You are the last human pilot. Four systems, five waves each — and every system
-you take stays taken. Fall in one and you lose that system, never the campaign.
+you take stays taken. You fly one system at a time: pick it off the chart, hold
+it, and the result screen hands you back to the chart to choose again. Fall in
+one and you lose that system, never the campaign.
 
 **[Play it](index.html)** — no install, no build step, no server. Open `index.html` in any browser.
+
+![Mindframe](mindframe.gif)
+
+*Above: 35 seconds of the real thing — captured by running a bot through the
+game's own `update()` and `draw()`, not reconstructed. `mindframe-cover.gif` is
+a shorter 480px cut that fits itch.io's 3MB cover limit.*
 
 ## Controls
 
@@ -14,30 +22,33 @@ you take stays taken. Fall in one and you lose that system, never the campaign.
 | Mouse | Aim |
 | Click / `Space` | Fire |
 | `Shift` | Blink dash *(requires the Blink Drive skill)* |
-| `P` | Pause menu |
-| `Esc` | Back one screen — and pauses a run |
+| `P` | Pause menu — **in Pilot School it leaves the school**, which is the only way out |
+| `Esc` | Back one screen (and pauses a run); closes the gear first; does nothing in a drill |
 | `Enter` | Presses the main button on the current screen |
 
 ## The title card
 
 The first screen the game shows: the mark, a rule, and a prompt, over the live
-starfield. It holds until you touch anything, then hands you to **Pilot School**
-on a save that has never finished it, or to the menu on one that has. A save
-that has held ground reads its own line under the prompt — systems held and
-credits banked.
+starfield. It holds until you touch anything, then opens the menu. A save that
+has held ground reads its own line under the prompt — systems held and credits
+banked.
+
+**A new pilot always sees the menu first, and then Pilot School opens itself**
+a beat later. They get the wordmark and the live feed before anything asks them
+to choose, which is the part that draws them in.
+
+It fires **exactly once**, on the flag `save.schoolAuto`, which is set the moment
+it triggers rather than when the school is finished. Gating it on completion
+would mean a player who quit a drill got thrown straight back in every time they
+reached the menu, with no way out. A wipe clears the flag, so a wiped save gets
+the first run back.
 
 ## The cold open
 
 **LAUNCH** does not drop you into a briefing. The defence net comes up first: a
 grid unfolds from the horizon, two scan bars sweep the field, your actual hull
 draws itself inside closing target rings, and a boot log reads back the save it
-has been handed — hull, nodes owned, integrity, systems inbound, and the two
-lines that are the whole game:
-
-```
-> RESUPPLY  . . . . . . . . .  NONE
-> FALLBACK  . . . . . . . . .  NONE
-```
+has been handed — hull, nodes owned, integrity and systems inbound.
 
 It runs 6.2 seconds over the live starfield, under scanlines and a vignette, and
 **any key or click skips it**. It is authored in `cineDraw()` as one timeline of
@@ -45,8 +56,8 @@ It runs 6.2 seconds over the live starfield, under scanlines and a vignette, and
 
 ## Pilot School
 
-A coached tutorial that **opens itself every time you load the page until you
-finish it once**. You fly; the caption panel teaches. Each lesson only clears
+A coached tutorial the menu opens for you on a first run, and that you can
+return to from the menu any time. You fly; the caption panel teaches. Each lesson only clears
 when you actually do the thing:
 
 1. **Thrust** — fly through four markers, learning momentum and drag
@@ -68,13 +79,7 @@ There is exactly one way out of a drill: **`P`**. It leaves the school outright.
 `ESC` does nothing inside one and `P` does not open the pause menu there, so the
 school cannot be quit three different ways by accident.
 
-A sixth drill, **Secret Missions**, appears only once you have finished a run
-and first held System 001 — the point at which the map starts offering side
-branches. It is a real salvage drill: four cells to collect with the wreckage
-already drifting, while the caption explains what the branches are and what
-they cost you.
-
-When you buy a skill that has a lesson, the title screen's **PILOT SCHOOL**
+When you buy a skill that has a lesson, the menu's **PILOT SCHOOL**
 button lights up with a count of new drills waiting, and clears once you have
 flown them.
 
@@ -98,8 +103,50 @@ Primaries bolted to the floor that still lead and fire, but never close.
 Nothing dies in the simulator: hitting zero hull just restores it. It scores
 nothing and earns no points, and leaving early (**`P`**) does not count as
 finishing, so it will open again next time. **PILOT SCHOOL**
-on the title screen replays it. The completion flag is local to the browser and
+on the menu replays it. The completion flag is local to the browser and
 is not carried in save codes.
+
+## The live feed
+
+The home screen shows the game rather than describing it. The right-hand panel
+plays **a recording of the real thing**: a bot flew System 001, driven through
+the game's own `update()` with the real inputs, and the flight was captured at
+20fps — player, hostiles, rounds, all of it. Playback draws those frames with the
+same `unitPath()`, `shipPath()` and `ecol()` the arena draws with, so the feed
+**cannot drift from the game**. It is not a mock-up that has to be kept in sync;
+it is the game's own output.
+
+What is embedded is the densest 28 seconds of that flight. Across the whole run
+43% of frames have nothing on the field — hostiles spawn outside the arena and
+take seconds to close — and a feed that is empty half the time shows nobody
+anything. The chosen window is 18%.
+
+It fits the **whole arena**, with no following camera. That was tried and
+measured: at any zoom tight enough to make the hull read, most of the fight is
+off the panel.
+
+| zoom | hostiles on camera |
+|---|---|
+| 1.00 (full arena) | 65% |
+| 1.30 | 41% |
+| 1.50 | 27% |
+| 2.05 | 5% |
+
+So the panel is shaped to the arena (`1000/680`) instead of 4:3, which removes
+the letterboxing and buys back the size that not zooming costs.
+
+To re-record after the game changes: replay a bot, re-encode, replace
+`FEED_DATA`. Nothing else in the playback needs touching.
+
+## The gear
+
+One cluster of everything that is not the game, in the **same corner of every
+screen** so it is never somewhere new: volume, **QUIT LEVEL** (shown only while
+a level is running), the **bestiary**, **save codes**, and the **wipe**.
+
+It remembers the screen it was opened over, so backing out of the bestiary or
+the save code returns you there rather than dumping you at the menu. `ESC`
+closes the gear before it does anything else.
 
 ## The world map
 
@@ -129,7 +176,7 @@ by the main loop:
 - **A starfield** under everything: 210 stars in three parallax layers drifting
   at different rates, placed off a fixed pseudo-random seed so they hold still
   between rebuilds rather than reshuffling every frame. The chart is a map of
-  space, so the ground under it reads as sky rather than as a panel.
+  space, so the ground under it reads as sky rather than as a panel. No planets.
 - **Three nebula clouds** drifting behind the grid, green through blue to
   violet, so the field has depth rather than being a flat panel.
 - **The spine is a conduit**, not a line: a gradient core, a bright inner
@@ -141,9 +188,6 @@ by the main loop:
 - **A station ring at every system** — two dashed rings counter-rotating, bright
   green on what you hold, blue and breathing on the one you are about to fly.
 - **Charge climbing** the part of the route you already hold.
-- **You are here.** Your actual hull, drawn with `shipPath` in the ship you are
-  flying, bobbing beside the node you are about to take, on a dashed tether,
-  labelled `YOU`.
 - **The Portal**, drawn as a turning seven-lobed vortex with rings collapsing
   into it — slow and dim while dormant, fast and lit when it is open to you.
 - Corner brackets, scanlines and a scan bar over all of it.
@@ -158,43 +202,28 @@ cover it.
 Everything positional reads the same `MAP_X` / `MAP_Y` percentages the nodes are
 placed with, so the canvas can never drift out of sync with the chart.
 
-### The route past 004
-
-Three more systems and two more branches are drawn above the last real one,
-dashed and dimmer than anything you can reach, in `MAP_PH`. Nothing on them is
-flyable — they exist so the chart reads as a campaign that keeps going rather
-than one that stops at the top of the screen. Their names are `«WRITE»` markers.
-
-`MAP_Y` spaces every node, placeholders included, over the same band, so adding
-or removing one re-spaces the whole route rather than leaving a gap.
-
-**HELD is a record.** A node turns green the moment you kill the thing guarding
-it and stays green on every map you ever open. Node states read:
-
-| State | Meaning |
-|---|---|
-| `HELD` | Cleared. Always re-flyable, whatever your loadout says. |
-| `SELECTED` | Where **LAUNCH** will drop you. |
-| `OPEN` | Reached and cleared to fly — click to select. |
-| `NEEDS 8P` | Reached, but your tree is too thin. See below. |
-| `LOCKED` | You have not got this far yet. |
-
 ### The loadout floor
 
 Reaching a system unlocks it; flying it for the first time still asks for a bare
-minimum of skill tree. Each node names the number of **points spent** it expects
-— 001 asks for nothing, then **3P**, **8P**, **16P** — and shows yours beside it.
-Miss it and **LAUNCH** reads `NEEDS 16P SPENT — SYSTEM 004` and will not fire.
+minimum of skill tree. The launching screen names the number it expects
+— 001 asks for nothing, then **6 CR**, **16 CR**, **32 CR**. Miss it and
+**LAUNCH** reads `NEEDS 32 CR INVESTED — SYSTEM 004` and will not fire.
 
-It is points *spent*, not points *earned*, so the number on the card is the
-number on your tree. A **RESPEC** therefore closes the frontier node until you
+It is credits *invested in the tree*, not credits banked, so buying a skill is
+what opens the next system. A **RESPEC** therefore closes the frontier node until you
 re-spend, but it can never strand you: anything already `HELD` ignores the floor
 entirely.
 
-The map is also the screen between systems: clearing one puts you back on it
-with the node you just took now green, and **CONTINUE** carries on to the next
-briefing. Clearing the last system shows the whole route held before the
-results.
+### Level complete
+
+**Clearing a system is where the flight ends.** It does not roll into the next
+one. You get a result screen — credits earned this flight, credits banked, score,
+best — and then the chart, where you choose again. The last system reads
+`CAMPAIGN COMPLETE` rather than `LEVEL COMPLETE`. `SYS_CLEAR_TEXT` holds a line
+of your own per system for it.
+
+That is the whole shape of the game now: pick one thing off the chart, fly it,
+bank it, choose again.
 
 ## The launching screen
 
@@ -217,15 +246,18 @@ answers on its cards.
               ENGAGE      BACK — ESC
 ```
 
-One panel, label-to-value rows with dotted leaders. A red `NEEDS 16P SPENT` row
-appears only when your tree is short of the system's loadout floor. Branches get
-the same screen with their own rows — the run, the opposition, the payout, and
-what failing costs.
+One panel, label-to-value rows with dotted leaders. A red `NEEDS 32 CR INVESTED`
+row appears only when your tree is short of the system's loadout floor. Branches
+get the same screen, and because their two descriptive rows carry sentences
+rather than figures, those two stack — label above text, no leader.
 
 Under the readout is a line of your own per system and per branch, held in
 `LAUNCH_TEXT`. There is no **SKILL TREE** button here: the tree is a place you go
 to spend, not something to open with a hand on the throttle. **BACK** returns to
-the chart, and the story briefing behind **ENGAGE** has one too.
+the chart.
+
+**ENGAGE** flies it. There is no story briefing in between — the cold open hands
+straight to the first wave.
 
 ## Secret Missions
 
@@ -314,13 +346,13 @@ Runs pay in **credits**, and credits are the only currency.
 | Escort or Salvage | half again the system's total — 42 / 57 |
 | The Quantum Portal | three and a half times — 133 |
 
-A full clean campaign is **132 credits** — 66 skill points, enough to take most
-of the tree in a single playthrough rather than across several campaigns. Score is now purely the scoreboard — it
-earns nothing. Spend credits two ways:
+A full clean run of all four systems is **132 credits**. Score is purely the
+scoreboard — it earns nothing. Spend credits two ways, both directly:
 
-- **Skill points** — the skill tree has an **EXCHANGE** button: 2 credits buys
-  1 point. Skills still cost the points they always did.
-- **Hulls** — the Garage charges credits directly.
+- **Skills** — the tree charges credits, at **twice a skill's tier weight**: a
+  4-weight tier-1 node is 8 CR, and the tier-3 nodes run 24 to 50. There is no
+  second currency and no exchange; **RESPEC** refunds credits.
+- **Hulls** — the Garage charges credits too.
 
 Nothing in Pilot School pays; it is a simulator.
 
@@ -421,32 +453,19 @@ has a beat where the right answer is to stop dodging and commit. The sequence
 restarts from its opener at each tier, so a boss you have fought before opens
 the same way — it is something you learn, not something you react to.
 
-### Weak spots
+### No weak spots
 
-Bosses are **big** — 54 to 88px of radius, up about 40% — and each carries
-glowing **weak spots set into its hull**: three `BRACE PLATE`s on 3296, three
-`SPAWN POD`s on the Hive, two `ARC EMITTER`s on 2117, four `THRONE ANCHOR`s on
-the Ruler, two `SPLINTER RACK`s on 3295, five `STORED MIND`s on the Archive.
+Bosses are **big** — 54 to 88px of radius, up about 40% — and they used to carry
+a ring of glowing armour nodes you had to flank and strip before the hull would
+take full damage. That is gone. A boss fight is about reading the attack line
+and living inside it, not about target priority on a rotating socket, and the
+ring was answering a question the fights did not need to ask.
 
-They sit at 55–66% of the hull radius and turn with the body, so **a spot on the
-far side is genuinely behind the thing** and reaching it means coming around.
-On 2117 and the Archive the tracking shield arc covers its own spots, so you
-have to flank the boss before you can even aim at them. Each spot draws as a
-socket in the plating with a hot core, a damage arc around it and a crosshair
-through it, so it reads as something to shoot rather than decoration.
-
-While any spot is alive the hull only takes **60%** of what you deal it, and
-rounds striking a spot are spent on the spot rather than the body.
-
-Burn all of them and the boss is wide open for a full **three seconds** at
-punish value. That makes clearing the spots strictly faster than grinding
-through them — the mechanic rewards target priority rather than taxing you for
-ignoring it.
-
-**Armour does not come back every tier.** Stripping a boss is most of the work
-of a fight, and having it instantly re-plate undoes that. It grows back **once**,
-at the last escalation, and only **half of it**. So a fight is one full strip, a
-long stretch of open hull, and one short second strip near the end.
+The removal is one switch: `bossNodes()` returns no ring, and `nodesUp()` is
+false everywhere downstream — nothing draws a socket, no round is spent on one,
+the hull never takes the armoured multiplier, and there is no exposed window
+after a strip. **The per-boss ring data is still in the `BOSSES` table, unused**,
+so restoring that single function brings the whole mechanic back.
 
 ### The shape
 
@@ -516,8 +535,8 @@ plays at the same speed no matter how slow the world it is playing in.
 ## The Garage
 
 Four hulls, pure stat trade-offs — no hidden rules. A hull is gated **twice**:
-you have to have flown deep enough to unlock it, and then pay skill points for
-it, so hulls compete with the skill tree for the same currency.
+you have to have flown deep enough to unlock it, and then pay credits for it, so
+hulls compete with the skill tree for the same currency.
 
 | Ship | Class | HULL | POWER | RATE | SPEED | GRIP | Unlock |
 |---|---|---|---|---|---|---|---|
@@ -533,7 +552,7 @@ card can never lie about a ship. Each hull has its own silhouette in flight.
 ## Bestiary
 
 Everything the game expects you to know lives on one tabbed screen — **HOSTILES**,
-**CELLS**, and **CONTROLS** — reachable from the title screen and from the pause menu.
+**CELLS**, and **CONTROLS** — reachable from **the gear**, on any screen.
 
 It is built as an **assess readout**, not a list: a roster down the left, and one
 unit's full telemetry filling the panel on the right, inside a clipped-corner
@@ -585,12 +604,13 @@ launch button, only **BACK** to wherever you opened it from.
 
 ## The skill tree
 
-Credits buy skill points at the tree's **EXCHANGE** button, 2 credits to the
-point. The tree stays locked until you first clear System 001, then opens
-permanently — spend points, relaunch stronger, push deeper. Payouts are pitched
-so one clean playthrough funds most of the tree; it is a build you assemble, not
-a grind you serve.
-It is also reachable between systems, so points spent mid-run apply immediately.
+**Skills are bought with credits**, at twice a skill's tier weight — the 4-weight
+tier-1 nodes cost 8 CR, the tier-3 nodes 24 to 50. There is no second currency
+and no exchange step. The tree stays locked until you first clear System 001,
+then opens permanently — spend, relaunch stronger, push deeper. Payouts are
+pitched so one clean run funds most of the tree; it is a build you assemble, not
+a grind you serve. It is also what opens the next system: the map's loadout
+floors are measured in credits invested here.
 The tree is drawn **bottom-up**: the first tier of each branch sits at the
 bottom and the tier-3 skill at the top, so it grows upward as you buy into it.
 Four branches of three:
@@ -608,21 +628,20 @@ stamp themselves over the tree for a second and a half. All CSS keyframes —
 rebuild by a `landed` marker, so the animation survives the redraw that follows
 the purchase.
 
-**RESPEC** sits beside `EXCHANGE`. It sells the entire tree back: every point
-you ever spent on a skill returns, and every skill goes. It is free and total —
-there is no tax and no partial refund — because points are the scarce thing and
-a tree you regret is otherwise a save you cannot fix. The button shows what it
-will refund (`RESPEC — REFUND 21P`), and a first click arms it into
-`SELL 6 SKILLS FOR 21P?` for four seconds rather than firing straight away.
-Hulls are bought with credits, so a respec never touches the Garage, and
-lessons you have already flown stay flown.
+**RESPEC** sells the entire tree back: every credit you ever spent on a skill
+returns, and every skill goes. It is free and total — no tax, no partial refund —
+because a tree you regret is otherwise a save you cannot fix. The button shows
+what it will refund (`RESPEC — REFUND 42 CR`), and a first click arms it for four
+seconds rather than firing straight away. It never touches the Garage, and
+lessons you have already flown stay flown. It can close the frontier system
+until you re-spend, but never a system you already hold.
 
-Progress, points, best score, furthest wave and **which systems you hold**
+Progress, credits, best score, furthest wave and **which systems you hold**
 persist in `localStorage`. `save.deepestSys` is the unlock line the map reads.
 
 ## Starting over
 
-**WIPE ALL PROGRESS** is the last link on the title screen, in red. It is the
+**WIPE ALL PROGRESS** is the last entry in **the gear**, in red. It is the
 only genuinely destructive control in the game, so it names what it is about to
 destroy before it will do it — a first click arms it into
 `ERASE 41 CR · 6P · 4 SKILLS · 2 HULLS · BEST 18400? — CLICK AGAIN` for five
@@ -633,7 +652,7 @@ for a new player.
 
 ## Save codes
 
-**SAVE CODE** on the title screen shows a portable code for your progress —
+**SAVE CODE**, in **the gear**, shows a portable code for your progress —
 credits, points, unlocked skills, unlocked hulls, best score and furthest system — as
 `MF1-<base64 payload>-<checksum>`. Copy it to move a save between browsers or
 machines; pasting a code replaces what is stored locally. The checksum rejects
@@ -650,7 +669,7 @@ blank line starts a new paragraph, and a `[BRACKETED]` line renders as green
 terminal output. Adding a fifth system is one more block; the waves, scaling and
 ending adapt.
 
-The full text of *Mindframe* is readable from the title screen.
+The full text of *Mindframe* is readable from the menu.
 
 ## The look
 
@@ -677,12 +696,10 @@ each with a grid, a scan bar, and something moving that means something:
 | **Bestiary** | The selected unit's real silhouette, turning inside a reticle |
 | **Cold open** | Your hull assembling inside closing target rings |
 
-The **title screen** is a status board: a `MINDFRAME DEFENCE NET · LINK ACTIVE`
-strip across the top with a blinking indicator and your furthest sector on the
-right, corner brackets on the frame, a bar sweeping the wordmark, and the save
-stated as a row of chips — `BEST`, `FURTHEST`, `CREDITS`, `POINTS`,
-`MINDFRAME 7 / 12`. Its background is thin enough to keep the starfield drifting
-behind it.
+The **home screen** is two columns and nothing is centred. Down the left:
+wordmark, rule, subtitle, then the buttons as a left-aligned stack — `LAUNCH`,
+`PILOT SCHOOL`, `SKILL TREE`, `GARAGE` — and the story link. On the right, a
+live feed of the game. See **The live feed** and **The gear** below.
 
 The **Garage** cards are bay readouts: a `BAY 01 · ● ACTIVE` header strip, and
 the five stat grades metered as **twelve segments** instead of a smooth bar, lit
@@ -761,11 +778,27 @@ Below **30% hull** the whole score is dragged under a closing lowpass (18kHz →
 on top with a heavy vibrato. It is the one piece of information the game gives
 you without asking you to look at anything.
 
-`SOUND ON/OFF` and a volume slider sit on the title screen and in the pause
+`SOUND ON/OFF` and a volume slider sit in **the gear** and in the pause
 menu — the same control, rendered into both, persisted in `localStorage`. It is
 a device preference, not progress, so **WIPE ALL PROGRESS leaves it alone**.
 
 ## Structure
 
 Everything is in `index.html` — markup, styles, and the game in one vanilla-JS
-`<canvas>` file. No dependencies.
+`<canvas>` file. No dependencies, no build step, no server.
+
+About a fifth of the file is the live feed's recording (`FEED_DATA`), which is
+the price of the home screen showing real gameplay instead of an approximation
+of it.
+
+| | |
+|---|---|
+| `index.html` | The whole game |
+| `README.md` | This |
+| `mindframe.gif` | 640×435, 35s — title, tree, garage, map, combat, the Ruler |
+| `mindframe-cover.gif` | 480×326, 28s — the shorter cut, under itch.io's 3MB cover cap |
+
+Both GIFs are captured from the running game, not reconstructed: a bot is driven
+through the real `update()` and `draw()` and the canvas is grabbed every fifth
+frame. The only staging is in the capture harness — the bot's hull is topped up
+so it does not die mid-take, and the boss is floored until the footage is done.
