@@ -213,8 +213,9 @@ it. What gates a branch is the **tier of skill tree you own**:
 | **Quantum Portal** (003) | any **tier-3** skill |
 
 Until then the node on the chart reads `NEEDS A TIER 2 SKILL` and cannot be
-taken; once the tier is yours it reads `STANDING BY` between runs and lights
-yellow on the map beside the system it hangs off. The Portal's tier-3 gate is
+taken. Once the tier is yours it reads `OFFERED AT 003` — naming the system it
+hangs off, because a branch is only ever takeable on the map *between* systems,
+where it lights yellow and becomes clickable. The Portal's tier-3 gate is
 doing real work — what is through it is harder than anything on the route.
 
 003 therefore offers a choice rather than an offer: Escort on the right, the

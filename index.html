@@ -3778,7 +3778,7 @@ function buildMap(){
       line(MAP_X,y,SECRET_X,y, lit?'#ffd24d':'#22293f', true, lit);
       const sn=node(SECRET_X,y,'secret'+(lit?' open':''),
         branchName(sec.k),
-        lit?branchSub(sec.k,1):ready?'STANDING BY':'NEEDS A TIER '+branchTier(sec.k)+' SKILL');
+        lit?branchSub(sec.k):ready?'OFFERED AT '+sy.id:'NEEDS A TIER '+branchTier(sec.k)+' SKILL');
       if(lit) sn.onclick=()=>startMission(sec.k);
     }
     if(i===PORTAL_SYS){                        // and the portal, on the other side
@@ -3786,7 +3786,7 @@ function buildMap(){
       line(PORTAL_X,y,MAP_X,y, lit?'#c78dff':'#241d38', true, lit);
       const pn=node(PORTAL_X,y,'secret portal'+(lit?' open':''),
         branchName('boss'),
-        lit?branchSub('boss',1):ready?'DORMANT':'NEEDS A TIER '+branchTier('boss')+' SKILL');
+        lit?branchSub('boss'):ready?'OFFERED AT '+sy.id:'NEEDS A TIER '+branchTier('boss')+' SKILL');
       if(lit) pn.onclick=()=>{ runSecrets.push(-1); startMission('boss'); };
     }
     // OPEN is the level-select state: cleared or not, you may fly it right now
