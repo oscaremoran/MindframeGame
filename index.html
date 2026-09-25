@@ -1426,7 +1426,8 @@ const CREDIT_BOSS=8;
    the map's loadout floors are measured in. */
 const SKILL_CR=s=>s.cost*2;
 let save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
-          schoolDone:false, taught:[], ships:[0], ship:0, vol:.7, sound:true, seen:[]};
+          schoolDone:false, schoolAuto:false, taught:[], ships:[0], ship:0,
+          vol:.7, sound:true, seen:[]};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
 save.taught=save.taught||[]; save.ships=save.ships||[0]; save.ship=save.ship||0;
 save.credits=save.credits||0;
@@ -4638,7 +4639,8 @@ $('gearWipe').onclick=()=>{
   wipeArmed=0;
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
   save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
-        schoolDone:false, taught:[], ships:[0], ship:0, vol:SND.vol, sound:SND.on, seen:[]};
+        schoolDone:false, schoolAuto:false, taught:[], ships:[0], ship:0,
+        vol:SND.vol, sound:SND.on, seen:[]};
   persist();
   landed=null; respecArmed=0;
   buildTree(); refreshMenu(); resetWipeLink();
@@ -5207,8 +5209,17 @@ function titleGo(){
   if(titleDone) return;
   titleDone=true;
   SFX.ui();
-  if(!save.schoolDone){ schoolStart(); return; }
   refreshMenu(); state='menu'; show('menu');
+  /* A new pilot lands on the menu and is taken straight into Pilot School —
+     they see what the game is before they are asked to choose anything. It
+     fires once and once only: `schoolAuto` is set the moment it triggers, not
+     when the school is finished, so quitting a drill returns you to the menu
+     and leaves you there rather than shoving you back in. */
+  if(!save.schoolDone && !save.schoolAuto){
+    save.schoolAuto=true; persist();
+    // a beat first, so the menu and the feed register as the place you came from
+    setTimeout(()=>{ if(state==='menu'&&!school) schoolStart(); },1200);
+  }
 }
 function showTitle(){
   titleDone=false; state='title';
