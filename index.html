@@ -231,17 +231,11 @@
   @keyframes titleBlink{0%,100%{opacity:.25} 50%{opacity:1}}
 
   /* ---- pilot school ---- */
-  #btnSchoolQuit,#btnSchoolExit,#btnSchoolList,#btnSchoolSkip{position:absolute; margin:0;
+  #btnSchoolList,#btnSchoolSkip{position:absolute; right:16px; margin:0;
     display:none; font-size:clamp(10px,1.15vw,12px); padding:9px 18px; z-index:5}
-  #btnSchoolExit,#btnSchoolList,#btnSchoolSkip{right:16px}
-  /* stacked clear of the caption panel, which owns the bottom ~150px */
-  #btnSchoolExit{bottom:132px}
-  #btnSchoolSkip{bottom:178px}
-  #btnSchoolList{bottom:224px}
-  /* leaving is the one control that is not about the drill, so it sits alone
-     in the opposite corner rather than under the two that are */
-  #btnSchoolQuit{left:16px; bottom:16px; border-color:#3a2030; color:#c98a9e}
-  #btnSchoolQuit:hover{border-color:#8d3a55; color:#ffd9e4; background:rgba(120,30,55,.2)}
+  /* well clear of the caption panel, which owns the bottom ~150px */
+  #btnSchoolSkip{bottom:250px}
+  #btnSchoolList{bottom:296px}
 
   /* ---- the launching screen ----
      What you are about to fly, in numbers, above whatever story goes with it.
@@ -251,16 +245,16 @@
     margin:0 0 6px; color:#4d9dff; letter-spacing:.42em;
     font-size:clamp(8px,.95vw,10px);
   }
+  #launchText{max-width:min(92vw,560px); margin-top:4px}
   #launchStats{
-    display:grid; grid-template-columns:1fr 1fr; gap:14px;
-    width:min(92vw,720px); margin:22px 0 4px; text-align:left;
+    display:grid; grid-template-columns:1fr; gap:14px;
+    width:min(92vw,440px); margin:22px 0 4px; text-align:left;
   }
   .lpanel{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:14px 16px 12px}
   .lpanel h3{
     margin:0 0 10px; font-size:clamp(8px,.92vw,10px); font-weight:400;
     letter-spacing:.3em; color:#4d9dff; border-bottom:1px solid #16203a; padding-bottom:9px;
   }
-  .lpanel.you h3{color:#46e39b; border-bottom-color:#14301f}
   .lr{display:flex; align-items:baseline; gap:10px; padding:7px 0}
   .lr + .lr{border-top:1px solid rgba(27,37,64,.6)}
   .lr span{
@@ -272,7 +266,7 @@
     letter-spacing:.08em; color:#cfe0f8; text-align:right;
   }
   .lr b.warn{color:#ffd24d} .lr b.good{color:#46e39b} .lr b.bad{color:#ff6b8a}
-  @media (max-width:620px){ #launchStats{grid-template-columns:1fr} }
+
 
   /* ---- lesson select ---- */
   #lessonList{
@@ -343,9 +337,10 @@
   .mnode.next .id{color:#dfe9ff} .mnode.next .st{color:#4d9dff}
   .mnode.next .mx{border-top-color:#1e3358; color:#5d6c8f}
   .mnode.locked{opacity:.52}
-  .mnode.secret{width:12%; padding:9px 5px; border-style:dashed; opacity:.5}
+  .mnode.locked.ph{opacity:.3; border-style:dashed}
+  .mnode.secret{width:12%; padding:7px 5px; border-style:dashed; opacity:.5}
   .mnode.secret .id{font-size:clamp(8.5px,1.05vw,12px); line-height:1.35}
-  .mnode.secret .st{margin-top:9px}
+  .mnode.secret .st{margin-top:5px}
   .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
     background:rgba(48,38,12,.95); cursor:pointer;
     animation:mapSecret 1.5s ease-in-out infinite}
@@ -552,8 +547,6 @@
 <body>
 <div id="wrap">
   <canvas id="c" width="1000" height="680"></canvas>
-  <button id="btnSchoolQuit" class="ghost">QUIT</button>
-  <button id="btnSchoolExit" class="ghost">EXIT SCHOOL</button>
   <button id="btnSchoolList" class="ghost">LESSONS</button>
   <button id="btnSchoolSkip" class="ghost">SKIP LESSON</button>
 
@@ -565,8 +558,8 @@
       <h2>DEFENSE OF EARTH</h2>
     </div>
     <!-- PROSE: byline + prompt are yours to word -->
-    <p id="titleBy">«WRITE: the byline under the title mark»</p>
-    <p id="titlePrompt">«WRITE: the press-to-start prompt»</p>
+    <p id="titleBy">An online space shooter.</p>
+    <p id="titlePrompt">[press any button to begin]</p>
     <p id="titleSave"></p>
   </div>
 
@@ -674,8 +667,10 @@
     <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     <p id="launchKind">LAUNCHING</p>
     <h1 id="launchTitle" style="font-size:clamp(22px,3.6vw,40px)">SYSTEM 001</h1>
-    <h2 id="launchSub">INBOUND</h2>
     <div id="launchStats"></div>
+    <!-- PROSE: your line(s) for this system / branch. Written per-system in
+         SYSTEMS[].launch and per-branch in LAUNCH_TEXT below. -->
+    <div class="prose" id="launchText"></div>
     <div class="row" style="margin-top:22px">
       <button id="btnLaunchGo">ENGAGE</button>
       <button id="btnLaunchBack" class="ghost">BACK — ESC</button>
@@ -688,7 +683,7 @@
       <span id="lessonSub"></span>
     </div>
     <!-- PROSE: one line on what lesson select is and that drills can be re-flown freely -->
-    <p style="margin:6px 0 0">«WRITE: one line — these are every drill unlocked, pick any, re-flying costs nothing»</p>
+    <p style="margin:6px 0 0">Select a lesson to fly. You can re-fly any lesson.</p>
     <div id="lessonList"></div>
     <div class="row" style="margin-top:16px">
       <button id="btnLessonBack" class="ghost">BACK — ESC</button>
@@ -1417,7 +1412,7 @@ addEventListener('keydown',e=>{
   if(e.code==='Space'){e.preventDefault();}
   if(state==='title'){ e.preventDefault(); titleGo(); return; }   // any key leaves the title card
   if(state==='intro'){ e.preventDefault(); cineEnd(); return; }   // any key skips the cold open
-  if(e.code==='KeyP'&&state==='play') setPause(!paused);
+  if(e.code==='KeyP'&&state==='play'){ if(school) schoolExit(); else setPause(!paused); }
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
   if(e.code==='Enter'){ e.preventDefault(); onEnter(); }
 });
@@ -1620,7 +1615,7 @@ function newRun(){
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=mapPick; paused=false; runHeld=mapPick;
   mission=null; runSecrets=[]; fxClear(); flash=0;
-  branchSortie=false; pendingBranch=null;
+  branchSortie=false;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   const S0=SYS();
@@ -1650,28 +1645,17 @@ const lrow=(k,v,cls)=>'<div class="lr"><span>'+k+'</span><i></i><b'+
 const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>'+title+
   '</h3>'+rows+'</section>';
 
-// the right-hand column: what you are taking into it. Identical either way.
-function youPanel(extra){
-  const st=stats(), sh=SHIP(), n=save.owned.length;
-  return lpanel('YOUR SHIP',
-    lrow('HULL', sh.n)+
-    lrow('INTEGRITY', Math.round(st.maxHp))+
-    lrow('DAMAGE', st.dmg)+
-    lrow('SKILLS', n+' \u00b7 '+spentPoints()+'P')+
-    (extra||''), 'you');
-}
-
 function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
   const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
   // the frontier asks for a floor; anything already held never does
   const floor=sysFloor(i), short=!sysHeld(i)&&spentPoints()<floor;
-  return lpanel('WHAT IS COMING',
+  return lpanel('ENEMY FORCES',
            lrow('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
            lrow('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':'')+
            lrow('BOSS', b.n,'warn')+
-           lrow('PAYOUT','+'+pay+' CR','good'))+
-         youPanel(short?lrow('NEEDS', floor+'P SPENT','bad'):'');
+           lrow('PAYOUT','+'+pay+' CR','good')+
+           (short?lrow('NEEDS', floor+'P SPENT','bad'):''));
 }
 
 function branchOverview(k,i){
@@ -1680,12 +1664,11 @@ function branchOverview(k,i){
   const M={salvage:['\u00abWRITE\u00bb','\u00abWRITE\u00bb'],
            escort: ['\u00abWRITE\u00bb','\u00abWRITE\u00bb'],
            boss:   ['\u00abWRITE\u00bb','\u00abWRITE\u00bb']}[k];
-  return lpanel('WHAT IS COMING',
+  return lpanel('ENEMY FORCES',
            lrow('THE RUN', M[0])+
            lrow('OPPOSITION', M[1], k==='salvage'?'':'bad')+
            lrow('PAYOUT','+'+SECRET_PAY(i,k)+' CR','good')+
-           lrow('IF YOU FAIL','LOSE THE PAYOUT','warn'))+
-         youPanel();
+           lrow('IF YOU FAIL','LOSE THE PAYOUT','warn'));
 }
 
 /* ---- the launching screen ----
@@ -1693,11 +1676,24 @@ function branchOverview(k,i){
    numbers, and what you are taking into it. `launchGo` is what ENGAGE does —
    a system starts the campaign flow, a branch spins up a single sortie. */
 let launchGo=null;
-function openLaunch(kind,i,sub){
+/* PROSE — the line that sits under the readout on the launching screen.
+   One per system, one per branch. Yours to write; the markers render in-game
+   so a blank one is obvious. */
+const LAUNCH_TEXT={
+  sys:['\u00abWRITE: launch line for SYSTEM 001\u00bb',
+       '\u00abWRITE: launch line for SYSTEM 002\u00bb',
+       '\u00abWRITE: launch line for SYSTEM 003\u00bb',
+       '\u00abWRITE: launch line for SYSTEM 004\u00bb'],
+  salvage:'\u00abWRITE: launch line for SALVAGE\u00bb',
+  escort: '\u00abWRITE: launch line for ESCORT\u00bb',
+  boss:   '\u00abWRITE: launch line for the QUANTUM PORTAL\u00bb',
+};
+function openLaunch(kind,i){
   $('launchKind').textContent = kind ? 'LAUNCHING A SIDE BRANCH' : 'LAUNCHING';
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
-  $('launchSub').textContent = sub||'';
   $('launchStats').innerHTML = kind ? branchOverview(kind,i) : sysOverview(i);
+  const txt = kind ? LAUNCH_TEXT[kind] : LAUNCH_TEXT.sys[i];
+  $('launchText').innerHTML = txt?'<p>'+txt+'</p>':'';
   state='launch'; show('launch');
 }
 
@@ -2923,8 +2919,7 @@ const PORTAL={k:'boss', n:'QUANTUM PORTAL', sub:'DESTINATION UNKNOWN'};
    to it. `save.seen` still records what you have flown, for the bestiary. */
 const surveyed=k=>save.seen.includes(k);
 function survey(k){ if(k&&!save.seen.includes(k)){ save.seen.push(k); persist(); } }
-const branchName=k=> k==='boss' ? 'QUANTUM<br>PORTAL'
-  : 'SECRET MISSION<br>'+(k==='escort'?'ESCORT':'SALVAGE');
+const branchName=k=> k==='boss' ? 'QUANTUM PORTAL' : k==='escort' ? 'ESCORT' : 'SALVAGE';
 const branchSub=k=> k==='boss' ? PORTAL.sub : SECRETS.find(x=>x.k===k).sub;
 const SECRET=i=>SECRETS[Math.min(i,SECRETS.length-1)];
 const secretFlyable=k=>k==='salvage'||k==='escort'||k==='boss';
@@ -3387,7 +3382,7 @@ function schoolExit(){ schoolLeave(); refreshMenu(); show('menu'); }
 
 // the three in-flight school controls travel together
 function schoolBtns(d){
-  for(const b of ['btnSchoolQuit','btnSchoolExit','btnSchoolList','btnSchoolSkip'])
+  for(const b of ['btnSchoolList','btnSchoolSkip'])
     $(b).style.display = d ? 'block' : 'none';
 }
 
@@ -3943,9 +3938,17 @@ function hideAll(){ show(''); }
    have cleared stays open forever, and you launch into whichever one you pick.
    What still gates a node is your loadout — each system names the minimum
    number of skill points it expects you to have spent before you fly it. */
-const MAP_Y=i=>{                       // 001 at the bottom, the last system at the top
-  const n=SYSTEMS.length;
-  return n<2 ? 50 : 88-i*(76/(n-1));
+/* PROSE: the names of the systems past 004 are yours. These nodes are drawn
+   and locked — nothing on them is flyable, they only show the route continues. */
+const MAP_PH=[
+  {id:'005', st:'\u00abWRITE: status\u00bb', branch:'\u00abWRITE: branch name\u00bb'},
+  {id:'006', st:'\u00abWRITE: status\u00bb', branch:null},
+  {id:'007', st:'\u00abWRITE: status\u00bb', branch:'\u00abWRITE: branch name\u00bb'},
+];
+const MAP_N=()=>SYSTEMS.length+MAP_PH.length;
+const MAP_Y=i=>{                       // 001 at the bottom, the last node at the top
+  const n=MAP_N();
+  return n<2 ? 50 : 91-i*(84/(n-1));
 };
 const MAP_X=38, SECRET_X=74, PORTAL_X=9;
 
@@ -4015,9 +4018,6 @@ function buildMap(){
   // what it pays a wave, and the one enemy it introduces
   // two short lines rather than one long one that runs off the card
   const spent=spentPoints();
-  const readout=(sy,i)=>
-    '<b>\u00d7'+sy.hp.toFixed(2)+'</b> THREAT &nbsp;\u00b7&nbsp; <b>'+CREDITS_PER_WAVE(i)+'</b> CR/WAVE<br>'+
-    (sy.adds?'ADDS <b>'+sy.adds.toUpperCase()+'</b>':'BASELINE ROSTER');
 
   SYSTEMS.forEach((sy,i)=>{
     const y=MAP_Y(i), done=i<held;
@@ -4051,11 +4051,22 @@ function buildMap(){
              : sysReached(i) ? 'NEEDS '+sysFloor(i)+'P'
              : 'LOCKED';
     const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sy.id, st,
-         String(i+1).padStart(2,'0'), readout(sy,i));
+         String(i+1).padStart(2,'0'));
     // on the title map every unlocked node is a launch point you can click
     if(!run && (open||done) && !(sel&&!mapPickK)){ n.style.cursor='pointer';
       n.onclick=()=>{ mapPick=i; mapPickK=null; buildMap(); }; }
   });
+  // the route past the last real system: locked, unnumbered, drawn dim
+  MAP_PH.forEach((ph,k)=>{
+    const i=SYSTEMS.length+k, y=MAP_Y(i);
+    line(MAP_X,MAP_Y(i-1),MAP_X,y,'#1a2033',false,false);
+    if(ph.branch){
+      line(MAP_X,y,SECRET_X,y,'#1a2033',true,false);
+      node(SECRET_X,y,'secret',ph.branch,'LOCKED');
+    }
+    node(MAP_X,y,'locked ph','SYSTEM '+ph.id, ph.st, String(i+1).padStart(2,'0'));
+  });
+
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
   const go=$('btnMapGo');
   const pickOk = run || (mapPickK ? branchPickable(mapPick,mapPickK) : sysOpen(mapPick));
@@ -4094,6 +4105,21 @@ function mapArt(dt){
   mapT+=dt;
   g.clearRect(0,0,w,h);
   const px=x=>x/100*w, py=y=>y/100*h;
+
+  /* ── starfield ──
+     The chart is a map of space, so the ground under it should read as sky
+     rather than as a panel. Three parallax layers drifting at different rates,
+     placed off a fixed pseudo-random seed so the stars hold still between
+     rebuilds instead of reshuffling every frame. */
+  const srnd=n=>{ const x=Math.sin(n*127.1)*43758.5453; return x-Math.floor(x); };
+  for(let i=0;i<210;i++){
+    const layer=i%3, sx=srnd(i)*w;
+    const y2=(srnd(i+900)*h + mapT*(2+layer*3))%h;
+    const tw=.45+.55*Math.abs(Math.sin(mapT*(.5+srnd(i+77))+i));
+    g.fillStyle='rgba(200,224,255,'+((.12+layer*.1)*tw).toFixed(3)+')';
+    const sz=layer===2?1.6:1;
+    g.fillRect(sx,y2,sz,sz);
+  }
 
   // ── nebula: three slow clouds, so the field has depth behind the grid ──
   for(let i=0;i<3;i++){
@@ -4886,7 +4912,7 @@ $('linkStory').onclick=()=>{buildStory();show('story');};
 $('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
 // the briefing's way back: to the launching screen mid-campaign, the map otherwise
 $('btnBriefBack').onclick=()=>{ if(mapMode==='run'){ buildMap(); state='map'; show('map'); }
-                                else { openLaunch(null,sysIdx,'INBOUND'); } };
+                                else { openLaunch(null,sysIdx); } };
 $('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();show('skills');};
 $('btnStoryBack').onclick=()=>{refreshMenu();show('menu');};
 
@@ -4898,18 +4924,18 @@ $('btnMapGo').onclick=()=>{
     // every flight off the title map goes through the launching screen first
     if(mapPickK){
       const k=mapPickK, i=mapPick;
-      openLaunch(k,i,'SINGLE SORTIE  \u00b7  OFF '+SYSTEMS[i].name);
+      openLaunch(k,i);
       launchGo=()=>{ hideAll(); newBranch(k,i); };
     }else{
       const i=mapPick;
-      openLaunch(null,i,'INBOUND  \u00b7  FIVE WAVES, THEN A BOSS');
+      openLaunch(null,i);
       launchGo=()=>{ hideAll(); newRun(); };
     }
     return;
   }
   if(mapThen==='end'){ endRun(true); return; }
   // and so does the next system on a campaign already under way
-  openLaunch(null,sysIdx,'INBOUND  \u00b7  FIVE WAVES, THEN A BOSS');
+  openLaunch(null,sysIdx);
   launchGo=()=>openBrief(mapBrief[0],mapBrief[1],mapBrief[2]);
 };
 $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
@@ -4935,6 +4961,7 @@ const openOverlay=()=>['title','menu','over','skills','story','brief','launch','
 
 function onEscape(){
   const o=openOverlay();
+  if(state==='play'&&school) return;            // school has one way out, and it is P
   if(state==='play'&&!o){ setPause(true); return; }
   if(o==='pause'){ setPause(false); return; }
   if(o==='garage'){ closeGarage(); return; }
@@ -4972,8 +4999,6 @@ $('btnGarageBack').onclick=closeGarage;
 
 /* ---- pilot school ---- */
 $('btnSchool').onclick=schoolStart;
-$('btnSchoolQuit').onclick=schoolExit;
-$('btnSchoolExit').onclick=schoolExit;
 $('btnSchoolList').onclick=openLessons;
 $('btnLessonBack').onclick=closeLessons;
 // skipping a lesson still counts it as flown — the school is a teacher, not a gate
