@@ -93,6 +93,19 @@
   .snd input[type=range]::-moz-range-thumb{
     width:12px; height:16px; background:#4d9dff; border:0; cursor:pointer}
   .snd .vnum{width:34px; color:#aebcd8}
+  /* the difficulty row: three segments of one control, not three buttons */
+  .diff{margin-top:14px; font-size:9.5px; letter-spacing:.2em; color:#6b7ba0}
+  .diff .lab{display:block; margin-bottom:7px}
+  .diff .seg{display:flex; gap:0; border:1px solid #33456d; width:max-content; max-width:100%}
+  .diff .seg button{
+    margin:0; border:0; border-right:1px solid #33456d; border-radius:0;
+    padding:7px 15px; font-size:10px; letter-spacing:.16em;
+    background:#111a2d; color:#6b7ba0; cursor:pointer}
+  .diff .seg button:last-child{border-right:0}
+  .diff .seg button.on{background:#4d9dff; color:#050a14;
+    box-shadow:0 0 12px rgba(77,157,255,.55)}
+  .diff .why{display:block; margin-top:8px; color:#5d6c8f; letter-spacing:.1em;
+    line-height:1.5; max-width:330px; text-transform:none; font-size:9.5px}
 
   /* ══════════ title screen ══════════ */
   #menu{background:rgba(5,6,13,.62); justify-content:center; padding:3% 4%}
@@ -259,16 +272,29 @@
      the bestiary, save codes and the wipe. It sits in the same corner on every
      screen so it is never somewhere new. */
   #gearBtn{
-    /* well clear of the HUD's top-right readout, which owns the first ~56px */
-    position:absolute; top:64px; right:16px; z-index:30; margin:0;
-    width:72px; height:72px; padding:0; line-height:72px;
-    font-size:42px; clip-path:none; border-radius:3px;
+    /* The top-right readout runs SCORE / system / HOSTILES / CREDITS down to
+       y=88 of the 1000x680 canvas, so the gear has to start below that.
+
+       These are in vw/vh rather than px on purpose. #wrap is
+       min(100vw, 100vh*1000/680) wide and the canvas fills it, so a canvas
+       pixel is only a CSS pixel at full size — a fixed px offset that clears
+       the readout on a large screen rides straight over it on a small one,
+       because the HUD shrinks with the canvas while the button does not.
+       min(Xvw, Yvh) tracks the canvas at every size: 10.5vw/15.4vh is y=105,
+       and 7.2vw/10.6vh is the old 72px square. */
+    position:absolute;
+    top:min(10.5vw,15.4vh); right:min(1.6vw,2.35vh); z-index:30; margin:0;
+    width:min(7.2vw,10.6vh); height:min(7.2vw,10.6vh); padding:0;
+    line-height:min(7.2vw,10.6vh); font-size:min(4.2vw,6.2vh);
+    clip-path:none; border-radius:3px;
     background:rgba(10,16,30,.85); border:1px solid #2c3a5c; color:#8fb6e6;
   }
   #gearBtn:hover{border-color:#4d9dff; color:#dfe9ff; transform:rotate(45deg)}
   #gearBtn{transition:transform .25s, border-color .15s, color .15s}
   #gearPanel{
-    display:none; position:absolute; top:146px; right:16px; z-index:31;
+    /* directly under the button: its top + its height, in the same units */
+    display:none; position:absolute;
+    top:min(18.4vw,27vh); right:min(1.6vw,2.35vh); z-index:31;
     width:min(86vw,268px); padding:16px; text-align:left;
     background:rgba(8,12,24,.97); border:1px solid #2c3a5c;
     clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
@@ -281,6 +307,10 @@
   #gearPanel .snd{margin:0 0 14px; flex-wrap:wrap; gap:8px}
   #gearPanel .snd button{font-size:10px; padding:7px 11px; margin:0}
   #gearPanel .snd input[type=range]{flex:1 1 100%; min-width:0; order:3}
+  #gearPanel .diff{margin:0 0 14px}
+  #gearPanel .diff .seg{width:100%}
+  #gearPanel .diff .seg button{flex:1 1 0; padding:7px 4px; font-size:9px}
+  #gearPanel .diff .why{max-width:none}
   #gearPanel .snd .vnum{min-width:26px; text-align:right}
   #gearBtns{display:flex; flex-direction:column; gap:7px}
   #gearBtns button{margin:0; width:100%; text-align:left; font-size:10.5px; padding:9px 13px}
@@ -651,6 +681,7 @@
   <div id="gearPanel">
     <div id="gearHead">SETTINGS</div>
     <div class="snd" id="sndGear"></div>
+    <div class="diff" id="diffGear"></div>
     <div id="gearBtns">
       <button id="gearQuit" class="ghost">QUIT LEVEL</button>
       <button id="gearCodex" class="ghost">BESTIARY</button>
@@ -748,6 +779,7 @@
       <button id="btnQuit" class="ghost">QUIT TO TITLE</button>
     </div>
     <div class="snd" id="sndPause"></div>
+    <div class="diff" id="diffPause"></div>
     <p style="margin-top:20px"><span class="key">P</span> or <span class="key">ESC</span> resumes.</p>
   </div>
 
@@ -1427,47 +1459,136 @@ const CREDIT_BOSS=8;
 const SKILL_CR=s=>s.cost*2;
 let save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
           schoolDone:false, schoolAuto:false, taught:[], ships:[0], ship:0,
-          vol:.7, sound:true, seen:[]};
+          vol:.7, sound:true, seen:[], diff:1};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
 save.taught=save.taught||[]; save.ships=save.ships||[0]; save.ship=save.ship||0;
 save.credits=save.credits||0;
 save.seen=save.seen||[];
 if(typeof save.vol!=='number') save.vol=.7;
 if(typeof save.sound!=='boolean') save.sound=true;
+// an older save predates the setting and is, by definition, playing the default
+if(typeof save.diff!=='number') save.diff=1;
 SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 const has=id=>save.owned.includes(id);
+
+/* ══════════════════════ DIFFICULTY ══════════════════════
+   Three settings, and the middle one is the game exactly as it has always been
+   tuned: every multiplier on DIFFS[1] is 1, so a save that never touches this
+   plays as it did before the setting existed. That is the whole point of the
+   middle row being all ones — it is not a difficulty so much as the absence of
+   one, and it keeps the balance work already in SYSTEMS and in each boss's
+   tiers as the thing the other two rows are measured against.
+
+   The shared dials, which every row sets:
+     ehp    how much hull an Iteration brings
+     espd   how fast it flies
+     erof   how often it shoots  (a cooldown DIVISOR — up means sooner)
+     dmgIn  how hard its fire lands on you
+     rest   the breathing room between a boss's attacks (a MULTIPLIER on the
+            authored rest window — down means it comes at you again sooner)
+
+   And then the part that makes each row its own setting rather than the same
+   fight with the numbers dragged around:
+
+     aim    the bullet magnetism. RECRUIT reaches further, forgives a wider
+            miss and pulls harder. STARFARER sets this to null, and null means
+            the magnet never runs at all: every round goes exactly where you
+            pointed it, and nothing bends to help you.
+     lead   how well a boss predicts where you are going instead of shooting
+            where you already were. Feeds leadAngle().
+     track  how hard a boss corrects an attack already under way — the lance
+            walking onto you, 2117's arc staying between you and its core.
+     dense  extra projectiles per pattern: a wider fan, a thicker ring.
+     improv on STARFARER a boss stops reciting. Every authored punish window
+            stays exactly where it was written — that is the contract, and
+            breaking it would make the fight unwinnable rather than hard — but
+            the attacks BETWEEN the windows are no longer a line you can
+            memorise, so you have to read the telegraph instead.
+     open   the punish window itself, scaled. A boss flown well does not leave
+            itself hanging open quite as long.
+
+   Payout is deliberately untouched at every setting. A pilot on the low
+   setting banks the same credits per wave, so the ships and the skill tree
+   cost the same however you choose to fly, and the setting is only ever about
+   the fight in front of you.
+
+   This composes with EASE() rather than replacing it: EASE is the System 001
+   runway and stays in charge of a first-timer's first four waves.          */
+const DIFFS=[
+  {k:'low',  ehp:.78, espd:.90, erof:.82, dmgIn:.70, rest:1.18,
+   aim:{r:1.65, cone:1.30, turn:1.70}, lead:1, track:1, dense:0, improv:0, open:1.12,
+   n:'Recruit',
+   d:'For new players or those who want a break from harder difficulties.'},
+  {k:'mid',  ehp:1,   espd:1,   erof:1,   dmgIn:1,   rest:1,
+   aim:{r:1, cone:1, turn:1},          lead:1, track:1, dense:0, improv:0, open:1,
+   n:'Cadet',
+   d:'The intended challenge for players who are good at computer games.'},
+  {k:'high', ehp:1.55,espd:1.08,erof:1.20,dmgIn:1.35,rest:.84,
+   aim:null,                           lead:1.35, track:1.35, dense:1, improv:.55, open:.82,
+   n:'Starfarer',
+   d:'An extremely hard setting. Take this if you want a challenge.'},
+];
+const DIFF_MID=1;
+/* Pilot School teaches against the default tuning whatever the menu says. A
+   drill with a standard to hold is only a standard if it is the same drill for
+   everyone, so the lessons never move. */
+const DIFF=()=> school ? DIFFS[DIFF_MID]
+                       : DIFFS[clamp(save.diff|0,0,DIFFS.length-1)];
+// the authored rest window, opened up or closed down by the setting
+const bossRest=T=>rand(T.rest[0],T.rest[1])*DIFF().rest;
 // nothing in the simulator pays, so school runs never bank anything
 let runCr=0;
 function credit(n){ if(school||!n) return; save.credits+=n; runCr+=n; persist(); }
 
 /* ================= skill tree ================= */
-// col/row are percentages inside #tree — the tree is drawn bottom-up, so the
-// first tier of every branch sits at the bottom (y:84) and tier 3 at the top.
+/* Four branches, four tiers each. The y values are percentages inside #tree and
+   the tree reads bottom-up, so tier 1 sits at y:88 and the tier-4 capstone at
+   y:13. Tier 4 is one skill per branch and each one is the branch's own idea
+   taken as far as it goes rather than another flat stat bump.
+
+   They are priced to be the long game. A thorough playthrough — four systems
+   plus every side branch — banks roughly 364 CR, and tiers 1-3 plus all three
+   hulls come to 302 CR, so the tree as it was opened inside a single campaign.
+   A capstone deliberately does not: the four together cost more than twice
+   everything below them put together, so finishing one is a reason to fly the
+   route again rather than something the first run hands you. */
 const SKILLS=[
-  {id:'dmg1',  n:'PULSE\nUPGRADES',  d:'+4 damage',        cost:4, x:11, y:84, req:null},
-  {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:7, x:11, y:50, req:'dmg1'},
-  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:16, req:'dmg2'},
+  {id:'dmg1',  n:'PULSE\nUPGRADES',  d:'+4 damage',        cost:4, x:11, y:88, req:null},
+  {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:7, x:11, y:64, req:'dmg1'},
+  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:40, req:'dmg2'},
+  {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d73.4', cost:70, x:11, y:13, req:'pierce'},
 
-  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:84, req:null},
-  {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:7, x:33, y:50, req:'rate1'},
-  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:17, x:33, y:16, req:'rate2'},
+  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:88, req:null},
+  {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:7, x:33, y:64, req:'rate1'},
+  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:17, x:33, y:40, req:'rate2'},
+  {id:'spread2',n:'QUANTUM\nSPREAD', d:'5-shot spread',  cost:64, x:33, y:13, req:'spread'},
 
-  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:84, req:null},
-  {id:'hull2', n:'HULL\nREINFORCEMENT', d:'+30 max HP',       cost:9, x:56, y:50, req:'hull1'},
-  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:16, req:'hull2'},
+  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:88, req:null},
+  {id:'hull2', n:'HULL\nREINFORCEMENT', d:'+30 max HP',       cost:9, x:56, y:64, req:'hull1'},
+  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:40, req:'hull2'},
+  {id:'armour',n:'BIOLOGICAL\nWEAVE', d:'-22% damage taken', cost:80, x:56, y:13, req:'regen'},
 
-  {id:'spd1',  n:'THRUST\nBOOST',   d:'+18% speed',       cost:5, x:79, y:84, req:null},
-  {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:50, req:'spd1'},
-  {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:16, req:'dash'},
+  {id:'spd1',  n:'THRUST\nBOOST',   d:'+18% speed',       cost:5, x:79, y:88, req:null},
+  {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:64, req:'spd1'},
+  {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:40, req:'dash'},
+  {id:'dash2', n:'INTERSTELLAR\nDRIVE', d:'dash recharges \u00d72', cost:56, x:79, y:13, req:'shield'},
 ];
 const byId=id=>SKILLS.find(s=>s.id===id);
 const canBuy=s=>!has(s.id) && save.credits>=SKILL_CR(s) && (!s.req || has(s.req));
-/* Which tier of its branch a skill sits in: tier 1 has no prerequisite, tier 3
-   is the top of a branch. Mission branches are gated on tier rather than on a
-   point total, so they open as the tree grows instead of on a number you have
-   to go and look up. */
-const tierOf=id=>{ const s=byId(id); return !s?0 : !s.req?1 : (byId(s.req)&&!byId(s.req).req)?2:3; };
+/* Which tier of its branch a skill sits in: tier 1 has no prerequisite, and
+   every step up the chain is one tier deeper. Mission branches are gated on
+   tier rather than on a point total, so they open as the tree grows instead of
+   on a number you have to go and look up.
+
+   This walks the chain rather than unrolling it, so adding a fifth tier is a
+   row in SKILLS and nothing else. The guard is there because a bad `req` would
+   otherwise spin forever. */
+const tierOf=id=>{
+  let s=byId(id), t=0;
+  while(s && t<64){ t++; if(!s.req) break; s=byId(s.req); }
+  return s?t:0;
+};
 const ownsTier=t=>save.owned.some(id=>tierOf(id)>=t);
 
 /* ================= the garage =================
@@ -1496,9 +1617,20 @@ const BASE={dmg:10, delay:.19, maxHp:100, speed:250, bspeed:640};
    within MAGNET_R that is ahead of it and inside MAGNET_CONE radians of where
    it is already going, at up to MAGNET_TURN rad/sec. Small numbers on purpose:
    it rescues a near miss, it does not aim for you.                          */
+const DASH_CD=1.15;                  // seconds; DASH_CD/2 with the tier-4 capstone
 const MAGNET_R=95, MAGNET_CONE=.80, MAGNET_TURN=5.5;
+/* The three above are Cadet's numbers. Each setting scales them, and STARFARER
+   carries no `aim` block at all — there, magnet() returns null and the whole
+   assist is skipped rather than shrunk to nothing, so a round on that setting
+   is never touched after it leaves the ship. */
+function magnet(){
+  const a=DIFF().aim;
+  return a && {r:MAGNET_R*a.r, cone:MAGNET_CONE*a.cone, turn:MAGNET_TURN*a.turn};
+}
 function stats(){
-  const s={...BASE, pierce:0, shots:1, regen:0, dash:false, iframe:false};
+  const s={...BASE, pierce:0, shots:1, regen:0, dash:false, iframe:false,
+           // tier-4 defaults: what the ship does with no capstone bought
+           punish:PUNISH_MULT, armour:1, dashCd:DASH_CD};
   if(has('dmg1'))s.dmg+=4; if(has('dmg2'))s.dmg+=5;
   if(has('pierce'))s.pierce=2;
   if(has('rate1'))s.delay*=.82; if(has('rate2'))s.delay*=.82;
@@ -1508,6 +1640,15 @@ function stats(){
   if(has('spd1'))s.speed*=1.18;
   if(has('dash'))s.dash=true;
   if(has('shield'))s.iframe=true;
+  /* ---- tier 4 ----
+     Each one takes its branch's last idea further rather than adding a new
+     one, so a capstone changes how the branch already played instead of
+     bolting something unrelated onto it. Applied after their own branch so
+     the order with the tiers below never matters. */
+  if(has('punish'))  s.punish=3.4;        // the punish window is worth more
+  if(has('spread2')) s.shots=5;           // supersedes TRIPLE SPREAD's 3
+  if(has('armour'))  s.armour=.78;        // every source of damage, not just fire
+  if(has('dash2'))   s.dashCd=DASH_CD/2;  // twice as often
   // ---- hull multipliers, applied last so the Garage scales everything you own ----
   const sh=SHIP();
   s.maxHp=Math.round(s.maxHp*sh.hp);
@@ -1913,7 +2054,10 @@ const AGGR=()=> sysIdx>0 ? 1 : EASE();
 const angDiff=(a,b)=>{ let d=a-b; while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TAU; return d; };
 // aim where the ship is going to be, not where it is
 function leadAngle(e,speed,amount){
-  const P=(mission&&mission.k==='escort')?mission.ward:player, k=(amount===undefined?1:amount)*AGGR();
+  // `lead` is how good a shot the thing is: on STARFARER it reads your drift
+  // further ahead, so sidestepping a fan no longer works on its own
+  const P=(mission&&mission.k==='escort')?mission.ward:player,
+        k=(amount===undefined?1:amount)*AGGR()*DIFF().lead;
   const d=Math.hypot(P.x-e.x,P.y-e.y), t=d/speed*k;
   return Math.atan2(P.y+P.vy*t-e.y, P.x+P.vx*t-e.x);
 }
@@ -1932,21 +2076,24 @@ function edgeSpawn(){
 }
 
 function spawn(type,at,def){
-  const ez=EASE();
-  const p=at||edgeSpawn(), S=SYS(), sc=(1+(wave-1)*.13)*S.hp*ez, vm=S.spd*(.72+.28*ez);
+  const ez=EASE(), D=DIFF();
+  const p=at||edgeSpawn(), S=SYS(),
+        sc=(1+(wave-1)*.13)*S.hp*ez*D.ehp, vm=S.spd*(.72+.28*ez)*D.espd;
+  // one number for every cooldown below: a rest window, so the setting divides it
+  const cd=ez*D.erof;
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
-      hp:32*sc,max:32*sc,spd:78*vm,cool:rand(1.2,3)/ez,a:0,val:60,rof:1/ez,
+      hp:32*sc,max:32*sc,spd:78*vm,cool:rand(1.2,3)/cd,a:0,val:60,rof:1/cd,
       dir:Math.random()<.5?-1:1,turn:rand(1,3),burst:0});
   if(type==='dart') enemies.push({t:'dart',x:p.x,y:p.y,vx:0,vy:0,r:12,
       hp:14*sc,max:14*sc,spd:(122+wave*7)*vm,a:0,val:35,wob:rand(0,TAU)});
   if(type==='heavy') enemies.push({t:'heavy',x:p.x,y:p.y,vx:0,vy:0,r:27,
-      hp:140*sc,max:140*sc,spd:44*vm,cool:rand(2,3.4)/ez,a:0,val:220,spin:0,rof:1/ez});
+      hp:140*sc,max:140*sc,spd:44*vm,cool:rand(2,3.4)/cd,a:0,val:220,spin:0,rof:1/cd});
   // TRACKER — keeps far, launches slow homing seekers
   if(type==='tracker') enemies.push({t:'tracker',x:p.x,y:p.y,vx:0,vy:0,r:15,
-      hp:55*sc,max:55*sc,spd:120*vm,cool:rand(1.6,3),a:0,val:110,spin:0});
+      hp:55*sc,max:55*sc,spd:120*vm,cool:rand(1.6,3)/cd,a:0,val:110,spin:0,rof:1/cd});
   // OVERSEER — rotating shield arc blocks shots from whatever side it faces
   if(type==='overseer') enemies.push({t:'overseer',x:p.x,y:p.y,vx:0,vy:0,r:22,
-      hp:110*sc,max:110*sc,spd:62*vm,cool:rand(2,3.4),a:0,val:200,
+      hp:110*sc,max:110*sc,spd:62*vm,cool:rand(2,3.4)/cd,a:0,val:200,rof:1/cd,
       sh:1.15,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
   // SPLINTER — bursts into two Watchers when killed
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:19,
@@ -1954,7 +2101,7 @@ function spawn(type,at,def){
   if(type==='boss'){
     // whichever one this system answers to, unless a mission named one. It has
     // watched every upgrade you bought, and it came ready for them.
-    const B=def||BOSS(sysIdx), hp=B.hp*S.hp*(1+save.owned.length*.05);
+    const B=def||BOSS(sysIdx), hp=B.hp*S.hp*(1+save.owned.length*.05)*D.ehp;
     const b={t:'boss',k:B.k,B,col:B.col,bn:B.n,
       x:W/2,y:-140,vx:0,vy:0,r:B.r,hp,max:hp,spd:B.spd*vm,
       a:0,val:B.val,cool:3.2,pt:0,spin:0,morph:0,shed:0,
@@ -2047,24 +2194,28 @@ const BOSSES=[
        pool:['ring','fan','sweep','lance','blink'],   rest:[1.0,1.5], spd:1.6},
     ]},
 
-  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:1080, val:2200,
-    spd:46, want:300, strafe:.7, sum:'dart', nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
+  /* The last thing in the campaign, and it is meant to feel like it. Heavier
+     than anything else on the roster, it closes distance rather than holding a
+     ring, and its authored lines are longer between punish windows than the
+     bosses before it — so reaching one is something you work toward. */
+  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:1420, val:2200,
+    spd:54, want:262, strafe:.82, sum:'dart', nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
     mus:{bpm:128, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1},
     tiers:[
-      {n:'', seq:['ring','summon','fan','ring','|'], pool:['ring','fan','summon'], rest:[1.9,2.7], spd:1},
-      {n:'THE RULER — ESCALATING', seq:['lance','ring','spiral','|','summon','fan','lance','ring','|'],
-       pool:['ring','fan','summon','lance','spiral'],        rest:[1.4,2.1], spd:1.25},
-      {n:'THE RULER — ENRAGED',    seq:['blink','lance','spiral','ring','|','summon','blink','fan','lance','spiral','ring','|'],
-       pool:['ring','fan','lance','spiral','blink','summon'],rest:[.9,1.5],  spd:1.6},
+      {n:'', seq:['ring','summon','fan','ring','spiral','|'], pool:['ring','fan','summon','spiral'], rest:[1.7,2.4], spd:1.1},
+      {n:'THE RULER — ESCALATING', seq:['lance','ring','spiral','fan','|','summon','fan','lance','ring','spiral','|'],
+       pool:['ring','fan','summon','lance','spiral'],        rest:[1.2,1.8], spd:1.38},
+      {n:'THE RULER — ENRAGED',    seq:['blink','lance','spiral','ring','fan','|','summon','blink','fan','lance','spiral','ring','|'],
+       pool:['ring','fan','lance','spiral','blink','summon'],rest:[.78,1.3], spd:1.78},
       /* The campaign does not end on the same shape as System 001's boss. The
          Ruler has a fourth tier nobody else has: it walks out of its own frame,
          the arena closes around the two of you, and it knits itself back
          together if you stop shooting. `bare` means no armour ring — there is
          nothing left to plate. */
       {n:'THE RULER — OUT OF FRAME', bare:1, last:1,
-       seq:['blink','spiral','lance','ring','blink','fan','spiral','lance'],
-       pool:['ring','fan','lance','spiral','blink'], rest:[.55,.95], spd:2.15},
+       seq:['blink','spiral','lance','ring','blink','fan','spiral','lance','ring'],
+       pool:['ring','fan','lance','spiral','blink'], rest:[.46,.82], spd:2.35},
     ]},
 ];
 const BOSS=i=>BOSSES[Math.min(i,BOSSES.length-1)];
@@ -2256,7 +2407,7 @@ function entranceDraw(){
 /* The punish window. A boss's authored line ends in one, so every fight has a
    beat where the right answer is to stop dodging and commit. It is worth
    PUNISH_MULT rounds for the price of one, which is the whole point.        */
-const OPENING=tier=> tier===2?1.15 : tier===1?1.4 : 1.7;
+const OPENING=tier=> (tier===2?1.15 : tier===1?1.4 : 1.7) * DIFF().open;
 const PUNISH_MULT=2.4;
 
 /* ---- armour nodes ----
@@ -2267,6 +2418,19 @@ const PUNISH_MULT=2.4;
    faster than grinding through them, which is the whole idea. They come back
    at every tier change, so a fight is three strips, not one.               */
 const ARMOURED=.6, STRIP_OPEN=3.0;
+
+/* ---- TOTAL RECALL ----
+   THE ARCHIVE's last tier is a hard DPS check rather than a long grind. From
+   the moment it crosses into that tier you have RECALL_T seconds to finish it.
+   Run out and it does what its name has always said it does: it restores
+   itself to full, the tier ladder resets under it because tier is read from
+   hull fraction, and you fight the whole thing again.
+
+   This is deliberately the one fight in the game with a wall clock on it, and
+   it is drawn on the boss bar the entire time it is running — a silent timer
+   would be a trap, and a trap is not the same thing as difficulty. */
+const RECALL_T=8.0;
+const RECALL_LABEL='WARNING: ARCHIVE IS REGENERATING';
 /* Armour does NOT come back at every tier. Stripping a boss is most of the
    work of the fight and having it instantly re-plate undoes that. It grows
    back once, at the last escalation, and only half of it — so a fight is one
@@ -2377,14 +2541,39 @@ function bossAI(e,dt,dx,dy,d){
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0;                         // the new tier opens with its opener
     e.nodes=null;
+    // the Archive starts its clock here, and re-arms it if it ever recalls
+    e.recall = (B.k==='archive' && B.tiers[tier].last) ? RECALL_T : 0;
     shake=Math.max(shake,20); flash=Math.max(flash,.45); SFX.tier();
     burst(e.x,e.y,e.col,46,430);
     ebullets.length=0;                        // the shockwave wipes the screen
-    banner=B.tiers[tier].n; bannerT=2.2;
+    banner=B.tiers[tier].n||B.n; bannerT=2.2;
+    /* A tier marked `bare` is the finale: the shell comes off, the arena closes
+       in around the two of you, and there is nowhere left to run the clock out
+       from. shellBreak() has always done this — it was simply never called. */
+    if(B.tiers[tier].bare && !e.bare) shellBreak(e,B.tiers[tier].n);
   }
   if(e.inv>0) e.inv-=dt;
   if(e.open>0) e.open=Math.max(0,e.open-dt);
   const T=B.tiers[e.tier];
+  /* the Archive's clock. It runs only in the last tier and only for the Archive;
+     when it expires the hull goes back to full, which drops `tier` back to 0 on
+     the next frame and starts the fight over. */
+  if(e.recall>0){
+    e.recall-=dt;
+    if(e.recall<=0){
+      e.recall=0;
+      e.hp=e.max; e.nodes=null; e.bare=0; e.r=B.r; e.knit=0;
+      e.act=null; e.tel=null; e.open=0; e.si=0; e.cool=1.4; e.inv=1.0;
+      wallWant=0;                             // the arena opens back up
+      slow(1.1); shake=52; flash=.95;
+      shock(e.x,e.y,'#ffffff',e.r,Math.max(W,H),1.0,11);
+      shock(e.x,e.y,e.col,e.r*.5,e.r*5,.7,8);
+      burst(e.x,e.y,e.col,90,620);
+      ebullets.length=0;
+      banner=B.tiers[0].n||B.n; bannerT=2.8;
+      SFX.tier();
+    }
+  }
   // out of frame, it repairs itself the moment the pressure comes off
   if(T.last){
     e.knit=(e.knit||0)+dt;
@@ -2402,7 +2591,7 @@ function bossAI(e,dt,dx,dy,d){
   // ---- 2117 keeps its arc between you and its core
   if(e.sh){
     const toP=Math.atan2(P.y-e.y,P.x-e.x);
-    e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.8*AGGR()*dt;
+    e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.8*AGGR()*DIFF().track*dt;
   }
 
   // ---- movement ----
@@ -2422,7 +2611,7 @@ function bossAI(e,dt,dx,dy,d){
     e.act.t+=dt;
     if(e.act.k==='lance'){
       // charges a line, tracking you slowly, then fires down it
-      e.act.a += clamp(angDiff(Math.atan2(dy,dx),e.act.a),-1,1)*1.5*AGGR()*dt;
+      e.act.a += clamp(angDiff(Math.atan2(dy,dx),e.act.a),-1,1)*1.5*AGGR()*DIFF().track*dt;
       e.tel={a:e.act.a, t:e.act.t, len:1100}; SFX.warn();
       if(e.act.t>=.95){
         for(let i=0;i<16;i++){
@@ -2434,7 +2623,7 @@ function bossAI(e,dt,dx,dy,d){
           const a=e.act.a+i*.13;
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*360,vy:Math.sin(a)*360,r:5,dmg:9,col:'#e6dcff'});
         }
-        shake=Math.max(shake,13); e.tel=null; e.act=null; e.cool=rand(T.rest[0],T.rest[1]);
+        shake=Math.max(shake,13); e.tel=null; e.act=null; e.cool=bossRest(T);
       }
       return;
     }
@@ -2446,7 +2635,7 @@ function bossAI(e,dt,dx,dy,d){
         const v=560;
         e.x=clamp(e.x+Math.cos(e.act.a)*v*dt,60,W-60);
         e.y=clamp(e.y+Math.sin(e.act.a)*v*dt,60,H-60);
-        if(e.act.t>1.35){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.5; }
+        if(e.act.t>1.35){ e.act=null; e.cool=bossRest(T)+.5; }
       }
       return;
     }
@@ -2460,7 +2649,7 @@ function bossAI(e,dt,dx,dy,d){
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.act.a)*(210+i*85),vy:Math.sin(e.act.a)*(210+i*85),
             r:5,dmg:9,col:'#3fd8e0'});
       }
-      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.4; }
+      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=bossRest(T)+.4; }
       return;
     }
     if(e.act.k==='spiral'){
@@ -2473,7 +2662,7 @@ function bossAI(e,dt,dx,dy,d){
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(aa)*190,vy:Math.sin(aa)*190,r:6,dmg:8,col:'#b49cf5'});
         }
       }
-      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=rand(T.rest[0],T.rest[1])+.4; }
+      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=bossRest(T)+.4; }
       return;
     }
   }
@@ -2487,6 +2676,16 @@ function bossAI(e,dt,dx,dy,d){
     // every time, so the fight is something you can learn rather than react to
     e.si=(e.si||0)%T.seq.length;
     k=T.seq[e.si]; e.si=(e.si+1)%T.seq.length;
+    /* ...unless the setting says otherwise. A '|' is never touched — the punish
+       window is the player's whole source of damage and it stays exactly where
+       it was authored — but any actual attack can be swapped for another the
+       tier already knows, so the shape of the fight survives while the order of
+       it stops being memorisable. */
+    const im=DIFF().improv;
+    if(im && k!=='|' && T.pool && T.pool.length && Math.random()<im){
+      const alt=T.pool[Math.floor(Math.random()*T.pool.length)];
+      if(alt!=='|') k=alt;
+    }
   }else{
     k=T.pool[Math.floor(Math.random()*T.pool.length)];
     if(k===e.last && Math.random()<.7) k=T.pool[Math.floor(Math.random()*T.pool.length)];
@@ -2503,44 +2702,44 @@ function bossAI(e,dt,dx,dy,d){
   }
 
   if(k==='ring'){
-    const n = e.tier===2?16:e.tier===1?13:11, rings=e.tier===2?2:1;
+    const n = (e.tier===2?16:e.tier===1?13:11)+DIFF().dense*3, rings=e.tier===2?2:1;
     for(let r=0;r<rings;r++) for(let i=0;i<n;i++){
       const a=i/n*TAU+e.spin+r*(Math.PI/n);
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*(175+r*70),vy:Math.sin(a)*(175+r*70),
         r:6,dmg:9,col:e.col});
     }
-    e.cool=rand(T.rest[0],T.rest[1])+.5;
+    e.cool=bossRest(T)+.5;
   }
   else if(k==='fan'){
-    const n=e.tier===0?1:2, base=leadAngle(e,290,.6);
+    const n=(e.tier===0?1:2)+DIFF().dense, base=leadAngle(e,290,.6);
     for(let i=-n;i<=n;i++){const a=base+i*.19;
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*290,vy:Math.sin(a)*290,r:5,dmg:9,col:'#e6dcff'});}
-    e.cool=rand(T.rest[0],T.rest[1]);
+    e.cool=bossRest(T);
   }
   else if(k==='shell'){
     // the Primary's braced spread, but it never stops bracing
-    const base=leadAngle(e,205,.7);
-    for(let i=-2;i<=2;i++){const a=base+i*.155;
+    const base=leadAngle(e,205,.7), sn=2+DIFF().dense;
+    for(let i=-sn;i<=sn;i++){const a=base+i*.155;
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*205,vy:Math.sin(a)*205,r:9,dmg:13,col:'#ff4d5e'});}
-    e.cool=rand(T.rest[0],T.rest[1])+.5;
+    e.cool=bossRest(T)+.5;
   }
   else if(k==='lash'){
     // the Hive spits: fast, scattered, and cheap to dodge if you keep moving
     const base=leadAngle(e,330,.6);
-    for(let i=0;i<7;i++){
+    for(let i=0;i<7+DIFF().dense*2;i++){
       const a=base+rand(-.5,.5), sp=rand(280,380);
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:4,dmg:7,col:'#46e39b'});
     }
-    e.cool=rand(T.rest[0],T.rest[1]);
+    e.cool=bossRest(T);
   }
   else if(k==='swarm'){
     bossSummon(e,B.sum,e.tier+2);
-    e.cool=rand(T.rest[0],T.rest[1])+1.6;
+    e.cool=bossRest(T)+1.6;
   }
   else if(k==='summon'){
     const type = B.k==='ruler' && Math.random()<.35 && e.tier>0 ? 'grunt' : B.sum;
     bossSummon(e,type,e.tier===2?2:1);
-    e.cool=rand(T.rest[0],T.rest[1])+2.0;
+    e.cool=bossRest(T)+2.0;
   }
   else if(k==='charge'){ e.act={k:'charge',t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='sweep'){ e.act={k:'sweep',t:0,fire:0,a:Math.atan2(dy,dx)-1.1,dir:Math.random()<.5?-1:1}; }
@@ -2729,7 +2928,7 @@ function update(dt){
   P.dashCd=Math.max(0,P.dashCd-dt); P.dashT=Math.max(0,P.dashT-dt);
   P.inv=Math.max(0,P.inv-dt);
   if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)){
-    P.dashCd=1.15; P.dashT=.17;
+    P.dashCd=st.dashCd; P.dashT=.17;
     P.vx=ax*st.speed*3.1; P.vy=ay*st.speed*3.1;
     if(st.iframe)P.inv=.4;
     SFX.dash();
@@ -2819,7 +3018,7 @@ function update(dt){
       e.spin+=dt*2.2;
       e.cool-=dt;
       if(e.cool<=0){
-        e.cool=3.1;
+        e.cool=3.1*(e.rof||1);
         const n=sysIdx>=2?2:1;                    // later Trackers salvo
         for(let i=0;i<n;i++){ const a=e.a+(i-(n-1)/2)*.35;
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*150,vy:Math.sin(a)*150,
@@ -2830,13 +3029,13 @@ function update(dt){
       // the arc drifts toward whatever side you are shooting from, so flanking
       // it is something you have to keep doing, not something you do once
       const toP=Math.atan2(P.y-e.y,P.x-e.x);
-      e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.85*AGGR()*dt;
+      e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.85*AGGR()*DIFF().track*dt;
       const want=300, k=d>want?1:-.5;
       e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
       e.x+=(-dy/d)*e.spd*.8*dt; e.y+=(dx/d)*e.spd*.8*dt;
       e.cool-=dt;
       if(e.cool<=0&&d<600){
-        e.cool=2.6;
+        e.cool=2.6*(e.rof||1);
         for(let i=-1;i<=1;i+=2){const a=e.a+i*.1;
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*270,vy:Math.sin(a)*270,r:5,dmg:9,col:'#3fd8e0'});}
       }
@@ -2867,21 +3066,24 @@ function update(dt){
     // A round that is going to miss narrowly leans into the target instead.
     // It only ever bends toward something already close and roughly ahead, so
     // aim still matters — it just stops punishing a trackpad for half a pixel.
-    let best=null, bestD=MAGNET_R*MAGNET_R;
-    for(const e of enemies){
-      if(b.hit.includes(e)) continue;
-      const ex=e.x-b.x, ey=e.y-b.y, dd=ex*ex+ey*ey;
-      if(dd>=bestD) continue;
-      if(ex*b.vx+ey*b.vy<=0) continue;             // behind the round: leave it
-      best=e; bestD=dd;
-    }
-    if(best){
-      const sp=Math.hypot(b.vx,b.vy)||1;
-      const want=Math.atan2(best.y-b.y,best.x-b.x), cur=Math.atan2(b.vy,b.vx);
-      const df=angDiff(want,cur);
-      if(Math.abs(df)<MAGNET_CONE){
-        const na=cur+clamp(df,-MAGNET_TURN*dt,MAGNET_TURN*dt);
-        b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp;
+    const MG=magnet();                     // null on STARFARER: no assist at all
+    if(MG){
+      let best=null, bestD=MG.r*MG.r;
+      for(const e of enemies){
+        if(b.hit.includes(e)) continue;
+        const ex=e.x-b.x, ey=e.y-b.y, dd=ex*ex+ey*ey;
+        if(dd>=bestD) continue;
+        if(ex*b.vx+ey*b.vy<=0) continue;           // behind the round: leave it
+        best=e; bestD=dd;
+      }
+      if(best){
+        const sp=Math.hypot(b.vx,b.vy)||1;
+        const want=Math.atan2(best.y-b.y,best.x-b.x), cur=Math.atan2(b.vy,b.vx);
+        const df=angDiff(want,cur);
+        if(Math.abs(df)<MG.cone){
+          const na=cur+clamp(df,-MG.turn*dt,MG.turn*dt);
+          b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp;
+        }
       }
     }
     b.x+=b.vx*dt; b.y+=b.vy*dt;
@@ -2904,7 +3106,7 @@ function update(dt){
             bullets.splice(i,1); break;
           }
         }
-        e.hp-= b.dmg * (e.open>0?PUNISH_MULT:1) * (nodesUp(e)?ARMOURED:1); b.hit.push(e);
+        e.hp-= b.dmg * (e.open>0?player.st.punish:1) * (nodesUp(e)?ARMOURED:1); b.hit.push(e);
         e.knit=0;                              // pressure held: it cannot knit
         SFX.hit();
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?9:4, e.open>0?260:150);
@@ -2946,7 +3148,7 @@ function update(dt){
     const rr=b.r+13;
     if(P.inv<=0&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
-      P.hp-=b.dmg; shake=Math.max(shake,7); P.inv=.12; SFX.hurt();
+      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; shake=Math.max(shake,7); P.inv=.12; SFX.hurt();
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -2957,7 +3159,8 @@ function update(dt){
     const e=enemies[j], rr=e.r+13;
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0&&buffs.shield<=0){
-        P.hp-= e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='splinter'?12:10;
+        P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='splinter'?12:10)
+               *DIFF().dmgIn*P.st.armour;
         SFX.hurt();
         P.inv=.5; shake=Math.max(shake,11);
         const a=Math.atan2(P.y-e.y,P.x-e.x);
@@ -3142,7 +3345,7 @@ function junkStep(list,dt,speed,dmg){
     if(j.y<j.r&&j.vy<0) j.vy*=-1;  if(j.y>H-j.r&&j.vy>0) j.vy*=-1;
     const rr=j.r*.86+13;
     if(P.inv<=0&&buffs.shield<=0&&dist2(j,P)<rr*rr){
-      P.hp-=dmg; P.inv=.55; shake=Math.max(shake,17); SFX.hurt();
+      P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.55; shake=Math.max(shake,17); SFX.hurt();
       const a=Math.atan2(P.y-j.y,P.x-j.x);
       P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
       burst(P.x,P.y,'#8ea0c8',14,260);
@@ -3965,9 +4168,17 @@ function hud(){
     ctx.fillStyle=boss.tier?boss.col:'#b7a6ef';
     ctx.fillText(boss.tier?boss.B.tiers[boss.tier].n:boss.bn,W/2,y-8);
     // armour and openings both change what your rounds are worth: say so
-    if(boss.open>0){
+    if(boss.recall>0){
+      // the one clock in the game, and it gets the loudest line on the bar
+      const p=boss.recall/RECALL_T;
+      ctx.fillStyle = Math.floor(boss.recall*5)%2 ? '#ff4d5e' : '#ffd24d';
+      ctx.font='600 13px Menlo,monospace';
+      ctx.fillText(RECALL_LABEL+'  '+boss.recall.toFixed(1),W/2,y-24);
+      ctx.fillStyle='rgba(255,77,94,.25)'; ctx.fillRect(x,y-4,w,3);
+      ctx.fillStyle='#ff4d5e'; ctx.fillRect(x,y-4,w*p,3);
+    }else if(boss.open>0){
       ctx.fillStyle='#ffd24d'; ctx.font='600 11px Menlo,monospace';
-      ctx.fillText('EXPOSED  \u00d7'+PUNISH_MULT.toFixed(1),W/2,y-24);
+      ctx.fillText('EXPOSED  \u00d7'+P.st.punish.toFixed(1),W/2,y-24);
     }else if(nodesUp(boss)){
       ctx.fillStyle='#8a7433'; ctx.font='11px Menlo,monospace';
       ctx.fillText(boss.B.nodes.nm+'  '+boss.nodes.length+' \u00b7 HULL ARMOURED',W/2,y-24);
@@ -4020,7 +4231,7 @@ function setPause(on){
     $('pauseSub').textContent = school ? 'PILOT SCHOOL' : SYS().name+'  ·  WAVE '+wave;
     $('btnPauseTree').style.display = (save.unlocked&&!school)?'':'none';
     $('btnQuit').textContent = school ? 'EXIT SCHOOL' : 'QUIT TO TITLE';
-    buildTree(); buildSound(); show('pause');
+    buildTree(); buildSound(); buildDiff(); show('pause');
   }else hideAll();
 }
 // leaving a run early still banks what you earned — the run is what ends
@@ -4124,7 +4335,7 @@ function demoArt(dt){
 let gearFrom=null;
 function gearOpen(){
   $('gearQuit').style.display = (state==='play'||state==='dying'||paused) ? '' : 'none';
-  buildSound(); resetWipeLink();
+  buildSound(); buildDiff(); resetWipeLink();
   $('gearPanel').classList.add('on');
 }
 function gearClose(){ $('gearPanel').classList.remove('on'); }
@@ -4578,7 +4789,7 @@ function buildTree(){
     const d=document.createElement('div');
     d.className='node '+(has(s.id)?'own':canBuy(s)?'can':(!s.req||has(s.req))?'':'locked');
     d.style.left=s.x+'%'; d.style.top=s.y+'%';
-    const tier = !s.req ? 1 : !byId(s.req).req ? 2 : 3;
+    const tier = tierOf(s.id);               // one definition, not two
     d.innerHTML='<div class="tr">T'+tier+'</div>'+
                 '<div class="nm">'+s.n.replace(/\n/g,'<br>')+'</div>'+
                 '<div class="cost">'+(has(s.id)?s.d:s.d+' · '+SKILL_CR(s)+' CR')+'</div>';
@@ -4640,7 +4851,7 @@ $('gearWipe').onclick=()=>{
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
   save={points:0, credits:0, owned:[], unlocked:false, best:0, deepest:1, deepestSys:0,
         schoolDone:false, schoolAuto:false, taught:[], ships:[0], ship:0,
-        vol:SND.vol, sound:SND.on, seen:[]};
+        vol:SND.vol, sound:SND.on, seen:[], diff:save.diff};
   persist();
   landed=null; respecArmed=0;
   buildTree(); refreshMenu(); resetWipeLink();
@@ -4951,6 +5162,32 @@ function buildGarage(){
 function openGarage(){ buildGarage(); show('garage'); }
 function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
 
+/* Difficulty, in the same two panels as the sound control and rebuilt the same
+   way. Switching is allowed at any time, including mid-level from the pause
+   menu — a pilot stuck on a boss should be able to drop a setting rather than
+   abandon the run — and it takes hold on the next thing that spawns or the
+   next attack a boss chooses, because every read of DIFF() is live. Nothing
+   already in the air changes, which is the honest behaviour: bullets on screen
+   were fired under the old setting. */
+function buildDiff(){
+  for(const id of ['diffGear','diffPause']){
+    const box=$(id); if(!box) continue;
+    const cur=clamp(save.diff|0,0,DIFFS.length-1);
+    box.innerHTML='<span class="lab">DIFFICULTY</span><div class="seg">'+
+      DIFFS.map((d,i)=>'<button class="'+(i===cur?'on':'')+'" data-i="'+i+'">'+
+                       d.n+'</button>').join('')+
+      '</div><span class="why">'+DIFFS[cur].d+'</span>';
+    box.querySelectorAll('button').forEach(b=>{
+      b.onclick=()=>{
+        const i=+b.dataset.i;
+        if(i===(save.diff|0)) return;
+        save.diff=i; persist(); SFX.ui();
+        buildDiff();                      // both panels, so they never disagree
+      };
+    });
+  }
+}
+
 /* The same control in the pause menu and on the title screen, kept in step by
    rebuilding both whenever either one moves. */
 function buildSound(){
@@ -4983,7 +5220,7 @@ function refreshMenu(){
   const n=newLessons();
   $('btnSchool').className = n?'hot':'ghost';
   $('btnSchool').innerHTML = 'PILOT SCHOOL'+(n?'<span class="new">'+n+' NEW</span>':'');
-  buildSound();
+  buildSound(); buildDiff();
 }
 refreshMenu();
 
