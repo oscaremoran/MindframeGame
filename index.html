@@ -509,8 +509,8 @@
   .mnode.next .id{color:#dfe9ff} .mnode.next .st{color:#4d9dff}
   .mnode.next .mx{border-top-color:#1e3358; color:#5d6c8f}
   .mnode.locked{opacity:.52}
-  .mnode.locked.ph{opacity:.3; border-style:dashed}
-  .mnode.secret{width:17%; padding:12px 9px; border-style:dashed; opacity:.5}
+  .mnode.locked.ph{opacity:.42; border-style:dashed}
+  .mnode.secret{width:17%; padding:12px 9px; border-style:dashed; opacity:.62}
   .mnode.secret .id{font-size:clamp(11px,1.45vw,16px); line-height:1.35}
   .mnode.secret .st{margin-top:7px; font-size:clamp(8px,.95vw,10.5px)}
   .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
@@ -534,8 +534,8 @@
     50%    { box-shadow:0 0 44px rgba(199,141,255,.75), inset 0 0 30px rgba(199,141,255,.3) }
   }
   .mnode.portal.open .id{color:#e2c6ff} .mnode.portal.open .st{color:#a97fd6}
-  #mlines line.flow{stroke-dasharray:7 9; animation:mapFlow .9s linear infinite}
-  @keyframes mapFlow{ to{stroke-dashoffset:-16} }
+  #mlines line.flow{stroke-dasharray:10 8; animation:mapFlow .9s linear infinite}
+  @keyframes mapFlow{ to{stroke-dashoffset:-18} }
 
   /* ---- skill tree ---- */
   #skills{justify-content:flex-start; padding:3% 4%}
@@ -1514,12 +1514,16 @@ const CREDIT_BOSS=8;
    exchange. A skill costs twice its tier weight, and that weight is still what
    the map's loadout floors are measured in. */
 const SKILL_CR=s=>s.cost*2;
-let save={points:0, credits:0, owned:[], trees:null, unlocked:false, best:0, deepest:1, deepestSys:0,
+let save={points:0, credits:0, owned:[], trees:null, unlocked:true, best:0, deepest:1, deepestSys:0,
           schoolDone:false, schoolAuto:false, taught:[], ships:[0], ship:0,
           vol:.7, sound:true, seen:[], diff:1};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
 save.taught=save.taught||[]; save.ships=save.ships||[0]; save.ship=save.ship||0;
 save.branches=save.branches||[]; save.beaten=save.beaten||[];
+/* The tree used to be locked until you held your first system. It is the
+   whole progression, so it now opens on the title screen, and an old save
+   that never got there is brought forward too. */
+save.unlocked=true;
 /* Trees went per-hull. A save from before that has one flat `owned` list, and
    it belongs to whatever hull was in the bay when it was built — so it moves
    there whole rather than being split or dropped. */
@@ -1565,8 +1569,14 @@ const has=id=>owned().includes(id);
 
 /* ══════════════════════ DIFFICULTY ══════════════════════
    Three settings, and the middle one is the game exactly as it has always been
-   tuned: every multiplier on DIFFS[1] is 1, so a save that never touches this
-   plays as it did before the setting existed. That is the whole point of the
+   tuned. The outer two sit a long way out from it on purpose: the gap between
+   two rows has to be something you feel in the first wave rather than something
+   you work out from the numbers, so RECRUIT roughly halves the damage you take
+   and STARFARER close to doubles it, and the hull either side moves with it.
+
+   The middle row stays untouched by all of that: every multiplier on DIFFS[1]
+   is 1, so a save that never touches this plays as it did before the setting
+   existed. That is the whole point of the
    middle row being all ones — it is not a difficulty so much as the absence of
    one, and it keeps the balance work already in SYSTEMS and in each boss's
    tiers as the thing the other two rows are measured against.
@@ -1607,16 +1617,16 @@ const has=id=>owned().includes(id);
    This composes with EASE() rather than replacing it: EASE is the Earth
    runway and stays in charge of a first-timer's first four waves.          */
 const DIFFS=[
-  {k:'low',  ehp:.78, espd:.90, erof:.82, dmgIn:.70, rest:1.18,
-   aim:{r:1.65, cone:1.30, turn:1.70}, lead:1, track:1, dense:0, improv:0, open:1.12,
+  {k:'low',  ehp:.60, espd:.82, erof:.66, dmgIn:.48, rest:1.40,
+   aim:{r:2.10, cone:1.60, turn:2.05}, lead:1, track:1, dense:0, improv:0, open:1.30,
    n:'Recruit',
    d:'For new players or those who want a break from harder difficulties.'},
   {k:'mid',  ehp:1,   espd:1,   erof:1,   dmgIn:1,   rest:1,
    aim:{r:1, cone:1, turn:1},          lead:1, track:1, dense:0, improv:0, open:1,
    n:'Cadet',
    d:'The intended challenge for players who are good at computer games.'},
-  {k:'high', ehp:1.55,espd:1.08,erof:1.20,dmgIn:1.35,rest:.84,
-   aim:null,                           lead:1.35, track:1.35, dense:1, improv:.55, open:.82,
+  {k:'high', ehp:1.95,espd:1.20,erof:1.45,dmgIn:1.75,rest:.70,
+   aim:null,                           lead:1.55, track:1.55, dense:1, improv:.72, open:.74,
    n:'Starfarer',
    d:'An extremely hard setting. Take this if you want a challenge.'},
 ];
@@ -2022,7 +2032,7 @@ function sysOverview(i){
   const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
   // the frontier asks for a floor; anything already held never does
   const floor=sysFloor(i), short=!sysHeld(i)&&spentBest()<floor;
-  return lpanel('ENEMY FORCES',
+  return lpanel('ENEMY FORCE DETAILS',
            lrow('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
            lrow('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':'')+
            lrow('HAZARDS', HAZ_NAME[sy.haz]||HAZ_NAME.none, sy.haz?'warn':'')+
@@ -2316,16 +2326,18 @@ let toast='', toastT=0, flash=0;
    `want` is the range it tries to hold and `strafe` how hard it circles, so
    each one occupies the arena differently.                                  */
 const BOSSES=[
-  { k:'primary', n:'ITERATION 3296', col:'#ff4d5e', r:62, hp:744, val:1200,
+  /* The first boss anyone meets, so it sits a shade under the rest of the
+     roster: less hull, and a little more air between its attacks. */
+  { k:'primary', n:'ITERATION 3296', col:'#ff4d5e', r:62, hp:672, val:1200,
     spd:56, want:250, strafe:.25, sum:'grunt', nodes:{n:3, hp:110, orb:0.6, nm:'BRACE PLATE'},
     mus:{bpm:138, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,1,0, 0,0,1,1], hook:'brace', lead:'sawtooth', ride:1},
     tiers:[
-      {n:'', seq:['shell','ring','shell','summon','|'], pool:['shell','ring','summon'], rest:[1.8,2.5], spd:1},
+      {n:'', seq:['shell','ring','shell','summon','|'], pool:['shell','ring','summon'], rest:[1.95,2.7], spd:1},
       {n:'ITERATION 3296 — BRACED',   seq:['shell','shell','charge','|','ring','summon','shell','charge','|'],
-       pool:['shell','ring','summon','charge'],        rest:[1.4,2.0], spd:1.25},
+       pool:['shell','ring','summon','charge'],        rest:[1.55,2.2], spd:1.2},
       {n:'ITERATION 3296 — CRITICAL', seq:['charge','shell','fan','ring','charge','|','shell','shell','summon','ring','|'],
-       pool:['shell','ring','charge','fan','summon'],  rest:[1.0,1.6], spd:1.55},
+       pool:['shell','ring','charge','fan','summon'],  rest:[1.15,1.75], spd:1.45},
     ]},
 
   { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:840, val:1400,
@@ -4593,7 +4605,7 @@ function schoolLessons(){
     }});
 
   L.push({ name:'AIM AND FIRE', lines:[
-    'CLICK or SPACE fires. Destroy the four practice drones.',
+    'The mouse aims. CLICK or SPACE fires. Destroy the four practice drones.',
     ''],
     goal:()=>'DRONES LEFT  '+enemies.length,
     setup(){ drone(760,180); drone(820,340); drone(760,500); drone(640,340); },
@@ -5571,8 +5583,12 @@ function buildMap(){
     const l=document.createElementNS(ns,'line');
     l.setAttribute('x1',x1+'%'); l.setAttribute('y1',y1+'%');
     l.setAttribute('x2',x2+'%'); l.setAttribute('y2',y2+'%');
-    l.setAttribute('stroke',col); l.setAttribute('stroke-width',flow?'2.6':'2');
-    if(dash) l.setAttribute('stroke-dasharray','5 6');
+    /* A branch connector is dashed, and a thin faint dash on a dark grid reads
+       as nothing at all — so the dashes are longer, fatter and round-capped,
+       and the unlit colours passed in below are lifted clear of the grid. */
+    l.setAttribute('stroke',col);
+    l.setAttribute('stroke-width', dash?(flow?'3.4':'3'):(flow?'2.6':'2'));
+    if(dash){ l.setAttribute('stroke-dasharray','10 8'); l.setAttribute('stroke-linecap','round'); }
     if(flow) l.classList.add('flow');
     svg.appendChild(l);
   };
@@ -5617,8 +5633,8 @@ function buildMap(){
       else if(pick && !selB) bn.onclick=()=>{ mapPick=i; mapPickK=k; buildMap(); };
     };
     const sec=SECRET(i);
-    if(secretFlyable(sec.k)) branch(sec.k,SECRET_X,'secret','#ffd24d','#22293f');
-    if(i===PORTAL_SYS)       branch('boss',PORTAL_X,'secret portal','#c78dff','#241d38');
+    if(secretFlyable(sec.k)) branch(sec.k,SECRET_X,'secret','#ffd24d','#4e5d84');
+    if(i===PORTAL_SYS)       branch('boss',PORTAL_X,'secret portal','#c78dff','#57447e');
     // OPEN is the level-select state: cleared or not, you may fly it right now
     const st = done ? 'HELD'
              : sel ? (run?'NEXT':'SELECTED')
@@ -5634,9 +5650,9 @@ function buildMap(){
   // the route past the last real system: locked, unnumbered, drawn dim
   MAP_PH.forEach((ph,k)=>{
     const i=SYSTEMS.length+k, y=MAP_Y(i);
-    line(MAP_X,MAP_Y(i-1),MAP_X,y,'#1a2033',false,false);
+    line(MAP_X,MAP_Y(i-1),MAP_X,y,'#2a3252',false,false);
     if(ph.branch){
-      line(MAP_X,y,SECRET_X,y,'#1a2033',true,false);
+      line(MAP_X,y,SECRET_X,y,'#39426a',true,false);
       node(SECRET_X,y,'secret',ph.branch,'LOCKED');
     }
     node(MAP_X,y,'locked ph','SYSTEM '+ph.id, ph.st, String(i+1).padStart(2,'0'));
@@ -5995,8 +6011,7 @@ $('gearWipe').onclick=()=>{
   if(Date.now()>wipeArmed){
     wipeArmed=Date.now()+5000;
     a.classList.add('armed');
-    a.textContent='ERASE '+save.credits+' CR · '+ownedAll()+
-                  ' SKILLS · '+save.ships.length+' HULLS · BEST '+save.best+'? — CLICK AGAIN';
+    a.textContent='ARE YOU SURE? ALL PROGRESS WILL BE REMOVED. CLICK AGAIN TO DELETE.';
     setTimeout(()=>{ if(Date.now()>wipeArmed) resetWipeLink(); },5100);
     return;
   }
@@ -6481,7 +6496,7 @@ function loadCode(code){
   save.trees=[fromMask(f[3])];
   for(let i=1;i<SHIPS.length;i++) save.trees[i]=f.length>6+i?fromMask(f[6+i]):[];
   save.owned=[];
-  save.unlocked=!!f[4];
+  save.unlocked=true;   // the tree is never locked; the flag is kept for old codes
   if(f.length===6){                       // codes from before the Garage keep the starter hull
     const smask=Math.floor(f[5]/8);
     save.ships=SHIPS.map((sh,i)=>i).filter(i=>i===0||(smask&(1<<i)));
