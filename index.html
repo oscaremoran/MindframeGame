@@ -534,6 +534,13 @@
     50%    { box-shadow:0 0 44px rgba(199,141,255,.75), inset 0 0 30px rgba(199,141,255,.3) }
   }
   .mnode.portal.open .id{color:#e2c6ff} .mnode.portal.open .st{color:#a97fd6}
+  /* the region switcher above the chart: one set of systems per screen */
+  #mapRegBar{display:flex; align-items:center; justify-content:center; gap:18px; margin-top:8px; text-align:center}
+  #mapRegBar button{margin-top:0; padding:7px 16px; font-size:clamp(11px,1.3vw,14px); letter-spacing:0}
+  #mapRegBar button:disabled{opacity:.25; cursor:default; transform:none; box-shadow:none}
+  #mapRegName{min-width:13em; font-size:clamp(12px,1.6vw,18px); letter-spacing:.2em; color:#dfe9ff}
+  #mapRegName.lock{color:#6b7ca3}
+  #mapRegNum{margin-top:3px; font-size:clamp(8px,.9vw,10px); letter-spacing:.2em; color:#4a5878}
   #mlines line.flow{stroke-dasharray:10 8; animation:mapFlow .9s linear infinite}
   @keyframes mapFlow{ to{stroke-dashoffset:-18} }
 
@@ -805,6 +812,11 @@
     </div>
     <p style="margin:6px 0 0">The path to the Icarus, the enemy battleship and center of command.</p>
     <p id="mapBest" style="margin:2px 0 0; color:#4a5878; letter-spacing:.14em; font-size:clamp(9px,1vw,11px)"></p>
+    <div id="mapRegBar">
+      <button id="btnRegPrev" class="ghost" aria-label="Previous region">&#9664;</button>
+      <div><div id="mapRegName">SOLAR SYSTEM 1</div><div id="mapRegNum">REGION 1 / 3</div></div>
+      <button id="btnRegNext" class="ghost" aria-label="Next region">&#9654;</button>
+    </div>
     <div id="chart">
       <canvas id="mapArt"></canvas><svg id="mlines"></svg>
       <i class="mcnr k1"></i><i class="mcnr k2"></i><i class="mcnr k3"></i><i class="mcnr k4"></i>
@@ -904,7 +916,7 @@
     <input id="codeOut" readonly>
     <div class="row" style="margin-top:12px"><button id="btnCopy">COPY</button></div>
     <p style="margin-top:24px">Load a code</p>
-    <input id="codeIn" placeholder="MF1-...">
+    <input id="codeIn" placeholder="MF2-...">
     <div class="row" style="margin-top:12px">
       <button id="btnLoadCode">LOAD</button>
       <button id="btnCodeBack" class="ghost">BACK</button>
@@ -982,12 +994,13 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  wrapped in [SQUARE BRACKETS] renders as green terminal output.      ║
    ║                                                                      ║
    ║  `adds` names the new enemy that system introduces (it stays in     ║
-   ║  every later system): 'tracker', 'overseer' or 'splinter'.           ║
+   ║  every later system): 'tracker', 'overseer', 'orbiter', 'splinter'.  ║
    ║                                                                      ║
    ║  `haz` names the hazard that belongs to the place itself, and unlike ║
    ║  `adds` it does NOT travel: each system has its own and nothing      ║
-   ║  else. 'vents' (Venus), 'well' (Jupiter), 'raiders' (Icarus), or     ║
-   ║  null for an arena that is only ever a fight. See THE ARENAS below.  ║
+   ║  else. 'vents' (Venus), 'well' (Jupiter), 'rings' (Saturn),          ║
+   ║  'raiders' (Icarus), or null for an arena that is only ever a fight. ║
+   ║  See THE ARENAS below. Every row also needs a place in REGIONS.      ║
    ║                                                                      ║
    ║  Add a sixth system by copying a block — waves, scaling, scoring     ║
    ║  and the campaign ending all adapt on their own.                     ║
@@ -1007,9 +1020,26 @@ Hello, cadet. You have been selected to operate our most advanced spaceship to f
     brief:``,
     clear:`` },
 
-  { id:'004', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter',
+  { id:'004', name:'SATURN', hp:1.78, spd:1.13, extra:2, haz:'rings', adds:'orbiter',
     brief:``,
     clear:`` },
+
+  { id:'005', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter',
+    brief:``,
+    clear:`` },
+];
+
+/* ---- regions ----
+   The route is split into sets of systems, and the map shows one set at a
+   time. `sys` names the SYSTEMS rows (by name) that belong to a region, in
+   order; `ph` are nodes drawn on the route but not flyable yet. A region
+   opens when the first real system at or after it has been reached — so
+   clearing the last system of one region is what opens the next. Add a
+   system to a region by adding its row to SYSTEMS and its name here. */
+const REGIONS=[
+  { n:'SOLAR SYSTEM 1', sys:['EARTH','VENUS','JUPITER','SATURN'] },
+  { n:'SOLAR SYSTEM 2', sys:[], ph:['LUNA','NEPTUNE','EUROPA','SOL'] },
+  { n:'ICARUS',         sys:['ICARUS'] },
 ];
 /* ═══════════════ end of the text block — code below ═══════════════ */
 
@@ -1248,6 +1278,13 @@ const MUS={
       [[0,7,6],[6,5,4],[10,4,6]],
       [[0,1,8],[8,0,8]],
       [[0,4,4],[4,5,4],[8,7,8]],
+    ],
+    // the Architect — a lattice: the same interval stacked, laid down in order
+    build:[
+      [[0,0,2],[2,4,2],[4,7,2],[6,4,2],[8,0,2],[10,4,2],[12,7,4]],
+      [[0,1,2],[2,5,2],[4,8,2],[6,5,2],[8,1,4],[12,5,4]],
+      [[0,4,2],[2,7,2],[4,11,2],[6,7,2],[8,4,4],[12,0,4]],
+      [[0,0,4],[4,4,4],[8,7,4],[12,4,4]],
     ],
     // the Ruler — a processional. It arrives, it does not hurry.
     throne:[
@@ -1539,6 +1576,10 @@ if(typeof save.vol!=='number') save.vol=.7;
 if(typeof save.sound!=='boolean') save.sound=true;
 // an older save predates the setting and is, by definition, playing the default
 if(typeof save.diff!=='number') save.diff=1;
+/* Saturn went in before Icarus. A save from before that counts Icarus as
+   system 4; now system 4 is Saturn, so a pilot who had reached (or beaten)
+   Icarus lands on Saturn and flies it before the route opens again. */
+if(!save.route){ save.deepestSys=Math.min(save.deepestSys||0,3); save.route=2; }
 SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree per hull ----
@@ -1797,6 +1838,8 @@ addEventListener('keydown',e=>{
   if(state==='title'){ e.preventDefault(); titleGo(); return; }   // any key leaves the title card
   if(state==='intro'){ e.preventDefault(); cineEnd(); return; }   // any key skips the cold open
   if(e.code==='KeyP'&&state==='play'){ if(school) schoolExit(); else setPause(!paused); }
+  if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
+    e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
   if(e.code==='Enter'){ e.preventDefault(); onEnter(); }
 });
@@ -2025,7 +2068,8 @@ const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>
 
 /* What the place itself does to you, for the launch readout. The hazard is as
    much a part of choosing a node as the threat multiplier is. */
-const HAZ_NAME={none:'NONE', vents:'FIRE VENTS \u00b7 DUST', well:'GRAVITY WELLS', raiders:'LASER RAIDERS'};
+const HAZ_NAME={none:'NONE', vents:'FIRE VENTS \u00b7 DUST', well:'GRAVITY WELLS', rings:'RING DEBRIS',
+                raiders:'LASER RAIDERS'};
 
 function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
@@ -2067,6 +2111,7 @@ const LAUNCH_TEXT={
   sys:['Defend Earth from the Iterations besieging it.',
        'Eliminate the nearest Iteration outpost.',
        'Destroy a major Iteration bastion.',
+       '«WRITE: launch line for Saturn»',
        'Charge the Icarus in a final battle.'],
   salvage:'Salvage scrap by collecting the green dots, but escape before you are crushed.',
   escort: 'Defend the shipment of resources from raiding parties of Iterations.',
@@ -2131,6 +2176,7 @@ const SYS_CLEAR_TEXT=[
   'The enemy leader Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The alien swarm has been destroyed! Congratulations. Prepare and continue.',
   'The enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.',
+  '«WRITE: clear line for Saturn, after the Architect falls»',
   'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
@@ -2176,6 +2222,7 @@ function nextWave(){
     for(let i=0;i<heavies;i++) push(i*6+4,'heavy');
     if(unlockedType('tracker'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*7+3.4,'tracker');
     if(unlockedType('overseer')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5.5,'overseer');
+    if(unlockedType('orbiter'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*8+4.6,'orbiter');
     if(unlockedType('splinter')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*8+6.5,'splinter');
   }else{
     push(1.2,'boss');
@@ -2184,6 +2231,7 @@ function nextWave(){
     for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,'heavy');
     if(unlockedType('tracker'))  { push(13,'tracker'); push(30,'tracker'); }
     if(unlockedType('overseer')) push(20,'overseer');
+    if(unlockedType('orbiter'))  { push(17,'orbiter'); push(34,'orbiter'); }
     if(unlockedType('splinter')) { push(24,'splinter'); push(40,'splinter'); }
   }
   // Earth patches you up between waves. Later systems do not.
@@ -2211,7 +2259,7 @@ function leadAngle(e,speed,amount){
 }
 
 const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
-            tracker:'#ffb44d',overseer:'#3fd8e0',splinter:'#d9c6ff'};
+            tracker:'#ffb44d',overseer:'#3fd8e0',orbiter:'#e8c872',splinter:'#d9c6ff'};
 const ecol=t=>ECOL[t]||'#4d9dff';
 const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
@@ -2228,6 +2276,11 @@ function edgeSpawn(){
    its shape relative to itself — a Watcher is still the thing that dies to a
    glance and a Primary is still the wall.                                  */
 const EHP=1.3;
+
+/* ---- the ORBITER's circle ----
+   It wants a seat on a ring this far out from its target and keeps sliding
+   round it, so its fire always comes in from a side that is moving. */
+const ORB_R=250, ORB_LEAD=.35;
 
 /* ---- the SPLINTER's cascade ----
    One orb, and every piece of it comes apart again until there is nothing left
@@ -2262,6 +2315,10 @@ function spawn(type,at,def){
   if(type==='overseer') enemies.push({t:'overseer',x:p.x,y:p.y,vx:0,vy:0,r:22,
       hp:110*sc,max:110*sc,spd:62*vm,cool:rand(2,3.4)/cd,a:0,val:200,rof:1/cd,
       sh:1.15,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
+  // ORBITER — circles the pilot at a fixed radius and fires inward
+  if(type==='orbiter') enemies.push({t:'orbiter',x:p.x,y:p.y,vx:0,vy:0,r:18,
+      hp:80*sc,max:80*sc,spd:165*vm,cool:rand(1.6,2.8)/cd,a:0,val:150,rof:1/cd,
+      spin:0,dir:Math.random()<.5?-1:1,orb:rand(ORB_R*.9,ORB_R*1.1)});
   // SPLINTER — lobs orbs that break into a fan of shards in mid-air
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:21,
       hp:130*sc,max:130*sc,spd:110*vm,cool:rand(1.4,2.6)/cd,a:0,val:190,
@@ -2290,7 +2347,8 @@ clearBuffs();
 
 function drop(e){
   const odds = e.t==='boss'?1 : e.t==='heavy'?.5 : e.t==='overseer'?.42
-             : e.t==='splinter'?.32 : e.t==='tracker'?.3 : e.t==='grunt'?.15 : .07;
+             : e.t==='splinter'?.32 : e.t==='orbiter'?.3 : e.t==='tracker'?.3
+             : e.t==='grunt'?.15 : .07;
   const n = e.t==='boss'?3 : Math.random()<odds?1:0;
   for(let i=0;i<n;i++){
     // repairs only turn up when they would actually mean something
@@ -2362,6 +2420,23 @@ const BOSSES=[
        pool:['ring','fan','summon','sweep'],          rest:[1.4,2.0], spd:1.25},
       {n:'ITERATION 2117 — UNCOVERED',seq:['sweep','blink','lance','|','ring','fan','sweep','ring','lance','|'],
        pool:['ring','fan','sweep','lance','blink'],   rest:[1.0,1.5], spd:1.6},
+    ]},
+
+  /* THE ARCHITECT — Saturn. An Iteration that builds. It is a square until it
+     is hurt, a circle after that and a triangle at the end, and every shape it
+     throws is the shape it currently is: it lays one round you and closes it
+     ('build'), or forms one round itself and lets it bloom outward ('forge').
+     A built cage always leaves one way out. */
+  { k:'architect', n:'THE ARCHITECT', col:'#e8c872', r:66, hp:860, val:1600,
+    spd:58, want:300, strafe:.7, sum:'orbiter', nodes:{n:3, hp:140, orb:0.6, nm:'FORM KEY'},
+    mus:{bpm:144, prog:[0,0,4,4, 6,6,1,1], qual:[0,0,1,1, 1,1,1,1],
+         ost:[0,0,4,0, 0,6,1,0], hook:'build', lead:'triangle', bells:1},
+    tiers:[
+      {n:'', seq:['forge','fan','build','|'], pool:['forge','fan','build','summon'], rest:[1.8,2.5], spd:1},
+      {n:'THE ARCHITECT — CIRCLE',   seq:['build','ring','forge','|','summon','fan','build','forge','|'],
+       pool:['build','forge','ring','fan','summon'],          rest:[1.4,2.0], spd:1.25},
+      {n:'THE ARCHITECT — TRIANGLE', seq:['build','lance','forge','build','|','spiral','forge','build','fan','|'],
+       pool:['build','forge','lance','spiral','fan','summon'], rest:[1.0,1.5], spd:1.55},
     ]},
 
   /* The last thing in the campaign, and it is meant to feel like it. Heavier
@@ -2559,6 +2634,51 @@ function actCross(e,dt,dx,dy,T){
   if(m.t>HEAVY_TEL+.25){ e.act=null; e.cool=bossRest(T)+.2; }
 }
 
+/* ---- THE ARCHITECT's geometry ----
+   Every shape it builds is one of the three it can be, picked by tier. Points
+   are spaced evenly along the outline, so a square's corners are no denser
+   than its edges. A built round sits still (`hold`) and cannot hurt you while
+   it is still forming (`ghost`), then it is thrown along (gx,gy). */
+const ARCH_FORMS=[4,0,3];                 // sides per tier; 0 is a circle
+const ARCH_CAGE=215, ARCH_GAP=.16, ARCH_GHOST=.3, ARCH_LAY=.45, ARCH_HOLD=.95, ARCH_CLOSE=260;
+const ARCH_FORGE_HOLD=.6, ARCH_BLOOM=200;
+function formPts(sides,cx,cy,R,n,rot){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const t=i/n;
+    if(!sides){ const a=rot+t*TAU; out.push({x:cx+Math.cos(a)*R, y:cy+Math.sin(a)*R}); continue; }
+    const f=t*sides, k=Math.floor(f), u=f-k;
+    const a0=rot+k/sides*TAU, a1=rot+(k+1)/sides*TAU;
+    out.push({x:cx+(Math.cos(a0)*(1-u)+Math.cos(a1)*u)*R,
+              y:cy+(Math.sin(a0)*(1-u)+Math.sin(a1)*u)*R});
+  }
+  return out;
+}
+// BUILD — it lays its shape round you, one side after another, then closes it
+function archBuild(e){
+  const P=player, sides=ARCH_FORMS[Math.min(e.tier,2)];
+  const n=(sides===3?27:28)+DIFF().dense*4, gap=Math.random();
+  formPts(sides,P.x,P.y,ARCH_CAGE,n,rand(0,TAU)).forEach((p,i)=>{
+    if(((i/n)-gap+1)%1<ARCH_GAP) return;     // the way out
+    const dx=P.x-p.x, dy=P.y-p.y, d=Math.hypot(dx,dy)||1;
+    ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:10*BOSS_DMG,col:e.col,
+      ghost:ARCH_GHOST+i/n*ARCH_LAY, hold:ARCH_GHOST+ARCH_LAY+ARCH_HOLD,
+      gx:dx/d*ARCH_CLOSE, gy:dy/d*ARCH_CLOSE});
+  });
+  SFX.warn();
+}
+// FORGE — the same shape round itself, pointed at you, bloomed outward whole
+function archForge(e){
+  const sides=ARCH_FORMS[Math.min(e.tier,2)], shells=e.tier>=1?2:1;
+  for(let q=0;q<shells;q++){
+    const R=e.r+34+q*26, n=(e.tier===2?30:24)+DIFF().dense*4, k=ARCH_BLOOM*(1-q*.25)/R;
+    for(const p of formPts(sides,e.x,e.y,R,n,e.a+q*Math.PI/Math.max(sides,4)))
+      ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:9*BOSS_DMG,col:'#fff1c8',
+        ghost:.2, hold:ARCH_FORGE_HOLD+q*.25, gx:(p.x-e.x)*k, gy:(p.y-e.y)*k});
+  }
+  shock(e.x,e.y,e.col,e.r,e.r*1.8,.4,4);
+}
+
 /* ---- echoes ----
    It wore the Ruler. It can wear the other three just as easily, and it does:
    3296, the Hive Mind and 2117 come back for a combo and then come apart
@@ -2729,7 +2849,7 @@ function entranceDraw(){
     ctx.fillStyle=b.k==='ruler'?'#000':'rgba(0,0,0,.7)';
     ctx.strokeStyle=col; ctx.lineWidth=3;
     ctx.setLineDash([900*k,900]);
-    unitPath(ctx,'b_'+b.k,b.r,b.spin,t);
+    unitPath(ctx,'b_'+b.k,b.r,b.spin,b.k==='architect'?0:t);
     if(k>=1) ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]); ctx.shadowBlur=0;
@@ -2892,6 +3012,8 @@ function shellBreak(e,name){
 function bossAI(e,dt,dx,dy,d){
   const P=player, B=e.B;
   e.spin+=dt*1.1; e.pt+=dt;
+  // the Architect's body is its tier: square, circle, triangle
+  if(B.k==='architect') e.morph+=(Math.min(e.tier,2)-e.morph)*Math.min(1,dt*2.5);
   if(e.flare>0) e.flare-=dt;
 
   /* The Hive Mind leaks. Its scripted 'swarm' is still the big one, but a hive
@@ -3118,6 +3240,8 @@ function bossAI(e,dt,dx,dy,d){
     bossSummon(e,type,e.tier===2?2:1);
     e.cool=bossRest(T)+2.0;
   }
+  else if(k==='build'){ archBuild(e); e.cool=bossRest(T)+.9; }
+  else if(k==='forge'){ archForge(e); e.cool=bossRest(T)+.4; }
   else if(k==='brand'){  e.act={k:'brand', t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='hammer'){ e.act={k:'hammer',t:0,x:e.x+dx,y:e.y+dy,r:104,hit:0}; }
   else if(k==='cross'){  e.act={k:'cross', t:0,a:e.spin,hit:0,lines:[]}; }
@@ -3426,6 +3550,29 @@ function update(dt){
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*270,vy:Math.sin(a)*270,r:5,dmg:9,col:'#3fd8e0'});}
       }
     }
+    else if(e.t==='orbiter'){
+      // chase a point a little way round the ring from where it is now: from
+      // outside that walks it in, and on the ring it becomes a steady lap
+      e.spin+=dt*1.8;
+      const cur=Math.atan2(e.y-T.y,e.x-T.x), ta=cur+e.dir*ORB_LEAD;
+      const tx=T.x+Math.cos(ta)*e.orb, ty=T.y+Math.sin(ta)*e.orb;
+      const mx=tx-e.x, my=ty-e.y, md=Math.hypot(mx,my)||1;
+      const v=Math.min(e.spd,md/dt);
+      e.x+=mx/md*v*dt; e.y+=my/md*v*dt;
+      // a wall turns it round rather than pinning it in a corner
+      e.flip=Math.max(0,(e.flip||0)-dt);
+      if(e.on && !e.flip && (e.x<e.r+wallIn+8||e.x>W-e.r-wallIn-8||e.y<e.r+wallIn+8||e.y>H-e.r-wallIn-8)){
+        e.dir*=-1; e.flip=1.2;
+      }
+      e.cool-=dt;
+      if(e.cool<=0&&Math.abs(d-e.orb)<90){
+        e.cool=2.3*(e.rof||1);
+        // straight in at where you are, no lead: the dodge is to keep moving
+        for(let i=-1;i<=1;i++){ const a=e.a+i*.12;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*235,vy:Math.sin(a)*235,
+            r:5.5,dmg:10*EASE(),col:'#e8c872'}); }
+      }
+    }
     else if(e.t==='splinter'){
       // it still weaves in, but it holds off at a working distance and throws
       // rather than ramming: the threat is the fan, not the body
@@ -3519,7 +3666,7 @@ function update(dt){
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?9:4, e.open>0?260:150);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
-          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='splinter');
+          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter');
           if(e.val) drop(e);
           burst(e.x,e.y,ecolOf(e),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
           enemies.splice(j,1);
@@ -3544,6 +3691,11 @@ function update(dt){
   /* --- enemy bullets vs player --- */
   for(let i=ebullets.length-1;i>=0;i--){
     const b=ebullets[i];
+    // a round the Architect built sits where it was laid until it is thrown
+    if(b.hold>0){
+      b.hold-=dt; if(b.ghost>0) b.ghost-=dt;
+      if(b.hold<=0){ b.vx=b.gx; b.vy=b.gy; }
+    }
     // a SPLINTER orb runs a fuse and comes apart into a fan of shards. The
     // shards do not carry a fuse of their own, so it only ever splits once.
     if(b.orb){
@@ -3577,7 +3729,7 @@ function update(dt){
     b.x+=b.vx*dt; b.y+=b.vy*dt;
     if(b.x<-40||b.x>W+40||b.y<-40||b.y>H+40){ebullets.splice(i,1);continue;}
     const rr=b.r+13;
-    if(P.inv<=0&&dist2(b,P)<rr*rr){
+    if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
       P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; shake=Math.max(shake,7); P.inv=.12; SFX.hurt();
       burst(b.x,b.y,'#ff4d5e',8,200);
@@ -3591,7 +3743,7 @@ function update(dt){
     if(e.t==='echo') continue;            // it has no body to hit you with
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0&&buffs.shield<=0){
-        P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='splinter'?16:10)
+        P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?12:e.t==='splinter'?16:10)
                *DIFF().dmgIn*P.st.armour;
         SFX.hurt();
         P.inv=.5; shake=Math.max(shake,11);
@@ -3665,7 +3817,7 @@ function endRun(win,why){
    stacks; the weather does not. That way each node on the chart still feels
    like somewhere you flew to rather than the same room with more in it.
 
-   Three hazards, and each one asks a different question of the pilot:
+   Four hazards, and each one asks a different question of the pilot:
 
      vents   (Venus)   Four fire vents on a fixed rotation, one erupting at a
                        time, plus dust that drags on the hull and hides what is
@@ -3675,6 +3827,11 @@ function endRun(win,why){
      well    (Jupiter) One gravity well at a time, somewhere random, pulling
                        everything: your ship, the hostiles, both sides' fire,
                        loose pickups. It fades and comes back somewhere else.
+     rings   (Saturn)  A lane is marked across the arena, then a stream of
+                       ring debris runs down it. The lane is locked when it is
+                       marked, so the question is only whether you are out of
+                       it by the time the front arrives. It grinds Iterations
+                       too, bosses included.
      raiders (Icarus)  Robots that fly in, paint a line, fire a beam down it
                        and leave. They are weather rather than opposition: they
                        do not gate the wave, they do not count against the
@@ -3693,6 +3850,8 @@ const VENT_N=4, VENT_R=76, VENT_CYC=4.6, VENT_WARN=1.0, VENT_BURN=.72, VENT_DMG=
 const VENT_BOSS=14;   // a boss burns at this multiple of the tick a hostile takes
 const DUST_N=3, DUST_DRAG=.12, DUST_MOTES=80;
 const WELL_R=270, WELL_G=1050, WELL_LIFE=9, WELL_GAP=4.2, WELL_RAMP=.8;
+const RING_HW=54, RING_WARN=1.3, RING_V=1300, RING_TRAIN=950, RING_DMG=18, RING_BOSS=5;
+const RING_GAP=[3.2,4.8], RING_OFF=170;
 const RAID_HP=46, RAID_AIM=.75, RAID_BEAM=.22, RAID_DMG=26, RAID_W=15;
 
 /* Scatter the vents rather than ring them: a ring leaves the middle of the
@@ -3733,10 +3892,21 @@ function placeWell(){
   return {x:rand(W*.2,W*.8), y:rand(H*.2,H*.8), t:0};
 }
 
+/* a ring lane: straight across the arena, through a point near the pilot but
+   not always on them, at one of four headings. `x,y` is its middle, (cx,cy)
+   the way the debris runs, `half` how far it runs either side of the middle. */
+function placeLane(){
+  const P=player, a=Math.floor(rand(0,4))*Math.PI/4+(Math.random()<.5?0:Math.PI);
+  const cx=Math.cos(a), cy=Math.sin(a), off=rand(-RING_OFF,RING_OFF);
+  const x=clamp(P.x-cy*off,W*.12,W*.88), y=clamp(P.y+cx*off,H*.12,H*.88);
+  return {x, y, cx, cy, half:Math.hypot(W,H)*.62, t:0};
+}
+
 // called when a system is entered: builds the arena, or leaves it empty
 function worldStart(){
   const h=SYS().haz;
-  world = h ? {h, t:0, vents:[], dust:[], well:null, gap:1.8, raid:[], next:rand(3,5)} : null;
+  world = h ? {h, t:0, vents:[], dust:[], well:null, gap:1.8, raid:[], next:rand(3,5),
+               lane:null, bits:[]} : null;
   if(!world) return;
   if(h==='vents'){ world.vents=ventRing();
     for(let i=0;i<DUST_N;i++) world.dust.push(makeDust()); }
@@ -3748,6 +3918,7 @@ function worldWave(){
   if(world.h==='vents') world.vents=ventRing();
   if(world.h==='well'){ world.well=null; world.gap=rand(1.6,3); }
   if(world.h==='raiders') world.next=rand(3.5,6)/HAZ_RATE();
+  if(world.h==='rings'){ world.lane=null; world.bits=[]; world.next=rand(2.4,3.6)/HAZ_RATE(); }
 }
 const worldClear=()=>{ world=null; };
 
@@ -3777,7 +3948,7 @@ function hazBossKill(e){
 // a tool, not a second gun
 function hazKill(e,j,col){
   burst(e.x,e.y,col,e.t==='heavy'?30:16,320);
-  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='splinter');
+  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter');
   enemies.splice(j,1);
 }
 
@@ -3877,6 +4048,49 @@ function worldStep(dt){
           vx:-Math.cos(a)*90,vy:-Math.sin(a)*90,life:.5,t:0,col:'#8fa8ff',r:2});
       }
       if(w.t>=life){ world.well=null; world.gap=WELL_GAP/HAZ_RATE(); }
+    }
+  }
+
+  /* ---- Saturn: the ring sweep ---- */
+  if(world.h==='rings'){
+    if(!world.lane){
+      world.next-=dt;
+      if(world.next<=0) world.lane=placeLane();
+    }else{
+      const L=world.lane; L.t+=dt;
+      const warn=RING_WARN/(DIFF().k==='low'?.8:1);
+      if(L.t>=warn){
+        // the front of the train, measured along the lane from its far end
+        const run=(L.t-warn)*RING_V, front=-L.half+run, tail=front-RING_TRAIN;
+        const inLane=(o,pad)=>{
+          const ox=o.x-L.x, oy=o.y-L.y;
+          const along=ox*L.cx+oy*L.cy, off=Math.abs(ox*L.cy-oy*L.cx);
+          return off<RING_HW+pad && along<front && along>tail;
+        };
+        // it throws you out sideways, off the line it runs down
+        if(inLane(P,11)){ const al=(P.x-L.x)*L.cx+(P.y-L.y)*L.cy;
+          hazHurt(RING_DMG,L.x+L.cx*al,L.y+L.cy*al,'#e8d9a8',260); }
+        for(let j=enemies.length-1;j>=0;j--){
+          const e=enemies[j];
+          if(e.inv>0||e.t==='echo'||!inLane(e,e.r*.6)) continue;
+          e.hp-=RING_DMG*(e.t==='boss'?RING_BOSS:3)*dt;
+          if(Math.random()<.3) parts.push({x:e.x,y:e.y,vx:L.cx*200,vy:L.cy*200,life:.3,t:0,col:'#e8d9a8',r:2});
+          if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#e8d9a8'); }
+        }
+        // the debris itself: thrown in at the far end while the train is still coming
+        if(run<RING_TRAIN) L.acc=(L.acc||0)+150*dt;
+        while(L.acc>=1){
+          L.acc--;
+          const w=rand(-RING_HW,RING_HW)*.92;
+          world.bits.push({s:-L.half-rand(0,RING_V*dt), w, r:rand(2.5,7), rot:rand(0,TAU),
+            spin:rand(-8,8), v:RING_V*rand(.94,1.06), ice:Math.random()<.4});
+        }
+        if(tail>L.half){ world.lane=null; world.bits=[]; world.next=rand(RING_GAP[0],RING_GAP[1])/HAZ_RATE(); }
+      }
+      for(let i=world.bits.length-1;i>=0;i--){
+        const b=world.bits[i]; b.s+=b.v*dt; b.rot+=b.spin*dt;
+        if(b.s>L.half+40) world.bits.splice(i,1);
+      }
     }
   }
 
@@ -3987,6 +4201,25 @@ function worldFloor(){
       ctx.restore();
     }
   }
+  if(world.h==='rings'&&world.lane){
+    const L=world.lane, warn=RING_WARN/(DIFF().k==='low'?.8:1), k=clamp(L.t/warn,0,1);
+    ctx.save(); ctx.translate(L.x,L.y); ctx.rotate(Math.atan2(L.cy,L.cx));
+    ctx.fillStyle='rgba(232,200,114,'+(.05+.12*k*k)+')';
+    ctx.fillRect(-L.half,-RING_HW,L.half*2,RING_HW*2);
+    // the two edges: where it stops being the lane
+    ctx.strokeStyle='rgba(232,200,114,'+(.35+.55*k)+')'; ctx.lineWidth=2;
+    ctx.setLineDash([16,10]); ctx.lineDashOffset=-L.t*120;
+    for(const o of [-RING_HW,RING_HW]){ ctx.beginPath(); ctx.moveTo(-L.half,o); ctx.lineTo(L.half,o); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // chevrons running the way the debris will, while it is still coming
+    if(L.t<warn){
+      ctx.strokeStyle='rgba(255,236,180,'+(.25+.55*k)+')'; ctx.lineWidth=3;
+      for(let x=-L.half+((L.t*260)%90);x<L.half;x+=90){
+        ctx.beginPath(); ctx.moveTo(x-12,-18); ctx.lineTo(x+4,0); ctx.lineTo(x-12,18); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   if(world.h==='well'&&world.well){
     const w=world.well, amp=w.amp||0;
     ctx.save();
@@ -4069,6 +4302,18 @@ function worldDraw(){
       }
       ctx.restore();
     }
+  }
+  if(world.h==='rings'&&world.lane){
+    const L=world.lane;
+    ctx.save(); ctx.translate(L.x,L.y); ctx.rotate(Math.atan2(L.cy,L.cx));
+    ctx.shadowColor='#e8c872'; ctx.shadowBlur=8;
+    for(const b of world.bits){
+      ctx.save(); ctx.translate(b.s,b.w); ctx.rotate(b.rot);
+      ctx.fillStyle=b.ice?'rgba(214,236,255,.9)':'rgba(214,190,140,.95)';
+      ctx.fillRect(-b.r,-b.r*.7,b.r*2,b.r*1.4);
+      ctx.restore();
+    }
+    ctx.restore(); ctx.shadowBlur=0;
   }
   if(world.h==='raiders'){
     for(const R of world.raid){
@@ -4280,12 +4525,13 @@ function finaleDraw(){
    Two are flyable. The third is a placeholder for the secret bosses.       */
 /* One branch per system, and only where there is something to fly. Earth
    has none — a first system with an unreachable node on the map beside it is
-   just a dead label — and neither does 004: the way to the two off-roster
+   just a dead label — and neither do 004 or 005: the way to the two off-roster
    bosses is the QUANTUM PORTAL beside 003, on the other side of the spine. */
 const SECRETS=[
   {k:'none',    n:'',               sub:''},
   {k:'salvage', n:'SALVAGE',        sub:'OPEN DEBRIS FIELD'},
   {k:'escort',  n:'ESCORT',         sub:'CONVOY RUN'},
+  {k:'none',    n:'',               sub:''},
   {k:'none',    n:'',               sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
@@ -4365,9 +4611,10 @@ function startMission(kind){
       const t=1.8+q*(mission.dur-5)/n;
       spawnQ.push({t, type: q%3===2?'grunt' : q%5===4?'heavy':'dart'});
       if(q%4===1) spawnQ.push({t:t+.6, type:'dart'});          // Watchers come in pairs
-      if(i>=1&&q%4===3) spawnQ.push({t:t+.8,type:'tracker'});
-      if(i>=2&&q%6===5) spawnQ.push({t:t+1.1,type:'overseer'});
-      if(i>=3&&q%7===6) spawnQ.push({t:t+1.3,type:'splinter'});
+      if(unlockedType('tracker') &&q%4===3) spawnQ.push({t:t+.8,type:'tracker'});
+      if(unlockedType('overseer')&&q%6===5) spawnQ.push({t:t+1.1,type:'overseer'});
+      if(unlockedType('orbiter') &&q%6===2) spawnQ.push({t:t+1.2,type:'orbiter'});
+      if(unlockedType('splinter')&&q%7===6) spawnQ.push({t:t+1.3,type:'splinter'});
     }
     // and two pushes: everything at once, timed to the thirds of the crossing
     for(const [at,k] of [[mission.dur*.34,3],[mission.dur*.7,4]])
@@ -4471,7 +4718,7 @@ function missionTick(dt){
     // enemy fire that misses you does not miss it
     for(let i=ebullets.length-1;i>=0;i--){
       const b=ebullets[i], rr=b.r+w.r;
-      if(dist2(b,w)<rr*rr){
+      if(!(b.ghost>0)&&dist2(b,w)<rr*rr){
         w.hp-=b.dmg*1.6; burst(b.x,b.y,'#ffd24d',7,200);
         ebullets.splice(i,1);
       }
@@ -4860,6 +5107,11 @@ function unitPath(g,kind,r,spin,morph){
     g.closePath();
   }else if(kind==='overseer'){
     g.beginPath(); g.arc(0,0,r,0,TAU); g.closePath();
+  }else if(kind==='orbiter'){
+    // a small world with a tilted ring round it
+    g.rotate(spin*.35);
+    g.beginPath(); g.arc(0,0,r*.55,0,TAU);
+    g.moveTo(r,0); g.ellipse(0,0,r,r*.34,0,0,TAU);
   }else if(kind==='splinter'){
     g.rotate(spin);
     g.beginPath();
@@ -4888,6 +5140,22 @@ function unitPath(g,kind,r,spin,morph){
     g.beginPath();
     g.arc(0,0,r,0,TAU);
     g.moveTo(r*.34,0); g.arc(0,0,r*.34,0,TAU);
+  }else if(kind==='b_architect'){
+    // THE ARCHITECT: square, circle, triangle — and in between, part of both.
+    // `morph` is its form (0-2 in a fight); the codex lets it run on, and wraps.
+    g.rotate(spin*.4);
+    const f=((morph%3)+3)%3, k=Math.floor(f), u=f-k, sm=u*u*(3-2*u), T3=TAU/3;
+    const rad=(form,a)=> form===0 ? r*Math.SQRT1_2/Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a)))
+                       : form===1 ? r*.9
+                       : r*.52/Math.cos(((a%T3)+T3)%T3-Math.PI/3);
+    g.beginPath();
+    for(const sc of [1,.5]){
+      for(let i=0;i<=72;i++){
+        const a=i/72*TAU, rr=sc*((1-sm)*rad(k,a)+sm*rad((k+1)%3,a));
+        i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
+      }
+      g.closePath();
+    }
   }else if(kind==='b_hive'){
     // THE HIVE MIND: a core with the swarm still orbiting it
     g.beginPath(); g.arc(0,0,r*.55,0,TAU); g.closePath();
@@ -4999,6 +5267,13 @@ function draw(){
 
     // enemy bullets
     for(const b of ebullets){
+      if(b.hold>0){
+        // built, not yet thrown: a hollow socket while it forms, then a ringed round
+        ctx.globalAlpha=b.ghost>0?.35:1;
+        ctx.strokeStyle=b.col; ctx.lineWidth=1.6; ctx.shadowColor=b.col; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.arc(b.x,b.y,b.r+3,0,TAU); ctx.stroke();
+        if(b.ghost>0){ ctx.globalAlpha=1; continue; }
+      }
       ctx.fillStyle=b.col; ctx.shadowColor=b.col; ctx.shadowBlur=12;
       ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill();
     }
@@ -5137,6 +5412,14 @@ function draw(){
             ctx.beginPath();
             ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr,3.4+1.6*Math.sin(e.morph*3+i),0,TAU);
             ctx.stroke();
+          }
+          ctx.shadowBlur=0;
+        }
+        if(e.k==='architect'){                     // the rings it builds with
+          ctx.lineWidth=2; ctx.shadowColor=col; ctx.shadowBlur=12;
+          for(let i=0;i<3;i++){
+            const a=e.spin*(i%2?-1.1:.8)+i*TAU/3;
+            ctx.beginPath(); ctx.arc(0,0,e.r*1.3,a,a+.9); ctx.stroke();
           }
           ctx.shadowBlur=0;
         }
@@ -5522,11 +5805,31 @@ function hideAll(){ show(''); }
    have cleared stays open forever, and you launch into whichever one you pick.
    What still gates a node is your loadout — each system names the minimum
    number of skill points it expects you to have spent before you fly it. */
-/* PROSE: the names of the systems past 004 are yours. These nodes are drawn
-   and locked — nothing on them is flyable, they only show the route continues. */
-const MAP_PH=[];
-const MAP_N=()=>SYSTEMS.length+MAP_PH.length;
-const MAP_Y=i=>{                       // 001 at the bottom, the last node at the top
+/* The chart shows one REGION at a time. `mapReg` is the one on screen; a
+   node's height is its slot inside that region, not its place in SYSTEMS.
+   Placeholder nodes (`ph` on a region) are drawn and locked — nothing on
+   them is flyable, they only show the route continues. */
+let mapReg=0;
+const regOf=i=>{
+  const n=SYSTEMS[i]&&SYSTEMS[i].name, r=REGIONS.findIndex(R=>R.sys.includes(n));
+  return r<0 ? REGIONS.length-1 : r;
+};
+// what a region puts on the chart, bottom to top: its systems, then its placeholders
+const regItems=r=>{
+  const out=[];
+  SYSTEMS.forEach((sy,i)=>{ if(regOf(i)===r) out.push({i}); });
+  (REGIONS[r].ph||[]).forEach(n=>out.push({ph:n}));
+  return out;
+};
+// a region is open once the first real system at or after it has been reached
+const regOpen=r=>{
+  if(r<=0) return true;
+  for(let i=0;i<SYSTEMS.length;i++) if(regOf(i)>=r) return sysReached(i);
+  return false;
+};
+const slotOf=i=>regItems(mapReg).findIndex(it=>it.i===i);
+const MAP_N=()=>regItems(mapReg).length;
+const MAP_Y=i=>{                       // slot 0 at the bottom, the last node at the top
   const n=MAP_N();
   return n<2 ? 50 : 85-i*(70/(n-1));   // the cards are tall, so keep them inside the frame
 };
@@ -5550,7 +5853,7 @@ const branchPickable=(i,k)=> mapMode==='menu' && sysReached(i) && branchReady(k)
    It reads the deepest tree on any hull, not the one in the bay: trees are
    per-ship now, and a new hull starting empty must not shut a system you had
    already opened. */
-const SYS_FLOOR=[0,6,16,32];   // credits invested in the tree
+const SYS_FLOOR=[0,6,16,24,32];   // credits invested in the tree
 const sysFloor=i=>SYS_FLOOR[i]||0;
 const sysReached=i=>i<=Math.min(save.deepestSys,SYSTEMS.length-1);
 // a system you have already held is always re-flyable; the floor only ever
@@ -5606,13 +5909,20 @@ function buildMap(){
   // two short lines rather than one long one that runs off the card
   const spent=spentPoints();
 
-  SYSTEMS.forEach((sy,i)=>{
-    const y=MAP_Y(i), done=i<held;
+  regItems(mapReg).forEach((it,slot)=>{
+    const y=MAP_Y(slot);
+    // the route past the last real system: locked, unnumbered, drawn dim
+    if(it.ph!==undefined){
+      if(slot>0) line(MAP_X,MAP_Y(slot-1),MAP_X,y,'#2a3252',false,false);
+      node(MAP_X,y,'locked ph',it.ph,'LOCKED');
+      return;
+    }
+    const i=it.i, sy=SYSTEMS[i], done=i<held;
     // mid-run the blue node is the one you are about to fly; on the title map
     // it is the one you have picked to launch into
     const sel=run ? i===held : (i===mapPick && !mapPickK);
     const open=run ? false : sysOpen(i);
-    if(i>0) line(MAP_X,MAP_Y(i-1),MAP_X,y, done?'#46e39b':sel?'#4d9dff':'#22293f',
+    if(slot>0) line(MAP_X,MAP_Y(slot-1),MAP_X,y, done?'#46e39b':sel?'#4d9dff':'#22293f',
                  false, sel);            // the segment you are about to fly runs
     // a branch: taken as a detour mid-run, or flown on its own off the title map
     const branch=(k,bx,cls,col,dim)=>{
@@ -5647,16 +5957,14 @@ function buildMap(){
     if(!run && (open||done) && !(sel&&!mapPickK)){ n.style.cursor='pointer';
       n.onclick=()=>{ mapPick=i; mapPickK=null; buildMap(); }; }
   });
-  // the route past the last real system: locked, unnumbered, drawn dim
-  MAP_PH.forEach((ph,k)=>{
-    const i=SYSTEMS.length+k, y=MAP_Y(i);
-    line(MAP_X,MAP_Y(i-1),MAP_X,y,'#2a3252',false,false);
-    if(ph.branch){
-      line(MAP_X,y,SECRET_X,y,'#39426a',true,false);
-      node(SECRET_X,y,'secret',ph.branch,'LOCKED');
-    }
-    node(MAP_X,y,'locked ph','SYSTEM '+ph.id, ph.st, String(i+1).padStart(2,'0'));
-  });
+
+  // which region is on screen, and whether there is one either side of it
+  const ro=regOpen(mapReg);
+  $('mapRegName').textContent=REGIONS[mapReg].n+(ro?'':'  ·  LOCKED');
+  $('mapRegName').classList.toggle('lock',!ro);
+  $('mapRegNum').textContent='REGION '+(mapReg+1)+' / '+REGIONS.length;
+  $('btnRegPrev').disabled=mapReg<=0;
+  $('btnRegNext').disabled=mapReg>=REGIONS.length-1;
 
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
   const go=$('btnMapGo');
@@ -5742,7 +6050,8 @@ function mapArt(dt){
   }
 
   const held=Math.min(runHeld,SYSTEMS.length);
-  const x0=px(MAP_X), yBot=py(MAP_Y(0)), yTop=py(MAP_Y(SYSTEMS.length-1));
+  const items=regItems(mapReg), nIt=items.length;
+  const x0=px(MAP_X), yBot=py(MAP_Y(0)), yTop=py(MAP_Y(nIt-1));
 
   // ── the spine, as a conduit rather than a line ──
   const grad=g.createLinearGradient(x0,yBot,x0,yTop);
@@ -5760,9 +6069,10 @@ function mapArt(dt){
 
   /* ── the ICARUS, beside the last system ──
      The enemy battleship the route ends at. It sits where that system's side
-     branch used to, which is otherwise dead space now. */
-  {
-    const yl=py(MAP_Y(SYSTEMS.length-1)), cx=px(70), bob=Math.sin(mapT*.7)*4;
+     branch used to, which is otherwise dead space now. Only its own region
+     draws it. */
+  if(regOf(SYSTEMS.length-1)===mapReg){
+    const yl=py(MAP_Y(slotOf(SYSTEMS.length-1))), cx=px(70), bob=Math.sin(mapT*.7)*4;
     const S=Math.max(1,Math.min(w,h)/420);
     g.save(); g.translate(cx,yl+bob); g.scale(S,S);
     // engine wash, trailing behind it
@@ -5797,10 +6107,11 @@ function mapArt(dt){
   }
 
   // ── a station ring at every system, held ones brighter ──
-  SYSTEMS.forEach((sy,i)=>{
-    const y=py(MAP_Y(i)), done=i<held, next=i===held;
+  items.forEach((it,slot)=>{
+    const i=it.ph!==undefined ? -1 : it.i;
+    const y=py(MAP_Y(slot)), done=i>=0&&i<held, next=i>=0&&i===held;
     const col=done?'70,227,155':next?'77,157,255':'70,84,120';
-    const pu=.5+.5*Math.sin(mapT*(next?2.4:.9)+i);
+    const pu=.5+.5*Math.sin(mapT*(next?2.4:.9)+slot);
     // sized to sit OUTSIDE the info card, not behind it
     const R0=Math.max(76,w*.083);
     for(let q=0;q<2;q++){
@@ -5812,8 +6123,10 @@ function mapArt(dt){
   });
 
   // ── charge climbing what you already hold ──
-  if(held>0){
-    const yEnd=py(MAP_Y(Math.min(held,SYSTEMS.length-1)));
+  // how far up this region's spine you hold
+  let hs=0; while(hs<nIt && items[hs].ph===undefined && items[hs].i<held) hs++;
+  if(hs>0){
+    const yEnd=py(MAP_Y(Math.min(hs,nIt-1)));
     for(let i=0;i<4;i++){
       const k=((mapT*.42+i/4)%1), yy=yBot+(yEnd-yBot)*k;
       g.beginPath(); g.arc(x0,yy,3.6,0,TAU);
@@ -5824,8 +6137,8 @@ function mapArt(dt){
 
 
   // ── the portal, when there is one: a vortex rather than a box ──
-  if(SYSTEMS.length>PORTAL_SYS){
-    const y=py(MAP_Y(PORTAL_SYS)), pxx=px(PORTAL_X);
+  if(SYSTEMS.length>PORTAL_SYS && regOf(PORTAL_SYS)===mapReg){
+    const y=py(MAP_Y(slotOf(PORTAL_SYS))), pxx=px(PORTAL_X);
     const live=typeof portalOffered==='function'&&portalOffered();
     const R1=Math.max(66,w*.075);          // outside the portal card
     for(let i=0;i<4;i++){
@@ -5864,7 +6177,23 @@ function openMap(mode,then){
     let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i)) best=i;
     mapPick=best; mapPickK=null;
   }
+  mapReg=regOf(mapMode==='menu' ? mapPick : Math.min(runHeld,SYSTEMS.length-1));
   buildMap(); state='map'; show('map');
+}
+
+/* Step the chart one region along. On the title map the pick follows you: it
+   lands on the furthest system you are cleared to fly in the new region, so
+   LAUNCH always names something you can see. */
+function mapRegStep(d){
+  const r=clamp(mapReg+d,0,REGIONS.length-1);
+  if(r===mapReg) return;
+  mapReg=r;
+  if(mapMode==='menu'){
+    let best=-1;
+    regItems(r).forEach(it=>{ if(it.ph===undefined && sysOpen(it.i)) best=it.i; });
+    if(best>=0){ mapPick=best; mapPickK=null; }
+  }
+  buildMap();
 }
 
 /* The node that was just bought, so a rebuild of the tree can re-apply the
@@ -6019,7 +6348,7 @@ $('gearWipe').onclick=()=>{
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
   save={points:0, credits:0, owned:[], trees:[], unlocked:false, best:0, deepest:1, deepestSys:0,
         schoolDone:false, schoolAuto:false, taught:[], ships:[0], ship:0,
-        branches:[], beaten:[],
+        branches:[], beaten:[], route:2,
         vol:SND.vol, sound:SND.on, seen:[], diff:save.diff};
   persist();
   landed=null; respecArmed=0;
@@ -6066,7 +6395,10 @@ const CODEX={
      t:'Carries a spinning shield arc. Shoot it from behind. The arc now drifts '+
        'toward whichever side you are shooting from, so flanking it is something '+
        'you keep doing, not something you do once.'},
-    {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:3,
+    {c:'#e8c872', n:'ORBITER', tag:'SATURN  ·  RING', sys:3,
+     u:'orbiter', a:[80,165,10,.43,12], ctr:'«WRITE: one-line counter for the Orbiter»',
+     t:'«WRITE: codex entry for the Orbiter — circles you at a fixed distance and fires three rounds straight inward»'},
+    {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:4,
      u:'splinter', a:[169,110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
        'you. It holds a working distance and weaves while it reloads, so the orb '+
@@ -6086,7 +6418,10 @@ const CODEX={
      t:'An Overseer that has learned. Its shield arc is wider and it '+
        'tracks you, so every shot has to come from somewhere it is not looking. '+
        'Hurt, it rakes a rotating wall of fire across the whole arena.'},
-    {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:3, void:1,
+    {c:'#e8c872', n:'THE ARCHITECT', tag:'SATURN  ·  WAVE 5', sys:3,
+     u:'b_architect', a:[989,58,10,.45,15], ctr:'«WRITE: one-line counter for the Architect»',
+     t:'«WRITE: codex entry for the Architect — square, then circle, then triangle; builds its shape round you and closes it, or round itself and blooms it outward»'},
+    {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:4, void:1,
      u:'b_ruler', a:[621,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
      t:'The enemy leader, and the creature the other three answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
@@ -6457,7 +6792,9 @@ function buildStory(){
   }
   el.innerHTML=html;
 }
-/* ---- save codes: MF1-<base64 payload>-<checksum> ---- */
+/* ---- save codes: MF2-<base64 payload>-<checksum> ----
+   MF2 is the same payload as MF1. The prefix changed when Saturn went in
+   before Icarus, so an MF1 code's system count is read on the old route. */
 function checksum(raw){
   let sum=0;
   for(let i=0;i<raw.length;i++) sum=(sum*31+raw.charCodeAt(i))&0xfff;
@@ -6478,11 +6815,12 @@ function makeCode(){
              smask*8+SHIPS.indexOf(SHIP()),save.credits]
             .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1))).join('.');
   const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
-  return 'MF1-'+b64+'-'+checksum(raw);
+  return 'MF2-'+b64+'-'+checksum(raw);
 }
 function loadCode(code){
   code=(code||'').trim();
-  if(code.slice(0,4).toUpperCase()!=='MF1-') return 'Codes start with MF1-';
+  const ver=code.slice(0,4).toUpperCase();
+  if(ver!=='MF1-'&&ver!=='MF2-') return 'Codes start with MF2-';
   const body=code.slice(4), cut=body.lastIndexOf('-');
   if(cut<1) return 'That code is incomplete.';
   let raw;
@@ -6491,7 +6829,7 @@ function loadCode(code){
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   const f=raw.split('.').map(Number);
   if(f.length<5||f.length>7+SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
-  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],SYSTEMS.length-1);
+  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:SYSTEMS.length-1);
   const fromMask=m=>SKILLS.filter((sk,i)=>m&(1<<i)).map(sk=>sk.id);
   save.trees=[fromMask(f[3])];
   for(let i=1;i<SHIPS.length;i++) save.trees[i]=f.length>6+i?fromMask(f[6+i]):[];
@@ -6580,6 +6918,8 @@ $('btnMapPortal').onclick=()=>{
   launchGo=()=>{ runSecrets.push(-1); hideAll(); startMission('boss'); };
 };
 $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
+$('btnRegPrev').onclick=()=>mapRegStep(-1);
+$('btnRegNext').onclick=()=>mapRegStep(1);
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnTreeBack').onclick=()=>{
   if(treeReturn==='brief'){ show('brief'); }
