@@ -1841,7 +1841,7 @@ addEventListener('keydown',e=>{
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
-  if(e.code==='Enter'){ e.preventDefault(); onEnter(); }
+  if(e.code==='Enter'){ e.preventDefault(); if(state==='play'&&school&&school.wait) schoolBegin(); else onEnter(); }
 });
 addEventListener('keyup',e=>keys[e.code]=false);
 function ptr(e){
@@ -1850,7 +1850,9 @@ function ptr(e){
   mouse.y=(e.clientY-r.top)*(H/r.height);
 }
 cv.addEventListener('mousemove',ptr);
-cv.addEventListener('mousedown',e=>{SND.boot();SND.resume();ptr(e);mouse.down=true;if(state==='intro')cineEnd();});
+cv.addEventListener('mousedown',e=>{SND.boot();SND.resume();ptr(e);mouse.down=true;if(state==='intro')cineEnd();
+  const b=state==='play'&&school&&school.wait&&school.btn;
+  if(b&&mouse.x>=b.x&&mouse.x<=b.x+b.w&&mouse.y>=b.y&&mouse.y<=b.y+b.h) schoolBegin();});
 addEventListener('mousedown',()=>{ if(state==='title') titleGo(); });
 addEventListener('mouseup',()=>mouse.down=false);
 // any button anywhere clicks — one listener rather than forty
@@ -2111,7 +2113,7 @@ const LAUNCH_TEXT={
   sys:['Defend Earth from the Iterations besieging it.',
        'Eliminate the nearest Iteration outpost.',
        'Destroy a major Iteration bastion.',
-       '«WRITE: launch line for Saturn»',
+       'Launch towards a seemingly unprotected Iteration shipment.',
        'Charge the Icarus in a final battle.'],
   salvage:'Salvage scrap by collecting the green dots, but escape before you are crushed.',
   escort: 'Defend the shipment of resources from raiding parties of Iterations.',
@@ -2176,7 +2178,7 @@ const SYS_CLEAR_TEXT=[
   'The enemy leader Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The alien swarm has been destroyed! Congratulations. Prepare and continue.',
   'The enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.',
-  '«WRITE: clear line for Saturn, after the Architect falls»',
+  'The strange creation Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
@@ -2317,7 +2319,7 @@ function spawn(type,at,def){
       sh:1.15,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
   // ORBITER — circles the pilot at a fixed radius and fires inward
   if(type==='orbiter') enemies.push({t:'orbiter',x:p.x,y:p.y,vx:0,vy:0,r:18,
-      hp:80*sc,max:80*sc,spd:165*vm,cool:rand(1.6,2.8)/cd,a:0,val:150,rof:1/cd,
+      hp:150*sc,max:150*sc,spd:215*vm,cool:rand(.9,1.6)/cd,a:0,val:220,rof:1/cd,
       spin:0,dir:Math.random()<.5?-1:1,orb:rand(ORB_R*.9,ORB_R*1.1)});
   // SPLINTER — lobs orbs that break into a fan of shards in mid-air
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:21,
@@ -2386,7 +2388,7 @@ let toast='', toastT=0, flash=0;
 const BOSSES=[
   /* The first boss anyone meets, so it sits a shade under the rest of the
      roster: less hull, and a little more air between its attacks. */
-  { k:'primary', n:'ITERATION 3296', col:'#ff4d5e', r:62, hp:672, val:1200,
+  { k:'primary', n:'ITERATION 3296', col:'#ff4d5e', r:62, hp:1008, val:1200,
     spd:56, want:250, strafe:.25, sum:'grunt', nodes:{n:3, hp:110, orb:0.6, nm:'BRACE PLATE'},
     mus:{bpm:138, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,1,0, 0,0,1,1], hook:'brace', lead:'sawtooth', ride:1},
@@ -2398,7 +2400,7 @@ const BOSSES=[
        pool:['shell','ring','charge','fan','summon'],  rest:[1.15,1.75], spd:1.45},
     ]},
 
-  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:840, val:1400,
+  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1470, val:1400,
     spd:64, want:360, strafe:.9, sum:'dart', nodes:{n:3, hp:100, orb:0.58, nm:'SPAWN POD'},
     mus:{bpm:152, prog:[0,0,3,3, 1,1,10,10], qual:[0,0,0,0, 1,1,1,1],
          ost:[0,3,0,3, 1,3,1,3], hook:'swarm', lead:'square', swarm:1},
@@ -2410,7 +2412,7 @@ const BOSSES=[
        pool:['swarm','lash','ring','fan','blink'], rest:[1.0,1.5], spd:1.7},
     ]},
 
-  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:912, val:1500,
+  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:1824, val:1500,
     spd:60, want:300, strafe:.85, sum:'grunt', nodes:{n:2, hp:150, orb:0.62, nm:'ARC EMITTER'},
     mus:{bpm:134, prog:[0,0,6,6, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,6,0, 0,0,1,0], hook:'watch', lead:'triangle', shimmer:1},
@@ -2427,23 +2429,23 @@ const BOSSES=[
      throws is the shape it currently is: it lays one round you and closes it
      ('build'), or forms one round itself and lets it bloom outward ('forge').
      A built cage always leaves one way out. */
-  { k:'architect', n:'THE ARCHITECT', col:'#e8c872', r:66, hp:860, val:1600,
-    spd:58, want:300, strafe:.7, sum:'orbiter', nodes:{n:3, hp:140, orb:0.6, nm:'FORM KEY'},
+  { k:'architect', n:'THE ARCHITECT', col:'#e8c872', r:66, hp:1935, val:2000,
+    spd:76, want:300, strafe:.85, sum:'orbiter', nodes:{n:3, hp:230, orb:0.6, nm:'FORM KEY'},
     mus:{bpm:144, prog:[0,0,4,4, 6,6,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,4,0, 0,6,1,0], hook:'build', lead:'triangle', bells:1},
     tiers:[
-      {n:'', seq:['forge','fan','build','|'], pool:['forge','fan','build','summon'], rest:[1.8,2.5], spd:1},
+      {n:'', seq:['forge','fan','build','|'], pool:['forge','fan','build','summon'], rest:[1.0,1.5], spd:1.3},
       {n:'THE ARCHITECT — CIRCLE',   seq:['build','ring','forge','|','summon','fan','build','forge','|'],
-       pool:['build','forge','ring','fan','summon'],          rest:[1.4,2.0], spd:1.25},
+       pool:['build','forge','ring','fan','summon'],          rest:[.7,1.1], spd:1.6},
       {n:'THE ARCHITECT — TRIANGLE', seq:['build','lance','forge','build','|','spiral','forge','build','fan','|'],
-       pool:['build','forge','lance','spiral','fan','summon'], rest:[1.0,1.5], spd:1.55},
+       pool:['build','forge','lance','spiral','fan','summon'], rest:[.45,.8], spd:1.95},
     ]},
 
   /* The last thing in the campaign, and it is meant to feel like it. Heavier
      than anything else on the roster, it closes distance rather than holding a
      ring, and its authored lines are longer between punish windows than the
      bosses before it — so reaching one is something you work toward. */
-  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:710, val:2200,
+  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:1775, val:2200,
     spd:54, want:262, strafe:.82, sum:'dart', nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
     mus:{bpm:128, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1},
@@ -2476,7 +2478,7 @@ const SECRET_BOSSES=[
      a heavier armour ring that regrows more often, and rest windows about half
      what a campaign boss gets — so the punish windows are the only real damage
      you will do, and you have to earn every one. */
-  { k:'s3295', n:'ITERATION 3295', col:'#8dffc4', r:58, hp:2850, val:2600, secret:1,
+  { k:'s3295', n:'ITERATION 3295', col:'#8dffc4', r:58, hp:7125, val:2600, secret:1,
     spd:132, want:160, strafe:1.7, sum:'splinter',
     nodes:{n:3, hp:190, orb:0.66, nm:'SPLINTER RACK'},
     mus:{bpm:166, prog:[0,0,1,1, 3,3,1,1], qual:[0,0,1,1, 0,0,1,1],
@@ -2490,7 +2492,7 @@ const SECRET_BOSSES=[
        pool:['lash','charge','blink','fan','ring','swarm'], rest:[.7,1.0],  spd:1.8},
     ]},
 
-  { k:'archive', n:'THE ARCHIVE', col:'#c78dff', r:92, hp:4200, val:4200, secret:1,
+  { k:'archive', n:'THE ARCHIVE', col:'#c78dff', r:92, hp:10500, val:4200, secret:1,
     spd:58, want:290, strafe:.95, sum:'overseer',
     nodes:{n:7, hp:420, orb:0.55, nm:'STORED MIND', regrow:1},
     mus:{bpm:120, prog:[0,0,4,4, 8,8,6,6], qual:[0,0,1,1, 1,1,1,1],
@@ -2519,10 +2521,10 @@ const SECRET_BOSSES=[
    not recite so much as never stop. It is meant to kill you the first time.
 
    The hull is set so that, once Icarus and BOSS_BUFF have scaled both, this is
-   almost exactly twice the Ruler you just put down. Twice is the point: enough
-   that you feel the floor go, not so much that the shock turns into a grind. */
+   a little under two and a half times the Ruler you just put down: enough that
+   you feel the floor go, and the longest fight in the campaign by a distance. */
 const FINAL_BOSS=
-  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:1400, val:5000, final:1,
+  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:4200, val:5000, final:1,
     spd:78, want:230, strafe:1.25, sum:'dart',
     nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
     mus:{bpm:170, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
@@ -2561,7 +2563,7 @@ const FINAL_BOSS=
    telegraphs; if it telegraphs you can be somewhere else.
 
    HEAVY_DMG is read at the moment of firing rather than baked into the table,
-   because MELTDOWN rewrites it: in the last tier every one of these is lethal
+   because MELTDOWN redoes it: in the last tier every one of these is lethal
    outright, whatever your hull is, and the fight becomes a clean question of
    whether you can read four telegraphs in a row.                            */
 const HEAVY_TEL=.95;              // how long you get to read one
@@ -2599,7 +2601,7 @@ function actHammer(e,dt,dx,dy,T){
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y) < rr*rr && P.inv<=0 && buffs.shield<=0){
       P.hp-=heavyDmg(e,55)*DIFF().dmgIn*P.st.armour;
-      P.inv=.5; SFX.hurt();
+      P.inv=.5; pilotHurt();
       burst(P.x,P.y,'#ff2233',20,320);
     }
     shock(m.x,m.y,'#ff2233',m.r*.3,m.r*1.25,.45,8);
@@ -2640,8 +2642,8 @@ function actCross(e,dt,dx,dy,T){
    than its edges. A built round sits still (`hold`) and cannot hurt you while
    it is still forming (`ghost`), then it is thrown along (gx,gy). */
 const ARCH_FORMS=[4,0,3];                 // sides per tier; 0 is a circle
-const ARCH_CAGE=215, ARCH_GAP=.16, ARCH_GHOST=.3, ARCH_LAY=.45, ARCH_HOLD=.95, ARCH_CLOSE=260;
-const ARCH_FORGE_HOLD=.6, ARCH_BLOOM=200;
+const ARCH_CAGE=215, ARCH_GAP=.16, ARCH_GHOST=.15, ARCH_LAY=.2, ARCH_HOLD=.55, ARCH_CLOSE=340;
+const ARCH_FORGE_HOLD=.3, ARCH_BLOOM=265;
 function formPts(sides,cx,cy,R,n,rot){
   const out=[];
   for(let i=0;i<n;i++){
@@ -2661,7 +2663,7 @@ function archBuild(e){
   formPts(sides,P.x,P.y,ARCH_CAGE,n,rand(0,TAU)).forEach((p,i)=>{
     if(((i/n)-gap+1)%1<ARCH_GAP) return;     // the way out
     const dx=P.x-p.x, dy=P.y-p.y, d=Math.hypot(dx,dy)||1;
-    ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:10*BOSS_DMG,col:e.col,
+    ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:14*BOSS_DMG,col:e.col,
       ghost:ARCH_GHOST+i/n*ARCH_LAY, hold:ARCH_GHOST+ARCH_LAY+ARCH_HOLD,
       gx:dx/d*ARCH_CLOSE, gy:dy/d*ARCH_CLOSE});
   });
@@ -2669,12 +2671,12 @@ function archBuild(e){
 }
 // FORGE — the same shape round itself, pointed at you, bloomed outward whole
 function archForge(e){
-  const sides=ARCH_FORMS[Math.min(e.tier,2)], shells=e.tier>=1?2:1;
+  const sides=ARCH_FORMS[Math.min(e.tier,2)], shells=e.tier>=1?3:2;
   for(let q=0;q<shells;q++){
     const R=e.r+34+q*26, n=(e.tier===2?30:24)+DIFF().dense*4, k=ARCH_BLOOM*(1-q*.25)/R;
     for(const p of formPts(sides,e.x,e.y,R,n,e.a+q*Math.PI/Math.max(sides,4)))
-      ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:9*BOSS_DMG,col:'#fff1c8',
-        ghost:.2, hold:ARCH_FORGE_HOLD+q*.25, gx:(p.x-e.x)*k, gy:(p.y-e.y)*k});
+      ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:13*BOSS_DMG,col:'#fff1c8',
+        ghost:.1, hold:ARCH_FORGE_HOLD+q*.15, gx:(p.x-e.x)*k, gy:(p.y-e.y)*k});
   }
   shock(e.x,e.y,e.col,e.r,e.r*1.8,.4,4);
 }
@@ -2750,43 +2752,388 @@ function bossSummon(e,type,n){
 }
 
 /* ══════════════════════ BOSS ENTRANCE ══════════════════════
-   The arrival was the last big moment still handled in one line. Now the
-   arena seals, the hull drags itself in out of the dark, and the thing states
-   what it is before it starts. The fight is frozen throughout — you can fly,
-   nothing shoots, and the spawn queue is held so its escorts do not walk in
-   over the top of it.                                                       */
+   Every boss stages its own arrival. A staging owns the clock up to `land`,
+   the moment the hull is truly there; from then on they all share one ending:
+   rings close onto it, its outline is traced, and the name card rises with
+   the hull it brought. The fight is frozen throughout — you can fly, nothing
+   shoots, and the spawn queue is held so its escorts do not walk in over the
+   top of it. It is never skippable: this is the part people come back for.
+   Beats fire off the entrance's own clock rather than after(), so pausing
+   halfway through cannot pull the sound away from the picture.            */
 let entrance=null;
-const ENTR_DUR=4.2;
+const ENTR_TAIL=2.7;                       // touchdown to the fight starting
+const eOut=k=>1-Math.pow(1-k,3);
+const stageKey=b=> b.B&&b.B.final ? 'final' : b.k;
+
+const STAGES={
+  /* the old arrival, kept for anything that has no staging of its own:
+     the hull dragged in as debris, the death scene run backwards */
+  shards:{ land:1.5,
+    init(E){ E.shards=[];
+      for(let i=0;i<30;i++){ const a=rand(0,TAU), d=rand(300,760);
+        E.shards.push({a,d0:d,r:rand(5,15),spin:rand(0,TAU),rot:rand(-6,6),lag:rand(0,.35)}); } },
+    draw(E,t,col){
+      if(t>=1.6) return;
+      for(const p of E.shards){
+        const k=clamp((t-p.lag)/(1.5-p.lag),0,1), e2=eOut(k);
+        const d=p.d0*(1-e2), a=p.a+e2*1.9;
+        ctx.save(); ctx.translate(E.x+Math.cos(a)*d,E.y+Math.sin(a)*d); ctx.rotate(p.spin+p.rot*t);
+        ctx.globalAlpha=Math.min(1,k*2.2); ctx.strokeStyle=col; ctx.lineWidth=1.6;
+        ctx.shadowColor=col; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.arc(0,0,p.r*(1-e2*.55),0,TAU); ctx.stroke();
+        ctx.restore();
+      }
+    }},
+
+  /* ITERATION 3296 — an ordinary Primary flies in, stops, and outgrows its
+     mindframe: three plates bolt on, one clank at a time, until it is the boss */
+  primary:{ land:3.0, clanks:[1.4,1.9,2.4],
+    init(E){ E.plA=rand(0,TAU); },
+    ev(E){ return this.clanks.map((c,i)=>[c,()=>{
+      const a=E.plA+i*TAU/3, R=27+12*(i+1);
+      shake=Math.max(shake,12+i*7); SFX.crack();
+      burst(E.x+Math.cos(a)*R,E.y+Math.sin(a)*R,E.b.col,16+i*6,260+i*40);
+      shock(E.x,E.y,E.b.col,R,R*2.2,.4,4); }]); },
+    draw(E,t,col){
+      const fade=1-clamp((t-E.land)/.35,0,1); if(!fade) return;
+      const fly=eOut(clamp(t/1.0,0,1));
+      const x=E.x, y=-60+(E.y+60)*fly;
+      let n=0, pop=0;
+      for(const c of this.clanks) if(t>=c){ n++; pop=Math.max(0,1-(t-c)/.2)*8; }
+      const R=27+12*n+pop;
+      ctx.save(); ctx.globalAlpha=fade; ctx.translate(x,y);
+      // the plates still on their way in
+      this.clanks.forEach((c,i)=>{
+        const k=clamp((t-(c-.28))/.28,0,1); if(!k) return;
+        const a=E.plA+i*TAU/3, d=t>=c ? R : 27+12*(i+1)+170*(1-eOut(k));
+        ctx.save(); ctx.rotate(a);
+        ctx.strokeStyle=col; ctx.lineWidth=7; ctx.shadowColor=col; ctx.shadowBlur=14;
+        ctx.beginPath(); ctx.arc(0,0,d+5,-.5,.5); ctx.stroke();
+        ctx.restore();
+      });
+      ctx.shadowColor=col; ctx.shadowBlur=16;
+      ctx.fillStyle='rgba(0,0,0,.75)'; ctx.strokeStyle=col; ctx.lineWidth=2.4;
+      unitPath(ctx,'heavy',R,t*(1.2+n*.6),0); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      if(t>1.0 && t<E.land){
+        ctx.textAlign='center'; ctx.font='600 11px Menlo,monospace';
+        ctx.fillStyle='rgba(255,77,94,'+(.5+.5*Math.sin(t*14))+')';
+        ctx.fillText('MINDFRAME OVERRUN  ·  '+n+' / 3',E.x,E.y+120);
+        ctx.textAlign='left';
+      }
+    }},
+
+  /* THE HIVE MIND — Watchers pour in from every edge, wheel round the middle
+     in one vortex, and collapse into the core */
+  hive:{ land:2.6,
+    init(E){ E.sw=[]; const far=Math.hypot(W,H);
+      for(let i=0;i<150;i++) E.sw.push({a:rand(0,TAU),d0:rand(far*.5,far*.72),lag:rand(0,.7),
+        spin:rand(1.6,2.6)*(Math.random()<.88?1:-1),sz:rand(4,7)}); },
+    ev(E){ return [[.3,()=>SFX.warn()],[1.3,()=>SFX.warn()],[2.0,()=>{ shake=Math.max(shake,10); }]]; },
+    draw(E,t,col){
+      const pos=(p,k)=>{ const r=p.d0*(1-eOut(k)), a=p.a+p.spin*eOut(k)*2.4;
+        return [E.x+Math.cos(a)*r, E.y+Math.sin(a)*r]; };
+      ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
+      for(const p of E.sw){
+        const k=clamp((t-p.lag)/(E.land-p.lag),0,1); if(k>=1) continue;
+        const [x,y]=pos(p,k), [x2,y2]=pos(p,Math.min(1,k+.01)), h=Math.atan2(y2-y,x2-x);
+        ctx.save(); ctx.translate(x,y); ctx.rotate(h); ctx.globalAlpha=Math.min(1,k*5);
+        ctx.beginPath(); ctx.moveTo(p.sz,0); ctx.lineTo(-p.sz,p.sz*.7); ctx.lineTo(-p.sz,-p.sz*.7); ctx.closePath();
+        ctx.fill(); ctx.restore();
+      }
+      // the core it is all falling into, beating faster as it fills
+      if(t>1.2 && t<E.land+.4){
+        const k=clamp((t-1.2)/(E.land-1.2),0,1), beat=1+.15*Math.sin(t*(8+k*18));
+        ctx.globalAlpha=1-clamp((t-E.land)/.4,0,1);
+        ctx.beginPath(); ctx.arc(E.x,E.y,(8+k*34)*beat,0,TAU);
+        ctx.fillStyle='rgba(70,227,155,.25)'; ctx.fill();
+        ctx.strokeStyle=col; ctx.lineWidth=2; ctx.stroke();
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0;
+    }},
+
+  /* ITERATION 2117 — its arc sweeps the whole arena like radar, brighter each
+     pass, slowing, and it is there where the sweep comes to rest on you */
+  overseer:{ land:2.8, scan:2.55,
+    init(E){ E.fa=Math.atan2(player.y-E.y,player.x-E.x);
+      E.blips=[]; for(let i=0;i<16;i++) E.blips.push({a:rand(0,TAU),d:rand(90,Math.min(W,H)*.6)}); },
+    ev(E){ return [[.05,()=>SFX.expose()],[.9,()=>SFX.expose()],[1.75,()=>SFX.expose()],
+      [this.scan,()=>{ SFX.warn(); shake=Math.max(shake,14); }]]; },
+    draw(E,t,col){
+      const fade=1-clamp((t-E.land)/.6,0,1); if(!fade) return;
+      const k=clamp(t/this.scan,0,1), sa=E.fa-TAU*3*(1-eOut(k)), pass=Math.min(2,Math.floor(eOut(k)*3));
+      const bright=.45+.25*pass, far=Math.hypot(W,H);
+      ctx.save(); ctx.globalAlpha=fade; ctx.translate(E.x,E.y);
+      ctx.strokeStyle=col; ctx.lineWidth=1; ctx.setLineDash([4,10]);
+      for(let i=1;i<=3;i++){ ctx.globalAlpha=fade*.22; ctx.beginPath(); ctx.arc(0,0,i*130,0,TAU); ctx.stroke(); }
+      ctx.setLineDash([]);
+      // the trailing wedge
+      for(let i=0;i<14;i++){
+        ctx.globalAlpha=fade*bright*.16*(1-i/14);
+        ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(0,0);
+        ctx.arc(0,0,far,sa-(i+1)*.045,sa-i*.045); ctx.closePath(); ctx.fill();
+      }
+      ctx.globalAlpha=fade; ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.shadowColor=col; ctx.shadowBlur=18*bright;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(sa)*far,Math.sin(sa)*far); ctx.stroke();
+      // contacts light up as the sweep passes and fade behind it
+      for(const p of E.blips){
+        const d=((sa-p.a)%TAU+TAU)%TAU; if(d>1.4) continue;
+        ctx.globalAlpha=fade*(1-d/1.4); ctx.fillStyle=col;
+        ctx.beginPath(); ctx.arc(Math.cos(p.a)*p.d,Math.sin(p.a)*p.d,3,0,TAU); ctx.fill();
+      }
+      // a ghost of the hull, a little more solid every pass
+      ctx.globalAlpha=fade*(.12+.22*pass); ctx.lineWidth=2; ctx.shadowBlur=10;
+      unitPath(ctx,'b_overseer',E.b.r,t,0); ctx.stroke();
+      ctx.restore();
+      // once it stops, the arc grows out along the line it stopped on
+      if(t>this.scan){
+        const g=eOut(clamp((t-this.scan)/.35,0,1));
+        ctx.save(); ctx.globalAlpha=fade; ctx.strokeStyle=col; ctx.lineWidth=6;
+        ctx.shadowColor=col; ctx.shadowBlur=22;
+        ctx.beginPath(); ctx.arc(E.x,E.y,E.b.r*1.35,E.fa-1.25*g,E.fa+1.25*g); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.textAlign='center'; ctx.font='600 11px Menlo,monospace'; ctx.globalAlpha=fade;
+      ctx.fillStyle=t>this.scan?col:'rgba(63,216,224,'+(.5+.5*Math.sin(t*10))+')';
+      ctx.fillText(t>this.scan?'CONTACT  ·  LOCKED':'SCANNING',E.x,E.y+125);
+      ctx.textAlign='left'; ctx.globalAlpha=1; ctx.shadowBlur=0;
+    }},
+
+  /* THE ARCHITECT — a blueprint grid draws itself over the arena, its three
+     forms are traced on it as construction lines, and it rises out of the grid */
+  architect:{ land:3.0, rise:2.25,
+    ev(E){ return [[1.05,()=>SFX.warn()],[1.45,()=>SFX.warn()],[1.85,()=>SFX.warn()],
+      [this.rise,()=>{ SFX.crack(); shake=Math.max(shake,12); }]]; },
+    draw(E,t,col){
+      const fade=1-clamp((t-E.land)/.7,0,1); if(!fade) return;
+      const g=48, r=E.b.r;
+      ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1;
+      for(let i=0,x=g/2;x<W;i++,x+=g){
+        const k=eOut(clamp((t-i*.022)/.55,0,1)); if(!k) continue;
+        ctx.globalAlpha=fade*.2; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H*k); ctx.stroke();
+      }
+      for(let j=0,y=g/2;y<H;j++,y+=g){
+        const k=eOut(clamp((t-.15-j*.03)/.55,0,1)); if(!k) continue;
+        ctx.globalAlpha=fade*.2; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W*k,y); ctx.stroke();
+      }
+      // centre lines through where it will stand
+      if(t>.8){ ctx.globalAlpha=fade*.55; ctx.setLineDash([12,6,2,6]);
+        ctx.beginPath(); ctx.moveTo(E.x-r*2.6,E.y); ctx.lineTo(E.x+r*2.6,E.y);
+        ctx.moveTo(E.x,E.y-r*2.6); ctx.lineTo(E.x,E.y+r*2.6); ctx.stroke(); ctx.setLineDash([]); }
+      // the three forms, traced in the order it will take them
+      ctx.font='10px Menlo,monospace'; ctx.fillStyle=col; ctx.textAlign='left';
+      [['FORM 01  SQUARE',1.0,2.0],['FORM 02  CIRCLE',1.4,1.7],['FORM 03  TRIANGLE',1.8,1.4]].forEach(([lab,at,sc],m)=>{
+        const k=clamp((t-at)/.4,0,1); if(!k) return;
+        ctx.save(); ctx.translate(E.x,E.y); ctx.globalAlpha=fade*.8;
+        ctx.lineWidth=1.4; ctx.shadowColor=col; ctx.shadowBlur=8;
+        ctx.setLineDash([1400*k,1400]);
+        unitPath(ctx,'b_architect',r*sc,0,m); ctx.stroke(); ctx.setLineDash([]);
+        ctx.restore();
+        ctx.globalAlpha=fade*k*.85; ctx.fillText(lab,E.x+r*2.1,E.y-r*1.9+m*16);
+      });
+      // and it rises: the square stacked up off the page, layer by layer
+      if(t>this.rise){
+        const k=eOut(clamp((t-this.rise)/(E.land-this.rise),0,1));
+        for(let i=7;i>=0;i--){
+          ctx.save(); ctx.translate(E.x,E.y+i*6*(1-k)+i*2);
+          ctx.globalAlpha=fade*(i?.18:1)*k;
+          ctx.fillStyle='rgba(0,0,0,.75)'; ctx.strokeStyle=col; ctx.lineWidth=i?1:2.5;
+          ctx.shadowColor=col; ctx.shadowBlur=i?0:18;
+          unitPath(ctx,'b_architect',r*(.6+.4*k),0,0); if(!i) ctx.fill(); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      ctx.restore(); ctx.globalAlpha=1; ctx.textAlign='left';
+    }},
+
+  /* THE RULER — the arena cracks out from where it will stand, the walls slam
+     in three times, and it steps out of the widest crack */
+  ruler:{ land:3.3, slams:[[1.7,'lr'],[2.1,'tb'],[2.5,'all']], rift:2.6,
+    init(E){ E.cracks=[];
+      const walk=(x,y,a,n,depth)=>{ const pts=[{x,y}];
+        for(let i=0;i<n;i++){ a+=rand(-.45,.45); const s=rand(28,58);
+          x+=Math.cos(a)*s; y+=Math.sin(a)*s; pts.push({x,y});
+          if(depth<1 && Math.random()<.18) walk(x,y,a+rand(-1.1,1.1),Math.floor(n*.5),depth+1); }
+        E.cracks.push({pts,delay:depth*.35}); };
+      for(let i=0;i<9;i++) walk(E.x,E.y,i/9*TAU+rand(-.2,.2),14,0); },
+    ev(E){ return this.slams.map(([c])=>[c,()=>{ shake=Math.max(shake,32); flash=Math.max(flash,.25); SFX.strip(); }])
+      .concat([[.1,()=>SFX.crack()],[.8,()=>SFX.crack()],[this.rift,()=>{ SFX.tier(); shake=Math.max(shake,20); }]]); },
+    draw(E,t,col){
+      const fade=1-clamp((t-E.land)/.9,0,1); if(!fade) return;
+      ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+      for(const c of E.cracks){
+        const k=eOut(clamp((t-c.delay)/1.6,0,1)), n=Math.max(1,Math.floor(c.pts.length*k));
+        ctx.beginPath(); ctx.moveTo(c.pts[0].x,c.pts[0].y);
+        for(let i=1;i<n;i++) ctx.lineTo(c.pts[i].x,c.pts[i].y);
+        ctx.globalAlpha=fade; ctx.strokeStyle=col; ctx.lineWidth=4; ctx.shadowColor=col; ctx.shadowBlur=16; ctx.stroke();
+        ctx.strokeStyle='#efe8ff'; ctx.lineWidth=1; ctx.shadowBlur=0; ctx.stroke();
+      }
+      // the walls coming in
+      for(const [c,sides] of this.slams){
+        const u=t-c; if(u<-.12||u>.5) continue;
+        const th=u<0 ? 70*(1+u/.12) : 70*(1-u/.5);
+        ctx.globalAlpha=.55*fade; ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=30;
+        if(sides!=='tb'){ ctx.fillRect(0,0,th,H); ctx.fillRect(W-th,0,th,H); }
+        if(sides!=='lr'){ ctx.fillRect(0,0,W,th); ctx.fillRect(0,H-th,W,th); }
+      }
+      // the crack it walks out of
+      if(t>this.rift){
+        const k=eOut(clamp((t-this.rift)/(E.land-this.rift),0,1));
+        ctx.globalAlpha=fade; ctx.shadowColor=col; ctx.shadowBlur=40;
+        ctx.beginPath(); ctx.ellipse(E.x,E.y,4+E.b.r*1.1*k,E.b.r*1.6,0,0,TAU);
+        ctx.fillStyle='#000'; ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke();
+      }
+      ctx.restore(); ctx.globalAlpha=1; ctx.shadowBlur=0;
+    }},
+
+  /* ITERATION 3295 — it crosses the screen faster than you can follow, again
+     and again, and the last pass stops dead in front of you */
+  s3295:{ land:2.4, passes:[.1,.48,.82,1.14,1.42], fin:1.75,
+    init(E){
+      const P=player;
+      E.x=clamp(P.x,120,W-120); E.y=P.y-190<110 ? P.y+190 : P.y-190; E.y=clamp(E.y,110,H-110);
+      const far=Math.hypot(W,H)*.6;
+      E.runs=this.passes.map(c=>{ const a=rand(0,TAU), cx=rand(W*.25,W*.75), cy=rand(H*.25,H*.75);
+        return {c,dur:.3,x0:cx-Math.cos(a)*far,y0:cy-Math.sin(a)*far,x1:cx+Math.cos(a)*far,y1:cy+Math.sin(a)*far,ease:0}; });
+      const a=Math.atan2(E.y-P.y,E.x-P.x);   // the last one comes in from beyond it, at you
+      E.runs.push({c:this.fin,dur:E.land-this.fin,x0:E.x+Math.cos(a)*far,y0:E.y+Math.sin(a)*far,x1:E.x,y1:E.y,ease:1});
+    },
+    ev(E){ return E.runs.map(r=>[r.c,()=>{ SFX.dash(); shake=Math.max(shake,r.ease?8:6); }]); },
+    draw(E,t,col){
+      const fade=1-clamp((t-E.land)/.3,0,1); if(!fade) return;
+      for(const r of E.runs){
+        const u=(t-r.c)/r.dur; if(u<0||u>(r.ease?1.2:1.6)) continue;
+        const at=k=>{ k=clamp(k,0,1); if(r.ease) k=eOut(k); return [r.x0+(r.x1-r.x0)*k, r.y0+(r.y1-r.y0)*k]; };
+        const h=Math.atan2(r.y1-r.y0,r.x1-r.x0);
+        // the streak it leaves, fading after it has gone
+        const tail=at(u-.35), head=at(u);
+        ctx.globalAlpha=fade*clamp(1.6-u,0,1)*.6;
+        ctx.strokeStyle=col; ctx.lineWidth=2; ctx.shadowColor=col; ctx.shadowBlur=14;
+        ctx.beginPath(); ctx.moveTo(tail[0],tail[1]); ctx.lineTo(head[0],head[1]); ctx.stroke();
+        if(u>1 && !r.ease) continue;
+        for(let j=6;j>=0;j--){
+          const [x,y]=at(u-j*.05);
+          ctx.save(); ctx.translate(x,y); ctx.rotate(h);
+          ctx.globalAlpha=fade*(j?(1-j/7)*.35:1);
+          ctx.fillStyle='rgba(0,0,0,.7)'; ctx.strokeStyle=col; ctx.lineWidth=j?1.2:2.4;
+          unitPath(ctx,'b_s3295',E.b.r*.85,t*3,0); if(!j) ctx.fill(); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0;
+    }},
+
+  /* THE ARCHIVE — the screen fills with its records, the stored minds load in
+     around the core one at a time, and the bar stalls at 87% before it lets go */
+  archive:{ land:3.4,
+    init(E){ const cw=22; E.cols=[];
+      for(let x=cw/2;x<W;x+=cw) E.cols.push({x,sp:rand(140,340),off:rand(0,H),ch:Array.from({length:14},()=>Math.random()<.5?'0':'1')});
+      E.minds=[]; for(let i=0;i<7;i++) E.minds.push({a:i/7*TAU-Math.PI/2,at:.45+.32*i}); },
+    pct(t){ return t<2.2 ? 87*eOut(t/2.2) : t<2.95 ? 87 : Math.min(100,87+13*eOut((t-2.95)/.4)); },
+    ev(E){ return E.minds.map(m=>[m.at,()=>SFX.ui()]).concat([[2.95,()=>SFX.warn()],[3.35,()=>{ SFX.strip(); shake=Math.max(shake,16); }]]); },
+    draw(E,t,col){
+      const fade=1-clamp((t-E.land)/.7,0,1); if(!fade) return;
+      ctx.save(); ctx.font='13px Menlo,monospace'; ctx.textAlign='center';
+      const rain=fade*clamp(t/.4,0,1);
+      for(const c of E.cols){
+        const hy=(c.off+t*c.sp)%(H+260)-20;
+        for(let j=0;j<c.ch.length;j++){
+          const y=hy-j*17; if(y<-10||y>H+10) continue;
+          ctx.globalAlpha=rain*(j?.32*(1-j/c.ch.length):.85);
+          ctx.fillStyle=j?col:'#f0e2ff';
+          ctx.fillText(c.ch[(j+Math.floor(t*9))%c.ch.length],c.x,y);
+        }
+      }
+      // the stored minds, each on a thread back to the core
+      const R=E.b.r*1.65;
+      ctx.shadowColor=col; ctx.shadowBlur=14;
+      for(const m of E.minds){
+        const k=clamp((t-m.at)/.25,0,1); if(!k) continue;
+        const pop=1+.6*(1-k), x=E.x+Math.cos(m.a+t*.4)*R, y=E.y+Math.sin(m.a+t*.4)*R;
+        ctx.globalAlpha=fade*.4; ctx.strokeStyle=col; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(E.x,E.y); ctx.lineTo(x,y); ctx.stroke();
+        ctx.globalAlpha=fade; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(x,y,9*pop,0,TAU); ctx.fillStyle='rgba(0,0,0,.7)'; ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x,y,3,0,TAU); ctx.fillStyle=col; ctx.fill();
+      }
+      ctx.shadowBlur=0;
+      // the load bar
+      const p=this.pct(t), bw=360, bx=E.x-bw/2, by=E.y+E.b.r*2.1;
+      ctx.globalAlpha=fade; ctx.fillStyle='rgba(5,6,13,.8)'; ctx.fillRect(bx-10,by-20,bw+20,38);
+      ctx.fillStyle='rgba(199,141,255,.15)'; ctx.fillRect(bx,by,bw,8);
+      ctx.fillStyle=col; ctx.fillRect(bx,by,bw*p/100,8);
+      ctx.font='600 11px Menlo,monospace'; ctx.textAlign='left'; ctx.fillStyle=col;
+      const stall=t>2.2&&t<2.95&&Math.floor(t*8)%2;
+      ctx.fillText(p>=100?'RECALL READY':'LOADING STORED MINDS',bx,by-7);
+      ctx.textAlign='right'; ctx.fillStyle=stall?'#ff4d5e':col;
+      ctx.fillText(Math.floor(p)+'%',bx+bw,by-7);
+      ctx.restore(); ctx.globalAlpha=1; ctx.textAlign='left';
+    }},
+
+  /* THE RULER, as it really is — the screen goes white and holds, a red point
+     beats in the middle of it, and then red floods out from it to the edges
+     and draws back in to the thing standing there */
+  final:{ land:3.2, flood:1.5,
+    ev(E){ const thump=()=>{ SND.tone('sine',70,34,.005,.35,.45); shake=Math.max(shake,8); };
+      return [[.85,thump],[1.2,thump],[this.flood,()=>{ SFX.tier(); shake=Math.max(shake,30); }]]; },
+    draw(E,t,col){
+      const far=Math.hypot(W,H);
+      // white, held
+      const wA = t<.12 ? t/.12 : t<this.flood ? 1 : 1-clamp((t-this.flood)/.9,0,1);
+      if(wA>0){ ctx.globalAlpha=wA; ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H); }
+      // a red point, beating
+      if(t>.7 && t<this.flood+.2){
+        const beat=1+.5*Math.max(0,Math.cos((t-.85)*TAU/.35))**8;
+        ctx.globalAlpha=1; ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=24;
+        ctx.beginPath(); ctx.arc(E.x,E.y,(3+clamp((t-.7)/.8,0,1)*11)*beat,0,TAU); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // the flood, and the draw back
+      if(t>this.flood){
+        const out=eOut(clamp((t-this.flood)/.7,0,1));
+        const back=clamp((t-(this.flood+1.0))/(E.land+.5-(this.flood+1.0)),0,1);
+        const rad=far*out*(1-back)+E.b.r*1.3*back;
+        const gr=ctx.createRadialGradient(E.x,E.y,0,E.x,E.y,Math.max(1,rad));
+        gr.addColorStop(0,'rgba(255,34,51,.95)'); gr.addColorStop(1,'rgba(90,0,12,.85)');
+        ctx.globalAlpha=1-back*.9; ctx.fillStyle=gr;
+        ctx.beginPath(); ctx.arc(E.x,E.y,rad,0,TAU); ctx.fill();
+        // its shape, black in the middle of it
+        ctx.globalAlpha=Math.min(1,out*1.5)*(1-clamp((t-E.land)/.3,0,1));
+        ctx.save(); ctx.translate(E.x,E.y); ctx.fillStyle='#000';
+        unitPath(ctx,'b_ruler',E.b.r,t*.5,t); ctx.fill(); ctx.restore();
+      }
+      ctx.globalAlpha=1;
+    }},
+};
 
 function bossEntrance(b){
   b.hidden=true;
   b.x=W/2; b.y=H*.36;
-  entrance={t:0, b, wt:waveTimer, x:b.x, y:b.y, shards:[]};
+  const st=STAGES[stageKey(b)]||STAGES.shards;
+  const E=entrance={t:0, b, st, wt:waveTimer, x:b.x, y:b.y, land:st.land};
+  E.dur=E.land+ENTR_TAIL;
   ebullets.length=0; bullets.length=0;
   shake=0; flash=0; SFX.bossIn();
-  // the hull arrives as debris pulled inward, the death scene run backwards
-  for(let i=0;i<30;i++){
-    const a=rand(0,TAU), d=rand(300,760);
-    entrance.shards.push({a, d, d0:d, r:rand(5,15), spin:rand(0,TAU), rot:rand(-6,6), lag:rand(0,.35)});
-  }
-  after(1.55,()=>{ if(!entrance) return;
-    shake=34; flash=.6;
-    shock(entrance.x,entrance.y,b.col,12,240,.6,9);
-    burst(entrance.x,entrance.y,b.col,54,430); });
-  after(2.5,()=>{ if(!entrance) return;
-    shake=Math.max(shake,16);
-    shock(entrance.x,entrance.y,'#ffffff',24,430,.75,5); });
-  after(ENTR_DUR-.3,()=>{ if(!entrance) return;
-    shake=Math.max(shake,28); flash=.75;
-    shock(entrance.x,entrance.y,b.col,34,Math.max(W,H)*1.1,.95,11); });
+  if(st.init) st.init(E);
+  b.x=E.x; b.y=E.y;                       // a staging may choose where it lands
+  const col=b.col;
+  E.ev=(st.ev?st.ev(E):[]).concat([
+    [E.land,()=>{ shake=Math.max(shake,34); flash=Math.max(flash,.6);
+      shock(E.x,E.y,col,12,240,.6,9); burst(E.x,E.y,col,54,430); }],
+    [E.land+1.0,()=>{ shake=Math.max(shake,16); shock(E.x,E.y,'#ffffff',24,430,.75,5); }],
+    [E.dur-.3,()=>{ shake=Math.max(shake,28); flash=Math.max(flash,.75);
+      shock(E.x,E.y,col,34,Math.max(W,H)*1.1,.95,11); }],
+  ]);
 }
 
 function entranceStep(dt){
-  entrance.t+=dt;
+  const E=entrance, t0=E.t;
+  E.t+=dt;
   ebullets.length=0; bullets.length=0;
-  if(entrance.t>=ENTR_DUR){
-    const b=entrance.b;
-    waveTimer=entrance.wt;             // its escorts start their clock now
+  for(const [at,fn] of E.ev) if(at>=t0 && at<E.t && entrance===E) fn();
+  if(entrance===E && E.t>=E.dur){
+    const b=E.b;
+    waveTimer=E.wt;                    // its escorts start their clock now
     entrance=null;
     b.hidden=false; b.flare=2.2; b.cool=1.6;
     banner=b.bn; bannerT=2.4;
@@ -2797,7 +3144,7 @@ function entranceStep(dt){
 const codexTag=n=>{ const r=CODEX.hostiles.rows.find(x=>x.n===n); return r?r.tag:''; };
 
 function entranceDraw(){
-  const E=entrance, t=E.t, b=E.b, col=b.col;
+  const E=entrance, t=E.t, b=E.b, col=b.col, land=E.land;
 
   // --- the arena seals: a frame drawn in from the corners ---
   const sk=clamp(t/.5,0,1), m=26, L=Math.min(W,H)*.42*sk;
@@ -2816,28 +3163,16 @@ function entranceDraw(){
     ctx.textAlign='left';
   }
 
-  // --- the hull drags itself in ---
-  if(t<1.6){
-    for(const p of E.shards){
-      const k=clamp((t-p.lag)/(1.5-p.lag),0,1), e2=1-Math.pow(1-k,3);
-      const d=p.d0*(1-e2), a=p.a+e2*1.9;
-      const x=E.x+Math.cos(a)*d, y=E.y+Math.sin(a)*d;
-      ctx.save(); ctx.translate(x,y); ctx.rotate(p.spin+p.rot*t);
-      ctx.globalAlpha=Math.min(1,k*2.2);
-      ctx.strokeStyle=col; ctx.lineWidth=1.6;
-      ctx.shadowColor=col; ctx.shadowBlur=10;
-      ctx.beginPath(); ctx.arc(0,0,p.r*(1-e2*.55),0,TAU); ctx.stroke();
-      ctx.restore();
-    }
-    ctx.globalAlpha=1; ctx.shadowBlur=0;
-  }
+  // --- its own arrival ---
+  ctx.save(); E.st.draw(E,t,col); ctx.restore();
+  ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.setLineDash([]); ctx.textAlign='left';
 
   // --- and then it is simply there ---
-  if(t>1.5){
-    const k=clamp((t-1.5)/.7,0,1);
+  if(t>land){
+    const k=clamp((t-land)/.7,0,1);
     ctx.save(); ctx.translate(E.x,E.y);
     for(let i=0;i<3;i++){                       // rings closing onto it
-      const rk=clamp((t-1.5-i*.13)/.8,0,1); if(!rk) continue;
+      const rk=clamp((t-land-i*.13)/.8,0,1); if(!rk) continue;
       ctx.beginPath(); ctx.arc(0,0,b.r*(3.4-2.1*rk)+i*15,0,TAU);
       ctx.strokeStyle=col; ctx.globalAlpha=(1-rk)*.7;
       ctx.setLineDash([9,13]); ctx.lineDashOffset=-t*70; ctx.lineWidth=1.5;
@@ -2857,8 +3192,8 @@ function entranceDraw(){
   }
 
   // --- the name card, and the hull it is bringing ---
-  if(t>2.15){
-    const k=clamp((t-2.15)/.35,0,1), y=H*.74;
+  if(t>land+.65){
+    const k=clamp((t-land-.65)/.35,0,1), y=H*.74;
     ctx.save(); ctx.globalAlpha=k;
     ctx.textAlign='center';
     ctx.font='600 '+(26+(1-k)*10).toFixed(1)+'px Menlo,monospace';
@@ -2869,7 +3204,7 @@ function entranceDraw(){
     ctx.fillText(codexTag(b.bn)||'CLASSIFIED',W/2,y+22);
     // the bar fills to the hull it actually arrived with
     const bw=Math.min(520,W*.5), bx=(W-bw)/2, by=y+38;
-    const fk=clamp((t-2.5)/1.1,0,1);
+    const fk=clamp((t-land-1.0)/1.1,0,1);
     ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(bx,by,bw,9);
     ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=16;
     ctx.fillRect(bx,by,bw*fk,9); ctx.shadowBlur=0;
@@ -2891,6 +3226,14 @@ const OPENING=tier=> (tier===2?1.15 : tier===1?1.4 : 1.7) * DIFF().open;
    wall the system is named after and it should hit like one. */
 const BOSS_BUFF=1.15, BOSS_SPD=1.1, BOSS_DMG=1.4;
 const PUNISH_MULT=2;
+/* The window has to be earned. Any hit the pilot takes marks every boss on the
+   field, and a marked boss keeps its guard up when its line reaches a '|' —
+   so EXPOSED only ever opens at the end of a line you flew clean. */
+function pilotHurt(){
+  SFX.hurt();
+  for(const e of enemies) if(e.t==='boss') e.marked=1;
+}
+const GUARD_HELD=.6;
 
 /* ---- armour nodes ----
    Every boss carries a ring of them, and they are the reason a boss fight is
@@ -2911,7 +3254,7 @@ const ARMOURED=.6, STRIP_OPEN=3.0;
    This is deliberately the one fight in the game with a wall clock on it, and
    it is drawn on the boss bar the entire time it is running — a silent timer
    would be a trap, and a trap is not the same thing as difficulty. */
-const RECALL_T=8.0;
+const RECALL_T=20.0;
 const RECALL_LABEL='WARNING: ARCHIVE IS REGENERATING';
 /* Armour does NOT come back at every tier. Stripping a boss is most of the
    work of the fight and having it instantly re-plate undoes that. It grows
@@ -3035,7 +3378,7 @@ function bossAI(e,dt,dx,dy,d){
   const tier=Math.min(hpf<.15?3 : hpf<.28?2 : hpf<.62?1 : 0, B.tiers.length-1);
   if(tier!==e.tier){
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
-    e.si=0; e.open=0;                         // the new tier opens with its opener
+    e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
     e.nodes=null;
     // the Archive starts its clock here, and re-arms it if it ever recalls
     e.recall = (B.k==='archive' && B.tiers[tier].last) ? RECALL_T : 0;
@@ -3050,6 +3393,7 @@ function bossAI(e,dt,dx,dy,d){
   }
   if(e.inv>0) e.inv-=dt;
   if(e.open>0) e.open=Math.max(0,e.open-dt);
+  if(e.held>0) e.held-=dt;
   const T=B.tiers[e.tier];
   /* the Archive's clock. It runs only in the last tier and only for the Archive;
      when it expires the hull goes back to full, which drops `tier` back to 0 on
@@ -3194,6 +3538,10 @@ function bossAI(e,dt,dx,dy,d){
   // '|' is the price of the line it just fired: it stops, drops its guard, and
   // for a moment every round you land on it counts double
   if(k==='|'){
+    if(e.marked){                             // you were hit: no window this line
+      e.marked=0; e.held=1.4; e.cool=GUARD_HELD;
+      return;
+    }
     e.open=e.openMax=OPENING(e.tier);
     e.cool=e.open; SFX.expose();
     shock(e.x,e.y,'#ffd24d',e.r,e.r*2.3,.5,4);
@@ -3240,8 +3588,8 @@ function bossAI(e,dt,dx,dy,d){
     bossSummon(e,type,e.tier===2?2:1);
     e.cool=bossRest(T)+2.0;
   }
-  else if(k==='build'){ archBuild(e); e.cool=bossRest(T)+.9; }
-  else if(k==='forge'){ archForge(e); e.cool=bossRest(T)+.4; }
+  else if(k==='build'){ archBuild(e); e.cool=bossRest(T)+.25; }
+  else if(k==='forge'){ archForge(e); e.cool=bossRest(T)+.1; }
   else if(k==='brand'){  e.act={k:'brand', t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='hammer'){ e.act={k:'hammer',t:0,x:e.x+dx,y:e.y+dy,r:104,hit:0}; }
   else if(k==='cross'){  e.act={k:'cross', t:0,a:e.spin,hit:0,lines:[]}; }
@@ -3565,12 +3913,12 @@ function update(dt){
         e.dir*=-1; e.flip=1.2;
       }
       e.cool-=dt;
-      if(e.cool<=0&&Math.abs(d-e.orb)<90){
-        e.cool=2.3*(e.rof||1);
+      if(e.cool<=0&&Math.abs(d-e.orb)<140){
+        e.cool=1.35*(e.rof||1);
         // straight in at where you are, no lead: the dodge is to keep moving
-        for(let i=-1;i<=1;i++){ const a=e.a+i*.12;
-          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*235,vy:Math.sin(a)*235,
-            r:5.5,dmg:10*EASE(),col:'#e8c872'}); }
+        for(let i=-2;i<=2;i++){ const a=e.a+i*.11;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*310,vy:Math.sin(a)*310,
+            r:6,dmg:15*EASE(),col:'#e8c872'}); }
       }
     }
     else if(e.t==='splinter'){
@@ -3731,7 +4079,7 @@ function update(dt){
     const rr=b.r+13;
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
-      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; shake=Math.max(shake,7); P.inv=.12; SFX.hurt();
+      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; shake=Math.max(shake,7); P.inv=.12; pilotHurt();
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -3743,9 +4091,9 @@ function update(dt){
     if(e.t==='echo') continue;            // it has no body to hit you with
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0&&buffs.shield<=0){
-        P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?12:e.t==='splinter'?16:10)
+        P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16:10)
                *DIFF().dmgIn*P.st.armour;
-        SFX.hurt();
+        pilotHurt();
         P.inv=.5; shake=Math.max(shake,11);
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
@@ -3927,7 +4275,7 @@ function hazHurt(dmg,x,y,col,kick){
   const P=player;
   if(P.inv>0||buffs.shield>0) return false;
   P.hp-=dmg*HAZ_DMG()*P.st.armour;
-  P.inv=.5; shake=Math.max(shake,15); SFX.hurt();
+  P.inv=.5; shake=Math.max(shake,15); pilotHurt();
   burst(P.x,P.y,col,14,260);
   if(kick){ const a=Math.atan2(P.y-y,P.x-x);
     P.vx+=Math.cos(a)*kick; P.vy+=Math.sin(a)*kick; }
@@ -4661,7 +5009,7 @@ function junkStep(list,dt,speed,dmg){
     if(j.y<j.r&&j.vy<0) j.vy*=-1;  if(j.y>H-j.r&&j.vy>0) j.vy*=-1;
     const rr=j.r*.86+13;
     if(P.inv<=0&&buffs.shield<=0&&dist2(j,P)<rr*rr){
-      P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.55; shake=Math.max(shake,17); SFX.hurt();
+      P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.55; shake=Math.max(shake,17); pilotHurt();
       const a=Math.atan2(P.y-j.y,P.x-j.x);
       P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
       burst(P.x,P.y,'#8ea0c8',14,260);
@@ -4960,6 +5308,12 @@ function schoolNext(){
   school.rings=[]; school.junk=[]; school.motes=[]; school.t=0; school.dashes=0; school.clean=0; school.hold=0; school.frozen=false;
   player.hp=player.st.maxHp; player.inv=1.4;
   school.list[school.i].setup();
+  // the world holds still until the card has been read and the arrow pressed
+  school.wait=true;
+}
+function schoolBegin(){
+  if(!school||!school.wait) return;
+  school.wait=false; mouse.down=false;
   banner=school.list[school.i].name; bannerT=2.2;
 }
 
@@ -5063,8 +5417,28 @@ function schoolPanel(){
   L.lines.forEach((t,i)=>ctx.fillText(t,x+18,y+48+i*17));
   ctx.textAlign='right';
   ctx.font='600 12px Menlo,monospace'; ctx.fillStyle=school.hold>0?'#46e39b':'#ffb44d';
-  ctx.fillText(school.hold>0?'PASSED':L.goal(),x+w-18,y+25);
+  ctx.fillText(school.wait?'PAUSED':school.hold>0?'PASSED':L.goal(),x+w-18,y+25);
   ctx.textAlign='left';
+  // the start arrow: nothing moves until it is pressed (or ENTER)
+  if(school.wait){
+    const bw=78,bh=50,bx=x+w-bw-14,by=y+h-bh-12;
+    school.btn={x:bx,y:by,w:bw,h:bh};
+    const hot=mouse.x>=bx&&mouse.x<=bx+bw&&mouse.y>=by&&mouse.y<=by+bh;
+    const pulse=.5+.5*Math.sin(performance.now()/260);
+    ctx.fillStyle=hot?'#7ab8ff':'#4d9dff';
+    ctx.shadowColor='#4d9dff'; ctx.shadowBlur=10+pulse*12;
+    ctx.fillRect(bx,by,bw,bh);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#05060d';
+    const cx=bx+bw/2, cy=by+bh/2;
+    ctx.beginPath();
+    ctx.moveTo(cx-18,cy-6); ctx.lineTo(cx+2,cy-6); ctx.lineTo(cx+2,cy-15);
+    ctx.lineTo(cx+20,cy); ctx.lineTo(cx+2,cy+15); ctx.lineTo(cx+2,cy+6); ctx.lineTo(cx-18,cy+6);
+    ctx.closePath(); ctx.fill();
+    ctx.textAlign='right'; ctx.font='10px Menlo,monospace'; ctx.fillStyle='#4d9dff';
+    ctx.fillText('BEGIN · ENTER',bx-10,by+bh-4);
+    ctx.textAlign='left';
+  }else school.btn=null;
 }
 
 function schoolRings(){
@@ -5602,6 +5976,12 @@ function hud(){
     }else if(boss.open>0){
       ctx.fillStyle='#ffd24d'; ctx.font='600 11px Menlo,monospace';
       ctx.fillText('EXPOSED  \u00d7'+P.st.punish.toFixed(1),W/2,y-24);
+    }else if(boss.held>0){
+      ctx.fillStyle='#8a93ad'; ctx.font='600 11px Menlo,monospace';
+      ctx.fillText('GUARD HELD \u00b7 YOU WERE HIT',W/2,y-24);
+    }else if(boss.marked){
+      ctx.fillStyle='#6b7390'; ctx.font='11px Menlo,monospace';
+      ctx.fillText('HIT TAKEN \u00b7 NO OPENING THIS LINE',W/2,y-24);
     }else if(nodesUp(boss)){
       ctx.fillStyle='#8a7433'; ctx.font='11px Menlo,monospace';
       ctx.fillText(boss.B.nodes.nm+'  '+boss.nodes.length+' \u00b7 HULL ARMOURED',W/2,y-24);
@@ -5629,6 +6009,10 @@ function frame(now){
   const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
   if(state==='intro'){ cineStep(raw); }
   else if(state==='finale'){ finaleStep(raw); }
+  else if(state==='play'&&school&&school.wait){
+    if(bannerT>0) bannerT-=raw;
+    for(const s of stars){ s.y+=s.z*14*raw; if(s.y>H){s.y=0;s.x=rand(0,W);} }
+  }
   else if(state==='play'&&!paused&&!(school&&school.frozen)) update(dt);
   else if(state==='over'||state==='dying'){
     for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}}
@@ -5828,6 +6212,9 @@ const regOpen=r=>{
   return false;
 };
 const slotOf=i=>regItems(mapReg).findIndex(it=>it.i===i);
+// a system you have not reached yet, or a region you have not opened, has no name on the chart
+const UNKNOWN='? ? ?';
+const sysLabel=i=> sysReached(i) ? SYSTEMS[i].name : UNKNOWN;
 const MAP_N=()=>regItems(mapReg).length;
 const MAP_Y=i=>{                       // slot 0 at the bottom, the last node at the top
   const n=MAP_N();
@@ -5914,7 +6301,7 @@ function buildMap(){
     // the route past the last real system: locked, unnumbered, drawn dim
     if(it.ph!==undefined){
       if(slot>0) line(MAP_X,MAP_Y(slot-1),MAP_X,y,'#2a3252',false,false);
-      node(MAP_X,y,'locked ph',it.ph,'LOCKED');
+      node(MAP_X,y,'locked ph',UNKNOWN,'LOCKED');
       return;
     }
     const i=it.i, sy=SYSTEMS[i], done=i<held;
@@ -5933,7 +6320,7 @@ function buildMap(){
       const bn=node(bx,y,cls+(lit?' open':'')+(selB?' sel':''), branchName(k),
         selB   ? 'SELECTED'
         : lit  ? branchSub(k)
-        : branchReady(k) ? 'OFFERED AT '+sy.name
+        : branchReady(k) ? 'OFFERED AT '+sysLabel(i)
         : 'NEEDS A TIER '+branchTier(k)+' SKILL');
       if(offer) bn.onclick=()=>{
         if(k!=='boss'){ startMission(k); return; }
@@ -5951,7 +6338,7 @@ function buildMap(){
              : open ? 'OPEN'
              : sysReached(i) ? 'NEEDS '+sysFloor(i)+' CR'
              : 'LOCKED';
-    const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sy.name, st,
+    const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sysLabel(i), st,
          String(i+1).padStart(2,'0'));
     // on the title map every unlocked node is a launch point you can click
     if(!run && (open||done) && !(sel&&!mapPickK)){ n.style.cursor='pointer';
@@ -5960,7 +6347,7 @@ function buildMap(){
 
   // which region is on screen, and whether there is one either side of it
   const ro=regOpen(mapReg);
-  $('mapRegName').textContent=REGIONS[mapReg].n+(ro?'':'  ·  LOCKED');
+  $('mapRegName').textContent=ro ? REGIONS[mapReg].n : 'UNCHARTED  ·  LOCKED';
   $('mapRegName').classList.toggle('lock',!ro);
   $('mapRegNum').textContent='REGION '+(mapReg+1)+' / '+REGIONS.length;
   $('btnRegPrev').disabled=mapReg<=0;
@@ -6174,10 +6561,11 @@ function openMap(mode,then){
     runHeld=Math.min(save.deepestSys,SYSTEMS.length);
     // default the cursor to the furthest thing you are cleared to fly, so
     // LAUNCH picks up where the save left off rather than at 001 every time
-    let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i)) best=i;
+    let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i) && regOf(i)===0) best=i;
     mapPick=best; mapPickK=null;
   }
-  mapReg=regOf(mapMode==='menu' ? mapPick : Math.min(runHeld,SYSTEMS.length-1));
+  // the chart always opens on the first region; the arrows walk on from there
+  mapReg=0;
   buildMap(); state='map'; show('map');
 }
 
@@ -6396,33 +6784,33 @@ const CODEX={
        'toward whichever side you are shooting from, so flanking it is something '+
        'you keep doing, not something you do once.'},
     {c:'#e8c872', n:'ORBITER', tag:'SATURN  ·  RING', sys:3,
-     u:'orbiter', a:[80,165,10,.43,12], ctr:'«WRITE: one-line counter for the Orbiter»',
-     t:'«WRITE: codex entry for the Orbiter — circles you at a fixed distance and fires three rounds straight inward»'},
+     u:'orbiter', a:[150,215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
+     t:'A new Iteration type that will circle you and fire inwards.'},
     {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:4,
      u:'splinter', a:[169,110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
        'you. It holds a working distance and weaves while it reloads, so the orb '+
        'is the warning and the fan is the attack.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'EARTH  ·  WAVE 5', sys:0,
-     u:'b_primary', a:[856,62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
+     u:'b_primary', a:[1284,62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
      t:'A Primary that outgrew its mindframe. It never retreats, it never stops '+
        'bracing, and once it is hurt it aims itself at you and blasts down the '+
        'line it showed you. Do not be standing on that line.'},
     {c:'#46e39b', n:'THE HIVE MIND', tag:'VENUS  ·  WAVE 5', sys:1,
-     u:'b_hive', a:[966,70,10,.44,15], ctr:'Ignore the Watchers it spawns until they get close. Focus fire on the core to kill it.',
+     u:'b_hive', a:[1691,70,10,.44,15], ctr:'Ignore the Watchers it spawns until they get close. Focus fire on the core to kill it.',
      t:'Not one enemy, a swarm around a core. It spits Watchers, and it sheds '+
        'two more every time you take an eighth of its hull off it. Killing the '+
        'core kills the swarm, so ignore the escorts and keep hitting the middle.'},
     {c:'#3fd8e0', n:'ITERATION 2117', tag:'JUPITER  ·  WAVE 5', sys:2,
-     u:'b_overseer', a:[1049,66,13,.46,15], ctr:'The arc blocks whatever it faces, so shoot from behind it.',
+     u:'b_overseer', a:[2098,66,13,.46,15], ctr:'The arc blocks whatever it faces, so shoot from behind it.',
      t:'An Overseer that has learned. Its shield arc is wider and it '+
        'tracks you, so every shot has to come from somewhere it is not looking. '+
        'Hurt, it rakes a rotating wall of fire across the whole arena.'},
     {c:'#e8c872', n:'THE ARCHITECT', tag:'SATURN  ·  WAVE 5', sys:3,
-     u:'b_architect', a:[989,58,10,.45,15], ctr:'«WRITE: one-line counter for the Architect»',
-     t:'«WRITE: codex entry for the Architect — square, then circle, then triangle; builds its shape round you and closes it, or round itself and blooms it outward»'},
+     u:'b_architect', a:[2225,76,14,.45,15], ctr:'Get outside of its shapes before they burst.',
+     t:'A new Iteration that builds exploding shapes. Move through the gaps in them to escape.'},
     {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:4, void:1,
-     u:'b_ruler', a:[621,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
+     u:'b_ruler', a:[1553,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
      t:'The enemy leader, and the creature the other three answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
     /* The two behind the Portal. `hide` keeps a row off the list entirely until
@@ -6430,11 +6818,11 @@ const CODEX={
        so neither is a padlock on the roster hinting at something you have not
        been told about yet. */
     {c:'#8dffc4', n:'ITERATION 3295', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'s3295',
-     u:'b_primary', a:[2128,145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
+     u:'b_primary', a:[5320,145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
      t:'An Iteration that was never deployed. It fights at close range at speed, '+
        'and its lines run longer between openings than any campaign boss.'},
     {c:'#c78dff', n:'THE ARCHIVE', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'archive',
-     u:'b_ruler', a:[4830,64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
+     u:'b_ruler', a:[12075,64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
      t:'Everything the Iterations ever recorded, kept in one frame. It is slow, it '+
        'is enormous, and it rewrites what it is doing as you fight it.'},
   ]},
