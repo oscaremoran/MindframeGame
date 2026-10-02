@@ -869,7 +869,7 @@
       <canvas id="treeArt"></canvas><svg id="lines"></svg>
       <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     </div>
-    <!-- the readout for whichever skill is hovered, or tapped on a touch screen -->
+    <!-- the readout for whichever skill was clicked last -->
     <div id="skillInfo"></div>
   </div>
 </div>
@@ -6254,13 +6254,10 @@ function buildTree(){
                 '<div class="cost">'+(has(s.id)?s.d:s.d+' · '+SKILL_CR(s)+' CR')+'</div>';
     if(s.id===landed) d.classList.add('landed');
     if(s.id===treeSel) d.classList.add('sel');
-    // a mouse reads on hover and buys on click; a touch screen has no hover,
-    // so its first tap reads the skill and a second tap (or BUY) buys it
-    d.onmouseenter=()=>{ if(HOVER()) skillInfo(s); };
-    d.onmouseleave=()=>{ if(HOVER()) skillInfo(byId(treeSel)); };
+    // the first click reads the skill; a second click on it (or BUY) buys it
     d.onclick=()=>{
-      if(!HOVER() && treeSel!==s.id){ treeSel=s.id; buildTree(); return; }
-      treeSel=s.id; buySkill(s); buildTree();
+      if(treeSel!==s.id){ treeSel=s.id; buildTree(); return; }
+      buySkill(s); buildTree();
     };
     t.appendChild(d);
   }
@@ -6279,7 +6276,6 @@ function buildTree(){
    numbers on this hull, before and after — so it can never disagree with what
    the ship actually does. `treeSel` is the node last clicked or tapped.     */
 let treeSel=null;
-const HOVER=()=>matchMedia('(hover:hover)').matches;
 function buySkill(s){
   if(!canBuy(s)) return;
   save.credits-=SKILL_CR(s); owned().push(s.id); persist();
@@ -6297,8 +6293,7 @@ const reqChain=s=>{ const a=[]; for(let q=s.req&&byId(s.req); q; q=q.req&&byId(q
 const needsOf=id=>SKILLS.filter(k=>reqChain(k).includes(id)).map(k=>k.id);
 function skillInfo(s){
   const box=$('skillInfo');
-  if(!s){ box.innerHTML='<span class="si-hint">'+
-    (HOVER()?'HOVER A SKILL TO READ IT':'TAP A SKILL TO READ IT')+'</span>'; return; }
+  if(!s){ box.innerHTML='<span class="si-hint">CLICK A SKILL TO READ IT, AGAIN TO BUY</span>'; return; }
   // before and after: what you own plus everything this skill needs, without
   // and then with it. Anything that needs this skill comes off both sides.
   const drop=new Set([s.id,...needsOf(s.id)]);
