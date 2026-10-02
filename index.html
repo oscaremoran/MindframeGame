@@ -216,7 +216,8 @@
      top to bottom: the name, the buttons, the controls. */
   #menu{justify-content:flex-start; align-items:center; text-align:center;
     flex-direction:column; padding:5% 5% 4%; background:#05070f; backdrop-filter:none}
-  #menuTop,#menuBtns,#demoKeys{position:relative; z-index:1}
+  #menuTop,#menuBtns,#demoKeys,#linkApp{position:relative; z-index:1}
+  #linkApp{margin-top:clamp(18px,3vw,34px); font-size:clamp(10px,1.25vw,13px)}
   #menuTop{display:flex; flex-direction:column; align-items:center}
   #menu h1{
     font-size:clamp(34px,6.8vw,74px); letter-spacing:.2em; margin:0 0 0 .2em;
@@ -509,6 +510,24 @@
   .node.own .cost{color:#46e39b}
   .node.own .tr{color:#2f7f5c}
   .node.locked{opacity:.42; cursor:not-allowed}
+  .node.sel{outline:1px solid #ffd24d; outline-offset:3px; z-index:3}
+
+  /* ---- skill readout, under the tree ---- */
+  #skillInfo{
+    flex:0 0 auto; display:flex; flex-wrap:wrap; gap:10px 22px; align-items:flex-start;
+    margin-top:10px; padding:12px 16px; min-height:96px; text-align:left;
+    border:1px solid #1b2540; background:rgba(8,12,24,.8);
+  }
+  #skillInfo .si-l{flex:1 1 260px; min-width:0}
+  #skillInfo .si-r{flex:1 1 240px; min-width:0}
+  #skillInfo .si-t{font-size:7.5px; letter-spacing:.2em; color:#5d6c8f}
+  #skillInfo .si-n{font-size:clamp(12px,1.5vw,16px); letter-spacing:.12em; color:#dfe9ff; margin:3px 0 6px}
+  #skillInfo .si-s{font-size:clamp(8px,.92vw,10px); letter-spacing:.18em; color:#7182a8}
+  #skillInfo .si-s.own{color:#46e39b} #skillInfo .si-s.can{color:#6fb2ff} #skillInfo .si-s.no{color:#ff6b8a}
+  #skillInfo p{margin:8px 0 0; font-size:clamp(10px,1.15vw,12.5px); line-height:1.65}
+  #skillInfo .lr{padding:4px 0}
+  #skillInfo .si-hint{align-self:center; font-size:clamp(8px,.92vw,10px); letter-spacing:.24em; color:#5d6c8f}
+  #skillInfo button{margin-top:10px}
 
   /* ══════════ ASSESS — the bestiary readout ══════════
      A roster on the left, one unit's full telemetry on the right. Clipped
@@ -694,6 +713,8 @@
       <span><b>WASD</b> THRUST</span><span><b>MOUSE</b> AIM</span>
       <span><b>CLICK</b> FIRE</span><span><b>P</b> PAUSE</span>
     </div>
+    <!-- browser only: the Mac app is a GitHub download; the app itself hides this -->
+    <a class="storylink" id="linkApp" href="https://github.com/oscaremoran/MindframeGame/raw/main/MindframeGame-app/Mindframe-mac.zip">DOWNLOAD THE MAC APP &rsaquo;</a>
   </div>
 
   <!-- GARAGE — parked mid-build. The hulls, their stat multipliers and the
@@ -824,7 +845,8 @@
     <h2 id="overSub">WAVE 1</h2>
     <p id="overMeta"></p>
     <div class="row">
-      <button id="btnRetry">RE-LAUNCH</button>
+      <button id="btnRelaunch">RELAUNCH</button>
+      <button id="btnRetry" class="ghost">SPACE MAP</button>
       <button id="btnTreeOver" class="ghost">SKILL TREE</button>
       <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
     </div>
@@ -847,6 +869,8 @@
       <canvas id="treeArt"></canvas><svg id="lines"></svg>
       <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     </div>
+    <!-- the readout for whichever skill is hovered, or tapped on a touch screen -->
+    <div id="skillInfo"></div>
   </div>
 </div>
 
@@ -1416,6 +1440,8 @@ const MUS={
 
 /* ================= persistence ================= */
 const SAVE='mindframe.001';
+// set when the game is running inside the Mac app rather than a browser
+const APP=!!window.MF_APP;
 /* CREDITS are what a system pays out: two per wave held in Earth, four
    per wave in 002, and so on, plus eight for putting down a system's boss.
    They are the only currency — spend them on hulls in the Garage, or exchange
@@ -1562,25 +1588,41 @@ function credit(n){ if(!n) return; save.credits+=n; runCr+=n; persist(); }
    everything below them put together, so finishing one is a reason to fly the
    route again rather than something the first run hands you. */
 const SKILLS=[
-  {id:'dmg1',  n:'PULSE\nUPGRADES',  d:'+4 damage',        cost:4, x:11, y:88, req:null},
-  {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:7, x:11, y:64, req:'dmg1'},
-  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:40, req:'dmg2'},
-  {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d74', cost:70, x:11, y:13, req:'pierce'},
+  {id:'dmg1',  n:'PULSE\nUPGRADES',  d:'+4 damage',        cost:4, x:11, y:88, req:null,
+   info:'Deal 4 extra damage for every shot that hits.'},
+  {id:'dmg2',  n:'FOCUSED\nPULSE',      d:'+5 damage',        cost:7, x:11, y:64, req:'dmg1',
+   info:'Deal another 5 extra damage for every shot that hits.'},
+  {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:40, req:'dmg2',
+   info:'Shots pass through enemies.'},
+  {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d74', cost:70, x:11, y:13, req:'pierce',
+   info:'When a boss is exposed, deal 4x damage instead of the regular 2x.'},
 
-  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:88, req:null},
-  {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:7, x:33, y:64, req:'rate1'},
-  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:26, x:33, y:40, req:'rate2'},
-  {id:'spread2',n:'QUANTUM\nSPREAD', d:'5-shot spread',  cost:88, x:33, y:13, req:'spread'},
+  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:88, req:null,
+   info:'Fire 18% faster.'},
+  {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:7, x:33, y:64, req:'rate1',
+   info:'Fire another 18% faster.'},
+  {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:26, x:33, y:40, req:'rate2',
+   info:'Have the Scatter powerup all the time.'},
+  {id:'spread2',n:'QUANTUM\nSPREAD', d:'5-shot spread',  cost:88, x:33, y:13, req:'spread',
+   info:'Have 5 shots in a fan instead of 3.'},
 
-  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:88, req:null},
-  {id:'hull2', n:'HULL\nREINFORCEMENT', d:'+30 max HP',       cost:9, x:56, y:64, req:'hull1'},
-  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:40, req:'hull2'},
-  {id:'armour',n:'BIOLOGICAL\nWEAVE', d:'-22% damage taken', cost:80, x:56, y:13, req:'regen'},
+  {id:'hull1', n:'HULL\nPLATING',       d:'+30 max HP',       cost:4, x:56, y:88, req:null,
+   info:'Gain 30 extra max HP.'},
+  {id:'hull2', n:'HULL\nREINFORCEMENT', d:'+30 max HP',       cost:9, x:56, y:64, req:'hull1',
+   info:'Gain another 30 max HP.'},
+  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:40, req:'hull2',
+   info:'The hull repairs at 1.4 HP per second.'},
+  {id:'armour',n:'BIOLOGICAL\nWEAVE', d:'-22% damage taken', cost:80, x:56, y:13, req:'regen',
+   info:'22% less damage from any source.'},
 
-  {id:'spd1',  n:'THRUST\nBOOST',   d:'+18% speed',       cost:5, x:79, y:88, req:null},
-  {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:64, req:'spd1'},
-  {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:40, req:'dash'},
-  {id:'dash2', n:'INTERSTELLAR\nDRIVE', d:'dash travels \u00d73', cost:56, x:79, y:13, req:'shield'},
+  {id:'spd1',  n:'THRUST\nBOOST',   d:'+18% speed',       cost:5, x:79, y:88, req:null,
+   info:'Move 18% faster.'},
+  {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:64, req:'spd1',
+   info:'Press SHIFT to dash.'},
+  {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:40, req:'dash',
+   info:'You cannnot get hit while dashing.'},
+  {id:'dash2', n:'INTERSTELLAR\nDRIVE', d:'dash travels \u00d73', cost:56, x:79, y:13, req:'shield',
+   info:'Each dash goes three times as far.'},
 ];
 const byId=id=>SKILLS.find(s=>s.id===id);
 const canBuy=s=>!has(s.id) && save.credits>=SKILL_CR(s) && (!s.req || has(s.req));
@@ -1881,7 +1923,11 @@ const branchTitle=k=> k==='boss'?'QUANTUM PORTAL':k==='escort'?'ESCORT':'SALVAGE
    back to the chart — which is what makes the branches worth owning a tier for
    even on a save that has already held every system. */
 let branchSortie=false;
+/* The flight you launched last, so the death screen can put you straight back
+   into it: same system or same branch, from the top, at full hull. */
+let relaunch=null;
 function newBranch(kind,i){
+  relaunch=()=>newBranch(kind,i);
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
@@ -1894,7 +1940,9 @@ function newBranch(kind,i){
   hideAll(); startMission(kind);
 }
 
-function newRun(){
+function newRun(quick){
+  const i=mapPick;
+  relaunch=()=>{ mapPick=i; mapPickK=null; newRun(true); };
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
@@ -1905,7 +1953,8 @@ function newRun(){
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
-  cineStart(beginSystem);
+  // a relaunch skips the uplink readout: you have just seen it
+  if(quick){ hideAll(); beginSystem(); } else cineStart(beginSystem);
 }
 
 // text -> paragraphs; [BRACKETED] lines render as terminal output
@@ -1952,6 +2001,7 @@ function branchOverview(k,i){
   return lpanel('ENEMY FORCES',
            lrow('THE RUN', M[0], '', 1)+
            lrow('OPPOSITION', M[1], k==='salvage'?'':'bad', 1)+
+           (k==='salvage'?lrow('TO FINISH','«WRITE: fly into the green EXIT to bank it and end the run»','good',1):'')+
            (branchBanked(i,k)
               ? lrow('PAYOUT','+'+Math.max(1,Math.round(SECRET_PAY(i,k)*BRANCH_REPEAT))+
                               ' CR  (REFLOWN)','warn')
@@ -3997,7 +4047,7 @@ function endRun(win,why){
     (win?'':'<br><br>If your ship is destroyed, your progress in that system will be destroyed. '+
             'You can re-launch to the system to try again.')+
     (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades to your ship are permanent, take them into your next attack.':'');
-  document.getElementById('btnRetry').textContent = win?'SPACE MAP':'BACK TO THE MAP';
+  $('btnRelaunch').style.display = (win||!relaunch) ? 'none' : '';
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   if(win){ state='over'; show('over'); return; }
   // a death is a scene, not a screen transition. Let it finish first.
@@ -5002,7 +5052,19 @@ function missionDraw(){
   ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r*(.35+.5*pulse),0,TAU);
   ctx.strokeStyle='rgba(70,227,155,.35)'; ctx.lineWidth=1.5; ctx.stroke();
   ctx.font='10px Menlo,monospace'; ctx.fillStyle='#46e39b'; ctx.textAlign='center';
-  ctx.fillText('EXIT',ex.x,ex.y+ex.r+16); ctx.textAlign='left';
+  const all=M.got>=M.motes.length;
+  ctx.fillText(all?'ALL SALVAGED — EXIT':'EXIT',ex.x,ex.y+ex.r+16); ctx.textAlign='left';
+  // once you are holding something, a chevron off the hull points the way
+  // out — brighter when there is nothing left to stay for
+  const P=player, dx=ex.x-P.x, dy=ex.y-P.y, d=Math.hypot(dx,dy);
+  if(M.got>0 && d>ex.r+70){
+    const a=Math.atan2(dy,dx), o=38;
+    ctx.save(); ctx.translate(P.x+Math.cos(a)*o,P.y+Math.sin(a)*o); ctx.rotate(a);
+    ctx.strokeStyle='rgba(70,227,155,'+(all?.6+.4*pulse:.35+.25*pulse)+')';
+    ctx.lineWidth=2.4; ctx.shadowColor='#46e39b'; ctx.shadowBlur=all?14:6;
+    ctx.beginPath(); ctx.moveTo(-5,-7); ctx.lineTo(4,0); ctx.lineTo(-5,7); ctx.stroke();
+    ctx.restore();
+  }
 }
 
 /* ================= render ================= */
@@ -5455,6 +5517,11 @@ function hud(){
     ctx.fillStyle='#46e39b';
     ctx.fillText(M.k==='salvage'?'SALVAGED '+M.got+' / '+M.motes.length
                                 :'PAYS '+M.pay+' CR',W-24,M.k==='boss'?70:88);
+    // salvage has no clock and no last wave, so say outright how it ends
+    if(M.k==='salvage'){
+      ctx.fillStyle='rgba(70,227,155,'+(.6+.4*Math.sin(M.t*4))+')';
+      ctx.fillText('FLY INTO THE EXIT TO FINISH',W-24,106);
+    }
   }else{
     ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
     ctx.fillText('HOSTILES '+(enemies.length+spawnQ.length),W-24,70);
@@ -6186,14 +6253,18 @@ function buildTree(){
                 '<div class="nm">'+s.n.replace(/\n/g,'<br>')+'</div>'+
                 '<div class="cost">'+(has(s.id)?s.d:s.d+' · '+SKILL_CR(s)+' CR')+'</div>';
     if(s.id===landed) d.classList.add('landed');
-    d.onclick=()=>{ if(canBuy(s)){
-      save.credits-=SKILL_CR(s); owned().push(s.id); persist();
-      landed=s.id; unlockFx(s); SFX.buy();
-      buildTree(); refreshMenu();
-      setTimeout(()=>{ if(landed===s.id){ landed=null; buildTree(); } },950);
-    } };
+    if(s.id===treeSel) d.classList.add('sel');
+    // a mouse reads on hover and buys on click; a touch screen has no hover,
+    // so its first tap reads the skill and a second tap (or BUY) buys it
+    d.onmouseenter=()=>{ if(HOVER()) skillInfo(s); };
+    d.onmouseleave=()=>{ if(HOVER()) skillInfo(byId(treeSel)); };
+    d.onclick=()=>{
+      if(!HOVER() && treeSel!==s.id){ treeSel=s.id; buildTree(); return; }
+      treeSel=s.id; buySkill(s); buildTree();
+    };
     t.appendChild(d);
   }
+  skillInfo(byId(treeSel));
   $('pts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
   // trees are per-hull, so the screen has to say which hull you are spending on
   $('treeShip').textContent=SHIPS[treeShip()].n+'  \u00b7  '+
@@ -6203,6 +6274,70 @@ function buildTree(){
   rs.className='ghost'; rs.disabled=!back; rs.style.opacity=back?'':'.4';
   respecArmed=0;
 }
+/* ---- the skill readout ----
+   Everything under the tree is worked out from stats() itself — the skill's
+   numbers on this hull, before and after — so it can never disagree with what
+   the ship actually does. `treeSel` is the node last clicked or tapped.     */
+let treeSel=null;
+const HOVER=()=>matchMedia('(hover:hover)').matches;
+function buySkill(s){
+  if(!canBuy(s)) return;
+  save.credits-=SKILL_CR(s); owned().push(s.id); persist();
+  landed=s.id; unlockFx(s); SFX.buy();
+  refreshMenu();
+  setTimeout(()=>{ if(landed===s.id){ landed=null; buildTree(); } },950);
+}
+// stats() for this hull as if its tree were exactly `ids`
+function statsFor(ids){
+  const i=treeShip(), real=save.trees[i];
+  save.trees[i]=ids;
+  try{ return stats(); } finally{ save.trees[i]=real; }
+}
+const reqChain=s=>{ const a=[]; for(let q=s.req&&byId(s.req); q; q=q.req&&byId(q.req)) a.push(q.id); return a; };
+const needsOf=id=>SKILLS.filter(k=>reqChain(k).includes(id)).map(k=>k.id);
+function skillInfo(s){
+  const box=$('skillInfo');
+  if(!s){ box.innerHTML='<span class="si-hint">'+
+    (HOVER()?'HOVER A SKILL TO READ IT':'TAP A SKILL TO READ IT')+'</span>'; return; }
+  // before and after: what you own plus everything this skill needs, without
+  // and then with it. Anything that needs this skill comes off both sides.
+  const drop=new Set([s.id,...needsOf(s.id)]);
+  const base=[...new Set([...owned(),...reqChain(s)])].filter(id=>!drop.has(id));
+  const a=statsFor(base), b=statsFor(base.concat(s.id));
+  const f1=v=>Math.round(v*10)/10, dps=x=>f1(x.dmg*x.shots/x.delay);
+  const row=(k,x,y)=> x===y ? '' : lrow(k, x+'  \u2192  '+y, 'good');
+  const on=v=>v?'ON':'OFF';
+  const rows=
+    row('DAMAGE / ROUND', f1(a.dmg), f1(b.dmg))+
+    row('ROUNDS / SEC',   f1(1/a.delay), f1(1/b.delay))+
+    row('ROUNDS / TRIGGER', a.shots, b.shots)+
+    row('TARGETS / ROUND', a.pierce+1, b.pierce+1)+
+    (dps(a)!==dps(b) ? row('MAX DAMAGE / SEC', dps(a), dps(b)) : '')+
+    row('EXPOSED HITS', '\u00d7'+a.punish, '\u00d7'+b.punish)+
+    row('MAX HULL', a.maxHp, b.maxHp)+
+    row('REPAIR', f1(a.regen)+' HP/S', f1(b.regen)+' HP/S')+
+    row('DAMAGE TAKEN', Math.round(a.armour*100)+'%', Math.round(b.armour*100)+'%')+
+    row('TOP SPEED', Math.round(a.speed), Math.round(b.speed))+
+    row('DASH (SHIFT)', on(a.dash), on(b.dash))+
+    row('DASH I-FRAMES', on(a.iframe), on(b.iframe))+
+    row('DASH LENGTH', f1(a.dashLen*100)/100+'s', f1(b.dashLen*100)/100+'s');
+  const own=has(s.id), ready=!s.req||has(s.req), cr=SKILL_CR(s);
+  const status = own ? ['own','OWNED']
+               : !ready ? ['no','NEEDS '+byId(s.req).n.replace(/\n/g,' ')]
+               : save.credits<cr ? ['no',cr+' CR  \u00b7  NEED '+(cr-save.credits)+' MORE']
+               : ['can',cr+' CR'];
+  box.innerHTML=
+    '<div class="si-l"><div class="si-t">TIER '+tierOf(s.id)+'</div>'+
+      '<div class="si-n">'+s.n.replace(/\n/g,' ')+'</div>'+
+      '<div class="si-s '+status[0]+'">'+status[1]+'</div>'+
+      '<p>'+s.info+'</p>'+
+      (canBuy(s)?'<button id="btnSkillBuy">BUY \u2014 '+cr+' CR</button>':'')+
+    '</div>'+
+    '<div class="si-r">'+lpanel(own?'WHAT IT GIVES THIS HULL':'WHAT IT WILL GIVE THIS HULL', rows)+'</div>';
+  const bb=$('btnSkillBuy');
+  if(bb) bb.onclick=()=>{ treeSel=s.id; buySkill(s); buildTree(); };
+}
+
 /* ---- respec ----
    Credits are the scarce thing, and a tree you regret is a run you cannot fix.
    Selling the whole tree back is free and total: every credit you ever spent on
@@ -6783,6 +6918,7 @@ $('btnStoryBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(
 $('btnStart').onclick=()=>openMap('menu');
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRetry').onclick=()=>{hideAll();openMap('menu');};
+$('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
 // every flight off the map goes through the launching screen first
 function mapLaunch(i,k){
   mapPick=i; mapPickK=k||null;
@@ -6831,7 +6967,7 @@ function onEscape(){
 }
 function onEnter(){
   const o=openOverlay();
-  const main={menu:'btnStart',over:'btnRetry',pause:'btnResume',brief:'btnBriefGo',
+  const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnRetry':'btnRelaunch',pause:'btnResume',brief:'btnBriefGo',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',
               story:'btnStoryBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
@@ -6854,8 +6990,14 @@ $('btnCodexBack').onclick=()=>{ if(gearFrom){ gearBack(); return; }
 $('btnGarage').onclick=openGarage;
 $('btnGarageBack').onclick=closeGarage;
 
+if(APP) $('linkApp').style.display='none';
+// the app calls this when you switch away from it or minimise it
+window.mfAppBlur=()=>{ if(state==='play'&&!paused) setPause(true); };
+
 // the game opens on the menu
 refreshMenu(); state='menu'; show('menu');
+// the app is allowed sound before the first click, so the menu theme starts now
+if(APP){ SND.boot(); SND.resume(); }
 })();
 </script>
 </body>
