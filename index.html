@@ -2071,7 +2071,7 @@ function beginSystem(){
   player.hp=Math.min(player.hp,player.st.maxHp);
   bullets=[];ebullets=[];enemies=[];
   clearBuffs();
-  worldStart();
+  worldStart(); sceneStart();
   toast=''; toastT=0;
   wave=0; nextWave();
   state='play';
@@ -4167,6 +4167,170 @@ function worldWave(){
 }
 const worldClear=()=>{ world=null; };
 
+/* ---- the scenery ----
+   Every system is a place, and the place sits under the fight: one landmark
+   rising off the bottom edge, so the arena reads as orbit around it and the
+   top of the screen stays clear for bullets. Each one is painted once to an
+   offscreen canvas and blitted — a dozen gradients a frame is not free.
+   It rises into view as the system is entered and after that only drifts.
+   SCENE_DIM pulls the whole picture toward the background so it never
+   competes with a round; raise it if a landmark is louder than the fight. */
+const SCENE_RISE=2.4, SCENE_DIM=.38;
+let sceneT=0;
+const sceneArt={};
+const sceneStart=()=>{ sceneT=0; };
+
+function sceneDraw(){
+  const name=SYS().name;
+  if(!(name in sceneArt)) sceneArt[name]=scenePaint(name);
+  const art=sceneArt[name]; if(!art) return;
+  const k=eOut(clamp(sceneT/SCENE_RISE,0,1));
+  ctx.globalAlpha=clamp(sceneT/.4,0,1);
+  ctx.drawImage(art,-W*.06+Math.sin(sceneT*.045)*W*.04,(1-k)*H*.5);
+  ctx.globalAlpha=1;
+}
+
+// a soft elliptical smear of one colour, for cloud, haze, land and storms
+function sceneBlob(g,x,y,rx,ry,rgb,a,rot){
+  g.save(); g.translate(x,y); g.rotate(rot||0); g.scale(rx,ry);
+  const gr=g.createRadialGradient(0,0,0,0,0,1);
+  gr.addColorStop(0,'rgba('+rgb+','+a+')'); gr.addColorStop(1,'rgba('+rgb+',0)');
+  g.fillStyle=gr; g.beginPath(); g.arc(0,0,1,0,TAU); g.fill();
+  g.restore();
+}
+// horizontal bands across the visible cap, soft-edged, from a fixed list
+function sceneBands(g,cw,top,depth,cols){
+  const gr=g.createLinearGradient(0,top,0,top+depth);
+  cols.forEach((c,i)=>gr.addColorStop(i/(cols.length-1),c));
+  g.fillStyle=gr; g.fillRect(0,top,cw,depth);
+}
+// a lit sphere: shaded from above, darkened at the limb, haloed by its air
+function scenePlanet(g,cx,cy,R,o){
+  g.save();
+  g.beginPath(); g.arc(cx,cy,R,0,TAU); g.clip();
+  let gr=g.createRadialGradient(cx-R*.15,cy-R*1.05,R*.1,cx,cy-R*.6,R*1.1);
+  gr.addColorStop(0,o.hi); gr.addColorStop(1,o.lo);
+  g.fillStyle=gr; g.fillRect(cx-R,cy-R,2*R,2*R);
+  if(o.surf) o.surf();
+  gr=g.createRadialGradient(cx,cy,R*.93,cx,cy,R);
+  gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,.4)');
+  g.fillStyle=gr; g.fillRect(cx-R,cy-R,2*R,2*R);
+  g.restore();
+  gr=g.createRadialGradient(cx,cy,R*.99,cx,cy,R+o.haze);
+  gr.addColorStop(0,'rgba('+o.glow+',.5)'); gr.addColorStop(1,'rgba('+o.glow+',0)');
+  g.fillStyle=gr; g.beginPath();
+  g.arc(cx,cy,R+o.haze,0,TAU); g.arc(cx,cy,R*.99,0,TAU,true); g.fill();
+}
+
+function scenePaint(name){
+  const c=document.createElement('canvas'), cw=Math.ceil(W*1.12);
+  c.width=cw; c.height=H;
+  const g=c.getContext('2d');
+  // fixed seed, so a place looks the same every time you go there
+  let seed=1;
+  const sr=()=>{ const x=Math.sin(seed++*127.1)*43758.5453; return x-Math.floor(x); };
+  const sp=(a,b)=>a+sr()*(b-a);
+  // R is the planet's radius, rise how far its top clears the bottom edge
+  const cap=(R,rise,cx)=>({R, cx:cx||cw/2, cy:H-rise+R, top:H-rise,
+                           half:Math.sqrt(2*R*rise)});
+
+  if(name==='EARTH'){
+    const P=cap(W*.9,118);
+    scenePlanet(g,P.cx,P.cy,P.R,{hi:'#3a78c4',lo:'#0a1a38',glow:'110,170,255',haze:30,
+      surf(){
+        for(let i=0;i<7;i++) sceneBlob(g,P.cx+sp(-.9,.9)*P.half,P.top+sp(20,130),
+          sp(50,130),sp(12,30),'74,124,64',.65,sp(-.15,.15));
+        for(let i=0;i<3;i++) sceneBlob(g,P.cx+sp(-.8,.8)*P.half,P.top+sp(30,120),
+          sp(40,80),sp(10,20),'150,128,84',.4,sp(-.15,.15));
+        for(let i=0;i<12;i++) sceneBlob(g,P.cx+sp(-1,1)*P.half,P.top+sp(8,130),
+          sp(50,160),sp(4,9),'235,245,255',.4,sp(-.1,.1));
+      }});
+  }
+  else if(name==='VENUS'){
+    const P=cap(W*.88,112);
+    scenePlanet(g,P.cx,P.cy,P.R,{hi:'#dcae5c',lo:'#4a2c0c',glow:'255,190,100',haze:40,
+      surf(){
+        for(let i=0;i<12;i++) sceneBlob(g,P.cx+sp(-1,1)*P.half,P.top+sp(6,130),
+          sp(120,300),sp(10,24),i%2?'255,228,160':'120,70,20',i%2?.3:.38,sp(-.15,.15));
+      }});
+  }
+  else if(name==='JUPITER'){
+    const P=cap(W*1.05,130);
+    scenePlanet(g,P.cx,P.cy,P.R,{hi:'#dcc8a0',lo:'#5a3c26',glow:'240,215,175',haze:20,
+      surf(){
+        sceneBands(g,cw,P.top,150,[
+          'rgba(120,70,45,.45)','rgba(235,215,175,.5)','rgba(235,215,175,.15)',
+          'rgba(150,80,45,.55)','rgba(200,160,110,.3)','rgba(240,222,190,.5)',
+          'rgba(130,72,44,.55)','rgba(210,170,120,.35)','rgba(235,215,175,.45)']);
+        // the storm, with the pale collar it drags round with it
+        const sx=P.cx+P.half*.38, sy=P.top+98;
+        sceneBlob(g,sx,sy,62,24,'245,228,200',.35);
+        sceneBlob(g,sx,sy,44,16,'175,72,45',.85);
+      }});
+  }
+  else if(name==='SATURN'){
+    const P=cap(W*.48,150,cw*.4), T=-.5;
+    const ring=(a0,a1)=>{
+      seed=500;                       // both halves get the same rings
+      g.save(); g.translate(P.cx,P.cy); g.rotate(T);
+      for(let f=1.3;f<=2.3;f+=.02){
+        const gap=f>1.88&&f<1.95;
+        g.strokeStyle='rgba(225,205,150,'+(gap?.03:sp(.12,.4)).toFixed(3)+')';
+        g.lineWidth=P.R*.022;
+        g.beginPath(); g.ellipse(0,0,P.R*f,P.R*f*.22,0,a0,a1); g.stroke();
+      }
+      g.restore();
+    };
+    ring(Math.PI,TAU);       // far side, behind the planet
+    scenePlanet(g,P.cx,P.cy,P.R,{hi:'#e2cc92',lo:'#5e4a24',glow:'235,215,160',haze:18,
+      surf(){
+        sceneBands(g,cw,P.top,150,[
+          'rgba(200,170,110,.25)','rgba(240,225,180,.3)','rgba(180,150,95,.3)',
+          'rgba(235,215,170,.25)','rgba(170,140,90,.3)']);
+      }});
+    ring(0,Math.PI);                   // near side, across it
+  }
+  else if(name==='ICARUS'){
+    /* not a planet: the Ruler's ship, close enough to fill the bottom of the
+       screen. A long hull with towers stood on it, lit windows, a rim of
+       light along the top where the far sun catches it. */
+    const deck=x=>H-62-52*Math.sin(Math.PI*x/cw);
+    const towers=[[.17,.07,26],[.23,.03,48],[.40,.12,22],[.47,.05,64],[.493,.008,100],
+                  [.62,.09,30],[.77,.05,40],[.80,.02,60]].map(([x,w,h])=>[x*cw,(x+w)*cw,h]);
+    const lift=x=>{ let h=0; for(const t of towers) if(x>=t[0]&&x<t[1]) h=Math.max(h,t[2]); return h; };
+    const edge=[];
+    for(let x=0;x<=cw;x+=2) edge.push([x,deck(x)-lift(x)]);
+    const hull=()=>{ g.beginPath(); g.moveTo(0,H); for(const [x,y] of edge) g.lineTo(x,y); g.lineTo(cw,H); g.closePath(); };
+
+    let gr=g.createLinearGradient(0,H-220,0,H);
+    gr.addColorStop(0,'#3a3358'); gr.addColorStop(1,'#0d0b18');
+    hull(); g.fillStyle=gr; g.fill();
+    g.save(); hull(); g.clip();
+    // plating
+    g.strokeStyle='rgba(150,130,220,.14)'; g.lineWidth=1;
+    for(let y=H-200;y<H;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(cw,y); g.stroke(); }
+    for(let x=sp(10,40);x<cw;x+=sp(40,90)){ g.beginPath(); g.moveTo(x,H-220); g.lineTo(x,H); g.stroke(); }
+    // windows: rows along the deck and up each tower
+    const lit=(x,y)=>{ if(sr()<.55){ g.fillStyle='rgba(217,200,255,'+sp(.35,.75).toFixed(2)+')'; g.fillRect(x,y,3,2); } };
+    for(let x=6;x<cw;x+=7){ lit(x,deck(x)+14); lit(x,deck(x)+30); }
+    for(const [x0,x1,h] of towers) for(let y=6;y<h-4;y+=9) for(let x=x0+4;x<x1-4;x+=7) lit(x,deck(x)-h+y);
+    g.restore();
+    // a running light on the mast
+    sceneBlob(g,towers[4][0]+2,deck(towers[4][0])-100,8,8,'255,90,100',.9);
+    // rim light along the top edge
+    g.save(); g.strokeStyle='rgba(190,170,255,.55)'; g.lineWidth=1.5;
+    g.shadowColor='#bea8ff'; g.shadowBlur=12;
+    g.beginPath(); edge.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y)); g.stroke();
+    g.restore();
+  }
+  else return null;
+
+  // pull the whole picture back toward the void it sits in
+  g.globalCompositeOperation='source-atop';
+  g.fillStyle='rgba(5,6,13,'+SCENE_DIM+')'; g.fillRect(0,0,cw,H);
+  return c;
+}
+
 // damage the pilot from the arena rather than from a bullet
 function hazHurt(dmg,x,y,col,kick){
   const P=player;
@@ -4832,7 +4996,7 @@ function startMission(kind){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
   clearBuffs();
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
-  waveTimer=0; paused=false; toast=''; toastT=0;
+  waveTimer=0; paused=false; toast=''; toastT=0; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
 
   if(kind==='boss'){
@@ -5244,6 +5408,7 @@ function draw(){
   if(state==='finale'){ finaleDraw(); ctx.restore(); return; }
 
   if(state==='play'||state==='over'||state==='dying'){
+    sceneDraw();
     // particles
     for(const p of parts){
       ctx.globalAlpha=1-p.t/p.life; ctx.fillStyle=p.col;
@@ -5621,7 +5786,7 @@ function frame(now){
   const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
   if(state==='intro'){ cineStep(raw); }
   else if(state==='finale'){ finaleStep(raw); }
-  else if(state==='play'&&!paused&&raw) update(dt);
+  else if(state==='play'&&!paused&&raw){ sceneT+=raw; update(dt); }
   else if(state==='over'||state==='dying'){
     for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}}
     fxStep(dt);
