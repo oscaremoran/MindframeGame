@@ -513,17 +513,15 @@
   .node.sel{outline:1px solid #ffd24d; outline-offset:3px; z-index:3}
 
   /* ---- skill readout, under the tree ----
-     One fixed shape whatever is in it: always two columns at one height, so
-     reading a different skill never reflows the card or nudges the tree above
-     it. Anything that does not fit scrolls inside its own column. */
+     One fixed shape whatever is in it: always one height, so reading a
+     different skill never reflows the card or nudges the tree above it.
+     Anything that does not fit scrolls inside it. */
   #skillInfo{
-    flex:0 0 auto; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 22px;
+    flex:0 0 auto; display:grid; grid-template-columns:minmax(0,1fr); gap:0 22px;
     margin-top:10px; padding:12px 16px; height:clamp(150px,22vh,190px); box-sizing:border-box;
     text-align:left; border:1px solid #1b2540; background:rgba(8,12,24,.8);
   }
-  #skillInfo .si-l, #skillInfo .si-r{min-width:0; min-height:0; overflow-y:auto}
-  #skillInfo .si-r .lpanel{padding:10px 14px 8px}
-  #skillInfo .lr b{white-space:nowrap}
+  #skillInfo .si-l{min-width:0; min-height:0; overflow-y:auto}
   #skillInfo .si-t{font-size:7.5px; letter-spacing:.2em; color:#5d6c8f}
   #skillInfo .si-n{font-size:clamp(12px,1.5vw,16px); letter-spacing:.12em; color:#dfe9ff; margin:3px 0 6px}
   #skillInfo .si-s{font-size:clamp(8px,.92vw,10px); letter-spacing:.18em; color:#7182a8}
@@ -821,7 +819,7 @@
     <input id="codeOut" readonly>
     <div class="row" style="margin-top:12px"><button id="btnCopy">COPY</button></div>
     <p style="margin-top:24px">Load a code</p>
-    <input id="codeIn" placeholder="MF3-...">
+    <input id="codeIn" placeholder="MF4-...">
     <div class="row" style="margin-top:12px">
       <button id="btnLoadCode">LOAD</button>
     </div>
@@ -900,7 +898,7 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║                                                                      ║
    ║  `adds` names the new enemy that system introduces (it stays in     ║
    ║  every later system of the same roster): 'tracker', 'overseer',     ║
-   ║  'orbiter', 'splinter'.                                              ║
+   ║  'orbiter', 'splinter', 'glacier'.                                   ║
    ║                                                                      ║
    ║  `roster` names the enemy set the system draws from (see ROSTERS).   ║
    ║  Left out, it is 'sol1' — Earth's set. A new roster starts clean:    ║
@@ -910,8 +908,8 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  `haz` names the hazard that belongs to the place itself, and unlike ║
    ║  `adds` it does NOT travel: each system has its own and nothing      ║
    ║  else. 'vents' (Venus), 'well' (Jupiter), 'rings' (Saturn),          ║
-   ║  'lowg' (Luna), 'raiders' (Icarus), or null for an arena that is     ║
-   ║  only ever a fight.                                                  ║
+   ║  'lowg' (Luna), 'storm' (Neptune), 'raiders' (Icarus), or null for  ║
+   ║  an arena that is only ever a fight.                                 ║
    ║  See THE ARENAS below. Every row also needs a place in REGIONS.      ║
    ║                                                                      ║
    ║  Add a sixth system by copying a block — waves, scaling, scoring     ║
@@ -940,7 +938,11 @@ Hello, cadet. You have been selected to operate our most advanced spaceship to f
     brief:``,
     clear:`` },
 
-  { id:'006', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter',
+  { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier',
+    brief:``,
+    clear:`` },
+
+  { id:'007', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter',
     brief:``,
     clear:`` },
 ];
@@ -954,7 +956,7 @@ Hello, cadet. You have been selected to operate our most advanced spaceship to f
    system to a region by adding its row to SYSTEMS and its name here. */
 const REGIONS=[
   { n:'SOLAR SYSTEM 1', sys:['EARTH','VENUS','JUPITER','SATURN'] },
-  { n:'SOLAR SYSTEM 2', sys:['LUNA'], ph:['NEPTUNE','EUROPA','SOL'] },
+  { n:'SOLAR SYSTEM 2', sys:['LUNA','NEPTUNE'], ph:['EUROPA','SOL'] },
   { n:'ICARUS',         sys:['ICARUS'] },
 ];
 /* ═══════════════ end of the text block — code below ═══════════════ */
@@ -1222,6 +1224,13 @@ const MUS={
       [[0,7,2],[2,8,2],[4,7,1],[5,5,1],[6,4,2],[8,1,2],[10,0,2],[12,-2,4]],
       [[0,4,1],[1,5,1],[2,7,1],[3,8,1],[4,11,4],[8,8,2],[10,7,2],[12,4,4]],
     ],
+    // the Titans — two voices, one rising while the other falls back
+    tide:[
+      [[0,0,2],[2,4,2],[4,7,4],[8,8,2],[10,7,2],[12,4,4]],
+      [[0,7,2],[2,4,2],[4,1,4],[8,0,2],[10,1,2],[12,4,4]],
+      [[0,4,4],[4,5,2],[6,7,2],[8,11,4],[12,8,4]],
+      [[0,8,2],[2,7,2],[4,5,2],[6,4,2],[8,1,8]],
+    ],
     // the Ruler — a processional. It arrives, it does not hurry.
     throne:[
       [[0,0,6],[6,1,2],[8,4,8]],
@@ -1277,7 +1286,7 @@ const MUS={
     const inRun = state==='play';
     if(!inRun) return ['menu',this.PROGRAMS.menu,0,1];
     const b=enemies.find(e=>e.t==='boss'&&!e.hidden);
-    if(b&&b.B.mus) return ['boss:'+b.k, b.B.mus, Math.min(sysIdx,3), 4];
+    if(b&&b.B.mus) return ['boss:'+(b.B.duoPart?'titans':b.k), b.B.mus, Math.min(sysIdx,3), 4];
     return ['run',this.PROGRAMS.run, Math.min(sysIdx,3), Math.min(3,1+Math.min(sysIdx,3))];
   },
 
@@ -1521,6 +1530,8 @@ if(!save.route){ save.deepestSys=Math.min(save.deepestSys||0,3); save.route=2; }
    reached it lands on Luna, and one who had beaten it is not handed Luna for
    free — they fly it, and Icarus opens again behind it. */
 if(save.route<3){ save.deepestSys=Math.min(save.deepestSys||0,4); save.route=3; }
+// ...and Neptune after it: system 6 used to be Icarus, and lands on Neptune now
+if(save.route<4){ save.deepestSys=Math.min(save.deepestSys||0,5); save.route=4; }
 SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree per hull ----
@@ -2020,7 +2031,7 @@ const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>
 /* What the place itself does to you, for the launch readout. The hazard is as
    much a part of choosing a node as the threat multiplier is. */
 const HAZ_NAME={none:'NONE', vents:'FIRE VENTS \u00b7 DUST', well:'GRAVITY WELLS', rings:'RING DEBRIS',
-                lowg:'LOW GRAVITY', raiders:'LASER RAIDERS'};
+                lowg:'LOW GRAVITY', storm:'ICE STORMS', raiders:'LASER RAIDERS'};
 
 function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
@@ -2073,6 +2084,7 @@ const LAUNCH_TEXT={
        'Destroy a major Iteration bastion.',
        'Launch towards a seemingly unprotected Iteration shipment.',
        'Destroy a heavily defended base on the moon.',
+       'Launch to an obscure Iteration stronghold that houses the enemy powerhouse.',
        'Charge the Icarus in a final battle.'],
   hold:    'Hold the space station.',
   run:     'Fly through the gates while avoiding hazards.',
@@ -2141,6 +2153,7 @@ const SYS_CLEAR_TEXT=[
   'The enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The strange creation Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The Crescent has been destroyed! Congratulations. Prepare and continue.',
+  'The Titans have been destroyed! Congratulations. Prepare and continue.',
   'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
@@ -2148,11 +2161,15 @@ const SYS_CLEAR_TEXT=[
    one: you get the result, and then the chart, and you choose again. */
 function systemCleared(){
   const i=sysIdx, done=SYS(), last=i>=SYSTEMS.length-1;
+  /* The first Ruler falling arms the real last fight. This screen is the lie
+     it tells first, so nothing here counts yet: Icarus is only held once the
+     thing behind it is down too, and dying to that leaves it unheld. */
+  const fake=finaleArmed;
   save.unlocked=true;
   save.best=Math.max(save.best,score);
-  save.deepestSys=Math.max(save.deepestSys,i+1);
+  if(!fake) save.deepestSys=Math.max(save.deepestSys,i+1);
   persist();
-  runHeld=i+1; mission=null;
+  runHeld=fake?i:i+1; mission=null;
   $('doneKind').textContent = last?'CAMPAIGN COMPLETE':'LEVEL COMPLETE';
   $('doneTitle').textContent = done.name;
   $('doneSub').textContent = last?'VICTORY':'HELD';
@@ -2188,8 +2205,11 @@ function nextWave(){
     if(unlockedType('overseer')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5.5,'overseer');
     if(unlockedType('orbiter'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*8+4.6,'orbiter');
     if(unlockedType('splinter')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*8+6.5,'splinter');
+    if(unlockedType('glacier')&&wave>=2)  for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5,'glacier');
   }else{
     push(1.2,'boss');
+    // the Titans come alone: the fight is the two of them and nothing else
+    if(!BOSS(sysIdx).duo){
     for(let i=0;i<(sysIdx?5:3)+S.extra;i++) push(8+i*(sysIdx?6.5:8),R.ram);
     for(let i=0;i<(sysIdx?4:2)+S.extra;i++) push(11+i*(sysIdx?7:9),R.line);
     for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,R.heavy);
@@ -2197,6 +2217,8 @@ function nextWave(){
     if(unlockedType('overseer')) push(20,'overseer');
     if(unlockedType('orbiter'))  { push(17,'orbiter'); push(34,'orbiter'); }
     if(unlockedType('splinter')) { push(24,'splinter'); push(40,'splinter'); }
+    if(unlockedType('glacier'))  push(22,'glacier');
+    }
   }
   // Earth patches you up between waves. Later systems do not.
   if(sysIdx===0 && wave>1 && player) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.10);
@@ -2224,7 +2246,8 @@ function leadAngle(e,speed,amount){
 
 const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
             tracker:'#ffb44d',overseer:'#3fd8e0',orbiter:'#e8c872',splinter:'#d9c6ff',
-            phantom:'#a9b8ff',meteor:'#ff9a5c',lander:'#c9ccd4',drone:'#8fe3ff',quarry:'#ffd24d'};
+            phantom:'#a9b8ff',meteor:'#ff9a5c',lander:'#c9ccd4',drone:'#8fe3ff',quarry:'#ffd24d',
+            glacier:'#9fe8ff'};
 const ecol=t=>ECOL[t]||'#4d9dff';
 const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
@@ -2260,8 +2283,13 @@ const ORB_R=250, ORB_LEAD=.35;
    spread, and calls Trackers in to cover it — more of all of it once it is
    below half. QUARRY_HP is in Tracker hulls' units, before system scaling. */
 const QUARRY_HP=420, QUARRY_HELP=8, QUARRY_KICK=620;
-const PH_IN=.5, PH_OUT=.35, PH_GONE=[1.0,1.6], PH_BURST=3, PH_GAP=.13;
-const MET_AIM=.6, MET_V=560, MET_RUN=.95, MET_COAST=.9;
+/* GLACIER — Neptune's addition. Slow and tanky, with frost arms standing out
+   from it that sweep round like a lighthouse. The arms run for GLAC_ON, go
+   dark for GLAC_OFF (the last GLAC_WARM of which they show faintly, coming
+   back), and sometimes turn the other way when they come back. */
+const GLAC_ARMS=4, GLAC_LEN=190, GLAC_W=9, GLAC_SPIN=1.05, GLAC_ON=3.4, GLAC_OFF=1.0, GLAC_WARM=.5, GLAC_DMG=20;
+const PH_IN=.4, PH_OUT=.3, PH_GONE=[.7,1.1], PH_BURST=4, PH_GAP=.11;
+const MET_AIM=.5, MET_V=680, MET_RUN=.95, MET_COAST=.6;
 const LAND_DRONES=4, LAND_DEPLOY=1.5, DRONE_ORB=54;
 
 /* ---- the SPLINTER's cascade ----
@@ -2309,22 +2337,42 @@ function spawn(type,at,def){
   if(type==='quarry') enemies.push({t:'quarry',x:p.x,y:p.y,vx:0,vy:0,r:24,
       hp:QUARRY_HP*sc,max:QUARRY_HP*sc,spd:190*vm,cool:1.6/cd,a:0,val:900,spin:0,
       rof:1/cd,dashCd:1.5,help:QUARRY_HELP*.6,dir:Math.random()<.5?-1:1});
+  // GLACIER — tanky, slow, sweeping frost arms
+  if(type==='glacier') enemies.push({t:'glacier',x:p.x,y:p.y,vx:0,vy:0,r:28,
+      hp:340*sc,max:340*sc,spd:40*vm,a:0,val:260,rof:1/cd,
+      arm:rand(0,TAU),armV:(Math.random()<.5?-1:1)*GLAC_SPIN,live:1,pt:rand(0,1.5)});
   // PHANTOM — Luna's line unit: a burst, a fade, a new seat
   if(type==='phantom') enemies.push({t:'phantom',x:p.x,y:p.y,vx:0,vy:0,r:16,
-      hp:36*sc,max:36*sc,spd:92*vm,cool:rand(1.2,2.4)/cd,a:0,val:70,rof:1/cd,
+      hp:58*sc,max:58*sc,spd:110*vm,cool:rand(1.0,2.0)/cd,a:0,val:70,rof:1/cd,
       dir:Math.random()<.5?-1:1,ph:'on',pt:0,vis:1,shots:0});
   // METEOR — Luna's rammer: marks a line and rockets down it
   if(type==='meteor') enemies.push({t:'meteor',x:p.x,y:p.y,vx:0,vy:0,r:13,
-      hp:18*sc,max:18*sc,spd:110*vm,dash:MET_V*vm,a:0,val:40,spin:0,
+      hp:30*sc,max:30*sc,spd:130*vm,dash:MET_V*vm,a:0,val:40,spin:0,
       ph:'in',pt:0,rof:1/cd});
   // LANDER — Luna's heavy: shells, and a ring of drones it keeps topped up
   if(type==='lander') enemies.push({t:'lander',x:p.x,y:p.y,vx:0,vy:0,r:26,
-      hp:150*sc,max:150*sc,spd:40*vm,cool:rand(2,3.2)/cd,a:0,val:230,spin:0,
+      hp:240*sc,max:240*sc,spd:46*vm,cool:rand(1.6,2.6)/cd,a:0,val:230,spin:0,
       rof:1/cd,dep:.5/cd});
   if(type==='boss'){
     // whichever one this system answers to, unless a mission named one. It has
     // watched every upgrade you bought, and it came ready for them.
-    const B=def||BOSS(sysIdx), hp=B.hp*S.hp*(1+owned().length*.05)*D.ehp*BOSS_BUFF;
+    const B0=def||BOSS(sysIdx);
+    if(B0.duo){
+      // two bosses, one entrance: the first one stages it for both
+      const parts=B0.duo.map(Bp=>makeBoss(Bp,S,D,vm));
+      parts[0].twin=parts[1]; parts[1].twin=parts[0];
+      parts.forEach(b=>{ b.bn=B0.n; enemies.push(b); });
+      bossEntrance(parts[0]);
+      return;
+    }
+    const b=makeBoss(B0,S,D,vm);
+    enemies.push(b);
+    bossEntrance(b);
+  }
+}
+function makeBoss(B,S,D,vm){
+  {
+    const hp=B.hp*S.hp*(1+owned().length*.05)*D.ehp*BOSS_BUFF;
     const b={t:'boss',k:B.k,B,col:B.col,bn:B.n,
       x:W/2,y:-140,vx:0,vy:0,r:B.r,hp,max:hp,spd:B.spd*vm*BOSS_SPD,
       a:0,val:B.val,cool:3.2,pt:0,spin:0,morph:0,shed:0,
@@ -2334,8 +2382,7 @@ function spawn(type,at,def){
       b.sh=B.k==='archive'?1.0:1.25; b.shA=rand(0,TAU); b.shSpin=(Math.random()<.5?-1:1)*.7;
     }
     bossNodes(b);
-    enemies.push(b);
-    bossEntrance(b);
+    return b;
   }
 }
 
@@ -2343,7 +2390,7 @@ function spawn(type,at,def){
 function spawnDrone(L){
   const n=enemies.filter(o=>o.par===L).length;
   const S=SYS(), D=DIFF(), sc=(1+(wave-1)*.13)*S.hp*D.ehp*EHP;
-  enemies.push({t:'drone',x:L.x,y:L.y,vx:0,vy:0,r:8,hp:9*sc,max:9*sc,a:0,val:12,
+  enemies.push({t:'drone',x:L.x,y:L.y,vx:0,vy:0,r:8,hp:16*sc,max:16*sc,a:0,val:12,
     par:L, oa:(L.spin||0)+n*TAU/LAND_DRONES, on:true,
     cool:rand(1.4,2.4)/D.erof, rof:1/D.erof});
   burst(L.x,L.y,ECOL.drone,8,160);
@@ -2356,7 +2403,7 @@ clearBuffs();
 function drop(e){
   const odds = e.t==='boss'?1 : e.t==='heavy'?.5 : e.t==='overseer'?.42
              : e.t==='splinter'?.32 : e.t==='orbiter'?.3 : e.t==='tracker'?.3
-             : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0 : e.t==='quarry'?1
+             : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0 : e.t==='quarry'?1 : e.t==='glacier'?.45
              : e.t==='grunt'?.15 : .07;
   const n = e.t==='boss'?3 : Math.random()<odds?1:0;
   for(let i=0;i<n;i++){
@@ -2392,6 +2439,41 @@ let toast='', toastT=0, flash=0;
 
    `want` is the range it tries to hold and `strafe` how hard it circles, so
    each one occupies the arena differently.                                  */
+/* ---- THE TITANS — Neptune ----
+   Two bosses on one bar, half each. TRITON is quick and throws spreads: it
+   dashes past you and fires a shotgun burst at the end of the run, or lines
+   up a three-pronged trident volley. PROTEUS is slow and heavy: it slams a
+   circle marked under you, and raises ICE WALLS that stop ships and shots
+   alike and cut the arena into lanes. Whichever reaches half first locks
+   behind a shield (`ward`) until the other gets there too; then both go to
+   their second tier together, and from then on a TETHER runs between them
+   that hurts to cross. If one falls, the other is restored to full hull
+   and fights on alone.
+
+   It is meant to be hard and readable, never a pile-up: they take turns —
+   one attack at a time between the two of them, with a beat in between —
+   nothing is summoned, no escorts come with them, and the blizzard holds
+   off while either of them is standing. */
+const DUO_GAP=.35;   // the beat after one Titan's attack before the other may start
+const TITAN_MUS={bpm:140, prog:[0,0,3,3, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
+                 ost:[0,0,3,0, 0,8,1,0], hook:'tide', lead:'sawtooth', choirUp:1, ride:1};
+const TRITON={ k:'triton', n:'TRITON', col:'#2fa8ff', r:42, hp:2300, val:1200, duoPart:1, dmgX:1.3,
+  spd:140, want:270, strafe:1.25, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+  tiers:[
+    {n:'', seq:['dash','trident','dash','fan','|'], pool:['dash','trident','fan'], rest:[.55,.85], spd:1.1},
+    {n:'TRITON \u2014 PHASE 2', seq:['dash','dash','trident','fan','dash','trident','|'],
+     pool:['dash','trident','fan'], rest:[.3,.55], spd:1.45},
+  ]};
+const PROTEUS={ k:'proteus', n:'PROTEUS', col:'#3a5bd0', r:68, hp:2300, val:1200, duoPart:1, dmgX:1.3,
+  spd:42, want:300, strafe:.4, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+  tiers:[
+    {n:'', seq:['slam','walls','ring','slam','|'], pool:['slam','walls','ring'], rest:[.8,1.15], spd:1.1},
+    {n:'PROTEUS \u2014 PHASE 2', seq:['walls','slam','ring','slam','walls','|'],
+     pool:['slam','walls','ring'], rest:[.5,.75], spd:1.4},
+  ]};
+const TRI_DASH=950, TRI_TEL=.45, TRIDENT_TEL=.7, SLAM_TEL=.95, SLAM_R=120;
+const ICE_HW=11, ICE_LEN=560, ICE_GAP=200, ICE_GROW=.5, ICE_LIFE=5.5, TETHER_W=8, TETHER_DMG=14;
+
 const BOSSES=[
   /* The first boss anyone meets, so it sits a shade under the rest of the
      roster: less hull, and a little more air between its attacks. */
@@ -2464,6 +2546,10 @@ const BOSSES=[
       {n:'THE CRESCENT \u2014 ECLIPSE', seq:['zoom','tribeam','blink','zoom','beam','tribeam','|','blink','zoom','tribeam','fan','zoom','beam','|'],
        pool:['zoom','fan','beam','tribeam','blink','summon'], rest:[.35,.6],  spd:1.65},
     ]},
+
+  // THE TITANS: never spawned as itself — spawn() puts its two parts down
+  { k:'titans', n:'THE TITANS', col:'#2fa8ff', duo:[TRITON,PROTEUS], r:60, hp:3000, val:0,
+    spd:0, want:0, strafe:0, mus:TITAN_MUS, tiers:[{n:''}] },
 
   /* The last thing in the campaign, and it is meant to feel like it. Heavier
      than anything else on the roster, it closes distance rather than holding a
@@ -2788,6 +2874,43 @@ function actBeam(e,dt,dx,dy,T){
   }
   if(m.t>BEAM_TEL+BEAM_ON){ e.act=null; e.cool=bossRest(T)+.25; }
 }
+// the tether: a crackling line from one Titan to the other, never still
+function tetherDraw(a,b){
+  const sx=b.x-a.x, sy=b.y-a.y, L=Math.hypot(sx,sy)||1, nx=-sy/L, ny=sx/L, n=Math.max(6,Math.floor(L/28));
+  ctx.save(); ctx.lineCap='round';
+  const g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+  g.addColorStop(0,a.col); g.addColorStop(1,'#7f9cff');
+  ctx.strokeStyle=g; ctx.lineWidth=TETHER_W*2; ctx.globalAlpha=.3; ctx.shadowColor='#9fd8ff'; ctx.shadowBlur=20;
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.globalAlpha=1; ctx.lineWidth=2.4; ctx.strokeStyle='#e6f6ff'; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.moveTo(a.x,a.y);
+  for(let i=1;i<n;i++){ const u=i/n, j=rand(-TETHER_W,TETHER_W);
+    ctx.lineTo(a.x+sx*u+nx*j,a.y+sy*u+ny*j); }
+  ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.restore(); ctx.shadowBlur=0;
+}
+// a Glacier's arms: solid frost while live, a faint sketch while coming back
+function glacierArms(e){
+  const warm=!e.live&&e.pt>GLAC_OFF-GLAC_WARM, k=warm?(e.pt-(GLAC_OFF-GLAC_WARM))/GLAC_WARM:0;
+  if(!e.live&&!warm) return;
+  ctx.save(); ctx.translate(e.x,e.y); ctx.lineCap='round';
+  for(let i=0;i<GLAC_ARMS;i++){
+    const a=e.arm+i*TAU/GLAC_ARMS;
+    ctx.save(); ctx.rotate(a);
+    if(e.live){
+      ctx.strokeStyle='rgba(159,232,255,.35)'; ctx.lineWidth=GLAC_W*2+6; ctx.shadowColor='#9fe8ff'; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.moveTo(e.r,0); ctx.lineTo(GLAC_LEN,0); ctx.stroke();
+      ctx.strokeStyle='#eafaff'; ctx.lineWidth=GLAC_W*.9; ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.moveTo(e.r,0); ctx.lineTo(GLAC_LEN,0); ctx.stroke();
+    }else{
+      ctx.strokeStyle='rgba(159,232,255,'+(.15+.4*k)+')'; ctx.lineWidth=2;
+      ctx.setLineDash([8,8]);
+      ctx.beginPath(); ctx.moveTo(e.r,0); ctx.lineTo(GLAC_LEN,0); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+  ctx.restore(); ctx.shadowBlur=0;
+}
 function beamDraw(e){
   const m=e.act, hw=BEAM_HW*(e.tier>=2?1.15:1);
   for(let i=0;i<m.n;i++){
@@ -2810,6 +2933,168 @@ function beamDraw(e){
     ctx.restore();
   }
   ctx.shadowBlur=0;
+}
+
+/* ---- THE TITANS' rules ---- */
+// tier 0 until both are at half; the first one there waits behind its ward
+function duoTier(e){
+  const tw=e.twin&&enemies.includes(e.twin)?e.twin:null;
+  if(e.tier>=1){ e.ward=0; return 1; }
+  const half=e.hp<=e.max*.5, twHalf=!tw||tw.tier>=1||tw.hp<=tw.max*.5;
+  e.ward = half&&!twHalf ? 1 : 0;
+  if(e.ward) e.hp=Math.max(e.hp,e.max*.5);
+  return half&&twHalf ? 1 : 0;
+}
+const tetherOn=e=> e.B.k==='triton' && e.tier>=1 && e.twin && enemies.includes(e.twin) && e.twin.tier>=1
+                  && !e.hidden && !e.twin.hidden;
+function tetherStep(e){
+  if(!tetherOn(e)) return;
+  const P=player, o=e.twin;
+  if(P.inv>0||buffs.shield>0) return;
+  const sx=o.x-e.x, sy=o.y-e.y, L2=sx*sx+sy*sy||1;
+  const u=clamp(((P.x-e.x)*sx+(P.y-e.y)*sy)/L2,0,1);
+  const qx=e.x+sx*u-P.x, qy=e.y+sy*u-P.y;
+  if(qx*qx+qy*qy<(TETHER_W+13)*(TETHER_W+13)){
+    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt();
+    // thrown off the line, to whichever side of it you were on
+    const L=Math.sqrt(L2), side=Math.sign(sx*(P.y-e.y)-sy*(P.x-e.x))||1;
+    P.vx+=-sy/L*side*280; P.vy+=sx/L*side*280;
+    burst(P.x,P.y,'#9fd8ff',16,260);
+  }
+}
+// a Titan falling while the other is still up: a death, but not the end
+function duoFall(e){
+  const o=e.twin; if(o) o.twin=null;
+  e.twin=null;
+  burst(e.x,e.y,e.col,70,480); shock(e.x,e.y,e.col,e.r,e.r*4,.6,8);
+  shake=Math.max(shake,22); flash=Math.max(flash,.35); SFX.bossDown();
+  if(o){
+    // the survivor takes what its partner had left: back to full
+    o.hp=o.max; o.ward=0; o.flare=1.6;
+    shock(o.x,o.y,o.col,o.r,o.r*3,.5,6); burst(o.x,o.y,o.col,40,380); SFX.tier();
+    banner=e.B.n+' DOWN \u00b7 '+o.B.n+' RESTORED'; bannerT=2.4;
+  }
+}
+// DASH — Triton: shows its line, runs it, and fires a shotgun burst at the end
+function actDash(e,dt,T){
+  const m=e.act;
+  if(m.t<TRI_TEL){ e.tel={a:m.a, t:m.t/TRI_TEL*.95, len:m.len}; SFX.warn(); return; }
+  e.tel=null;
+  const dx=m.tx-e.x, dy=m.ty-e.y, dd=Math.hypot(dx,dy), step=TRI_DASH*T.spd*dt;
+  if(dd>step&&m.t<TRI_TEL+.9){ e.x+=dx/dd*step; e.y+=dy/dd*step;
+    if(Math.random()<.8) parts.push({x:e.x,y:e.y,vx:0,vy:0,life:.35,t:0,col:e.col,r:2.6}); return; }
+  e.x=clamp(m.tx,60,W-60); e.y=clamp(m.ty,60,H-60);
+  const P=player, base=Math.atan2(P.y-e.y,P.x-e.x), n=11+DIFF().dense*2+(e.tier?3:0);
+  for(let i=0;i<n;i++){
+    const a=base+rand(-.45,.45), sp=rand(290,420);
+    ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:5,dmg:8*BOSS_DMG,col:'#9fd8ff'});
+  }
+  SFX.strip(); shake=Math.max(shake,8);
+  e.act=null; e.cool=bossRest(T);
+}
+// TRIDENT — three thick lines of fire, held long enough to read
+function actTrident(e,dt,dx,dy,T){
+  const m=e.act;
+  if(m.t<TRIDENT_TEL*.5) m.a+=clamp(angDiff(Math.atan2(dy,dx),m.a),-1,1)*1.6*DIFF().track*dt;
+  if(m.t<TRIDENT_TEL){ SFX.warn(); return; }
+  for(const o of [-.22,0,.22]) for(let i=0;i<10;i++){
+    const a=m.a+o, sp=380+i*25;
+    ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:6,dmg:10*BOSS_DMG,col:'#e6f6ff'});
+  }
+  shake=Math.max(shake,10);
+  e.act=null; e.cool=bossRest(T)+.2;
+}
+// SLAM — Proteus marks a circle under you and drops on it
+function actSlam(e,dt,dx,dy,T){
+  const m=e.act;
+  if(m.t<SLAM_TEL){
+    if(m.t<SLAM_TEL*.45){ m.x=e.x+dx; m.y=e.y+dy; }
+    SFX.warn(); return;
+  }
+  if(!m.hit){
+    m.hit=1;
+    const P=player, rr=m.r+13;
+    if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y)<rr*rr && P.inv<=0 && buffs.shield<=0){
+      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt();
+      burst(P.x,P.y,'#9fd8ff',20,320);
+    }
+    shock(m.x,m.y,e.col,m.r*.3,m.r*1.3,.45,8); burst(m.x,m.y,'#dff4ff',30,380);
+    SFX.crack(); shake=Math.max(shake,20);
+    const n=16+DIFF().dense*2;
+    for(let i=0;i<n;i++){ const a=i/n*TAU;
+      ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*210,vy:Math.sin(a)*210,r:6,dmg:9*BOSS_DMG,col:'#7f9cff'}); }
+  }
+  if(m.t>SLAM_TEL+.3){ e.act=null; e.cool=bossRest(T); }
+}
+
+/* ---- ICE WALLS ----
+   Proteus raises two long walls either side of you, along one of the two
+   axes of the arena, so you are standing in a lane. A wall grows for
+   ICE_GROW (a ghost you can pass through), then is solid to ships and to
+   every round, yours and theirs, until it shatters. They all go when Proteus
+   does. */
+let iceWalls=[];
+function iceRaise(e){
+  const P=player, horiz=Math.random()<.5;
+  for(const o of [-ICE_GAP,ICE_GAP]){
+    const cx=horiz?P.x:clamp(P.x+o,40,W-40), cy=horiz?clamp(P.y+o,40,H-40):P.y;
+    const hx=horiz?ICE_LEN/2:0, hy=horiz?0:ICE_LEN/2;
+    iceWalls.push({x1:cx-hx,y1:cy-hy,x2:cx+hx,y2:cy+hy,t:0});
+  }
+  SFX.warn();
+}
+// the nearest point on a wall to (x,y), and how far it is
+function iceNear(w,x,y){
+  const sx=w.x2-w.x1, sy=w.y2-w.y1, L2=sx*sx+sy*sy||1;
+  const u=clamp(((x-w.x1)*sx+(y-w.y1)*sy)/L2,0,1), qx=w.x1+sx*u, qy=w.y1+sy*u;
+  return {qx,qy,d:Math.hypot(x-qx,y-qy)};
+}
+function iceStep(dt){
+  if(!iceWalls.length) return;
+  if(!enemies.some(e=>e.k==='proteus')){
+    for(const w of iceWalls) iceShatter(w);
+    iceWalls=[]; return;
+  }
+  const P=player;
+  for(let i=iceWalls.length-1;i>=0;i--){
+    const w=iceWalls[i]; w.t+=dt;
+    if(w.t>=ICE_LIFE){ iceShatter(w); iceWalls.splice(i,1); continue; }
+    if(w.t<ICE_GROW) continue;
+    // ships are pushed back out of it
+    const push=(o,r)=>{
+      const n=iceNear(w,o.x,o.y), lim=ICE_HW+r;
+      if(n.d<lim){
+        const nx=(o.x-n.qx)/(n.d||1), ny=(o.y-n.qy)/(n.d||1);
+        o.x=n.qx+nx*lim; o.y=n.qy+ny*lim;
+        if(o.vx!==undefined){ const vn=o.vx*nx+o.vy*ny; if(vn<0){ o.vx-=vn*nx; o.vy-=vn*ny; } }
+      }
+    };
+    push(P,15);
+    for(const e of enemies) if(e.t!=='boss'&&e.t!=='echo'&&!e.gone) push(e,e.r);
+    // and every round stops dead in it
+    for(const list of [bullets,ebullets])
+      for(let j=list.length-1;j>=0;j--){
+        const b=list[j];
+        if(iceNear(w,b.x,b.y).d<ICE_HW+b.r){ if(Math.random()<.5) burst(b.x,b.y,'#dff4ff',3,120); list.splice(j,1); }
+      }
+  }
+}
+function iceShatter(w){
+  for(let k=0;k<=6;k++){ const u=k/6; burst(w.x1+(w.x2-w.x1)*u,w.y1+(w.y2-w.y1)*u,'#dff4ff',6,200); }
+}
+function iceDraw(){
+  for(const w of iceWalls){
+    const grow=clamp(w.t/ICE_GROW,0,1), fade=w.t>ICE_LIFE-.6 ? .5+.5*Math.sin(w.t*40) : 1;
+    const mx=(w.x1+w.x2)/2, my=(w.y1+w.y2)/2;
+    ctx.save(); ctx.lineCap='round';
+    ctx.globalAlpha=(w.t<ICE_GROW?.35:1)*fade;
+    const x1=mx+(w.x1-mx)*grow, y1=my+(w.y1-my)*grow, x2=mx+(w.x2-mx)*grow, y2=my+(w.y2-my)*grow;
+    ctx.strokeStyle='rgba(159,216,255,.35)'; ctx.lineWidth=ICE_HW*2+8; ctx.shadowColor='#9fd8ff'; ctx.shadowBlur=16;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.strokeStyle='#e6f6ff'; ctx.lineWidth=ICE_HW*1.2; ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.restore();
+  }
 }
 
 /* ---- echoes ----
@@ -2894,7 +3179,7 @@ function bossSummon(e,type,n){
 let entrance=null;
 const ENTR_TAIL=2.7;                       // touchdown to the fight starting
 const eOut=k=>1-Math.pow(1-k,3);
-const stageKey=b=> b.B&&b.B.final ? 'final' : b.k;
+const stageKey=b=> b.B&&b.B.final ? 'final' : b.twin ? 'titans' : b.k;
 
 const STAGES={
   /* the old arrival, kept for anything that has no staging of its own:
@@ -3109,6 +3394,39 @@ const STAGES={
       }
     }},
 
+  /* THE TITANS — Triton streaks in from the side and stops; then Proteus
+     falls out of the top of the screen and lands like the weight it is. */
+  titans:{ land:2.9, streak:[.5,1.2], fall:[1.7,2.3],
+    init(E){
+      const tw=E.b.twin; tw.hidden=true;
+      E.x=W*.36; E.y=H*.34; E.tx=W*.64; E.ty=H*.34;
+      tw.x=E.tx; tw.y=E.ty;
+    },
+    ev(E){ return [[this.streak[0],()=>SFX.dash()],
+      [this.fall[1],()=>{ SFX.crack(); shake=Math.max(shake,30); flash=Math.max(flash,.4);
+        shock(E.tx,E.ty,PROTEUS.col,10,260,.6,9); burst(E.tx,E.ty,'#9fd8ff',50,420); }]]; },
+    draw(E,t){
+      const body=(kind,col,r,x,y,a,al)=>{
+        ctx.save(); ctx.translate(x,y); ctx.rotate(a); ctx.globalAlpha=al;
+        ctx.fillStyle='rgba(0,0,0,.7)'; ctx.strokeStyle=col; ctx.lineWidth=3;
+        ctx.shadowColor=col; ctx.shadowBlur=18;
+        unitPath(ctx,kind,r,0,0); ctx.fill(); ctx.stroke(); ctx.restore();
+      };
+      const [s0,s1]=this.streak, [f0,f1]=this.fall;
+      // Triton: until the shared ending takes over and draws it
+      if(t>s0&&t<E.land){
+        const k=eOut(clamp((t-s0)/(s1-s0),0,1)), x=-80+(E.x+80)*k;
+        ctx.save(); ctx.globalAlpha=.5*(1-k*.6); ctx.strokeStyle=TRITON.col; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.moveTo(x-420,E.y); ctx.lineTo(x,E.y); ctx.stroke(); ctx.restore();
+        body('b_triton',TRITON.col,E.b.r,x,E.y,0,1);
+      }
+      // Proteus: the shared ending never draws it, so it stays here to the end
+      if(t>f0){
+        const k=clamp((t-f0)/(f1-f0),0,1), y=-120+(E.ty+120)*k*k;
+        body('b_proteus',PROTEUS.col,E.b.twin.r,E.tx,y,0,1);
+      }
+    }},
+
   ruler:{ land:3.3, slams:[[1.7,'lr'],[2.1,'tb'],[2.5,'all']], rift:2.6,
     init(E){ E.cracks=[];
       const walk=(x,y,a,n,depth)=>{ const pts=[{x,y}];
@@ -3297,6 +3615,7 @@ function entranceStep(dt){
     waveTimer=E.wt;                    // its escorts start their clock now
     entrance=null;
     b.hidden=false; b.flare=2.2; b.cool=1.6;
+    if(b.twin){ b.twin.hidden=false; b.twin.flare=2.2; b.twin.cool=2.6; }
     banner=b.bn; bannerT=2.4;
   }
 }
@@ -3559,7 +3878,8 @@ function bossAI(e,dt,dx,dy,d){
   const hpf=e.hp/e.max;
   // one more threshold than most bosses have; Math.min keeps everyone else at
   // three tiers, so adding a fourth to a boss is one more block and nothing else
-  const tier=Math.min(hpf<.15?3 : hpf<.28?2 : hpf<.62?1 : 0, B.tiers.length-1);
+  const tier=B.duoPart ? duoTier(e)
+            : Math.min(hpf<.15?3 : hpf<.28?2 : hpf<.62?1 : 0, B.tiers.length-1);
   if(tier!==e.tier){
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
@@ -3618,9 +3938,12 @@ function bossAI(e,dt,dx,dy,d){
     e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.8*AGGR()*DIFF().track*dt;
   }
 
+  // ---- the tether, from Triton's side: it only runs while both are in phase 2
+  if(B.k==='triton') tetherStep(e);
+
   // ---- movement ----
   if(B.k==='crescent') crescentMove(e,dt,T);
-  else if(!e.act || (e.act.k!=='lance'&&e.act.k!=='charge')){
+  else if(!e.act || (e.act.k!=='lance'&&e.act.k!=='charge'&&e.act.k!=='dash'&&e.act.k!=='slam')){
     const press = T.last ? true
                 : B.k==='ruler' ? (e.tier===2 && e.pt%9<3) : (e.tier===2 && e.pt%8<2.5);
     const want = T.last ? 105 : press ? 130 : B.want, v=e.spd*T.spd*(e.open>0?.22:1);
@@ -3638,6 +3961,9 @@ function bossAI(e,dt,dx,dy,d){
     if(e.act.k==='hammer'){ actHammer(e,dt,dx,dy,T); return; }
     if(e.act.k==='cross'){  actCross(e,dt,dx,dy,T);  return; }
     if(e.act.k==='zoom'){   actZoom(e,dt,T);         return; }
+    if(e.act.k==='dash'){   actDash(e,dt,T);         return; }
+    if(e.act.k==='trident'){ actTrident(e,dt,dx,dy,T); return; }
+    if(e.act.k==='slam'){   actSlam(e,dt,dx,dy,T);   return; }
     if(e.act.k==='beam'){   actBeam(e,dt,dx,dy,T);   return; }
     if(e.act.k==='lance'){
       // charges a line, tracking you slowly, then fires down it
@@ -3699,7 +4025,14 @@ function bossAI(e,dt,dx,dy,d){
 
   // ---- pick the next one ----
   e.cool-=dt;
+  if(e.busy>0) e.busy-=dt;
   if(e.cool>0) return;
+  // the Titans take turns: nothing starts while the other is mid-attack or
+  // has only just finished one
+  if(B.duoPart){
+    const tw=e.twin&&enemies.includes(e.twin)?e.twin:null;
+    if(tw&&(tw.act||tw.busy>0)){ e.cool=.12; return; }
+  }
   let k;
   if(T.seq && T.seq.length){
     // an authored line, not a dice roll: the same boss opens the same way
@@ -3721,6 +4054,7 @@ function bossAI(e,dt,dx,dy,d){
     if(k===e.last && Math.random()<.7) k=T.pool[Math.floor(Math.random()*T.pool.length)];
   }
   e.last=k;
+  if(B.duoPart&&k!=='|') e.busy=DUO_GAP+(k==='walls'?.4:0);
 
   // '|' is the price of the line it just fired: it stops, drops its guard, and
   // for a moment every round you land on it counts double
@@ -3789,6 +4123,15 @@ function bossAI(e,dt,dx,dy,d){
     e.cool=bossRest(T)+.9;
   }
   else if(k==='charge'){ e.act={k:'charge',t:0,a:Math.atan2(dy,dx)}; }
+  else if(k==='dash'){
+    // a point out past you, so the run carries through where you are
+    const P2=player, ux=(P2.x-e.x)/d, uy=(P2.y-e.y)/d;
+    const tx=clamp(P2.x+ux*140,70,W-70), ty=clamp(P2.y+uy*140,70,H-70);
+    e.act={k:'dash',t:0,tx,ty,a:Math.atan2(ty-e.y,tx-e.x),len:Math.hypot(tx-e.x,ty-e.y)};
+  }
+  else if(k==='trident'){ e.act={k:'trident',t:0,a:Math.atan2(dy,dx)}; }
+  else if(k==='slam'){ e.act={k:'slam',t:0,x:e.x+dx,y:e.y+dy,r:SLAM_R*(e.tier?1.15:1),hit:0}; }
+  else if(k==='walls'){ iceRaise(e); e.cool=bossRest(T)+.4; }
   else if(k==='zoom'){
     e.act={k:'zoom',t:0,fire:.15,dur:e.tier>=2?2.4:e.tier?2.1:1.8};
     e.wp=crescentWaypoint(e,true); SFX.dash();
@@ -3843,7 +4186,7 @@ function slow(sec){ if(sec>slowT){ slowT=sec; slowMax=sec; } }
 const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; wallIn=wallWant=0; }
+function fxClear(){ waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -3951,7 +4294,7 @@ function update(dt){
   waveTimer+=dt; if(bannerT>0)bannerT-=dt;
   shake=Math.max(0,shake-dt*34);
   if(flash>0) flash=Math.max(0,flash-dt*1.7);
-  fxStep(dt); wallStep(dt); hurtStep(dt);
+  fxStep(dt); wallStep(dt); hurtStep(dt); iceStep(dt);
 
   // stars drift
   for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} }
@@ -4135,6 +4478,29 @@ function update(dt){
           r:9,dmg:11*EASE(),col:'#d9c6ff',orb:1,gen:0,fuse:clamp(d/210*.55,.35,1.1)});
       }
     }
+    else if(e.t==='glacier'){
+      // walks in close enough for its arms to matter, and stays there
+      const want=150, k=!e.on?1:d>want?1:-.3;
+      e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
+      e.pt+=dt;
+      if(e.live&&e.pt>=GLAC_ON){ e.live=0; e.pt=0; }
+      else if(!e.live&&e.pt>=GLAC_OFF){ e.live=1; e.pt=0; if(Math.random()<.4) e.armV*=-1; }
+      e.arm+=e.armV*dt*(e.live?1:.35);
+      if(e.live&&e.on&&P.inv<=0&&buffs.shield<=0){
+        for(let i=0;i<GLAC_ARMS;i++){
+          const a=e.arm+i*TAU/GLAC_ARMS, cx=Math.cos(a), cy=Math.sin(a);
+          const ox=P.x-e.x, oy=P.y-e.y, al=clamp(ox*cx+oy*cy,e.r,GLAC_LEN);
+          const qx=e.x+cx*al-P.x, qy=e.y+cy*al-P.y;
+          if(qx*qx+qy*qy<(GLAC_W+13)*(GLAC_W+13)){
+            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt();
+            // knocked off the arm, the way it is sweeping
+            const sd=Math.sign(e.armV)||1; P.vx+=-cy*sd*240; P.vy+=cx*sd*240;
+            burst(P.x,P.y,'#dff4ff',14,240);
+            break;
+          }
+        }
+      }
+    }
     else if(e.t==='quarry'){
       const hurt=e.hp<e.max*.5;
       e.spin+=dt*3;
@@ -4193,8 +4559,8 @@ function update(dt){
           e.sh2=(e.sh2||0)-dt;
           if(e.sh2<=0){
             e.sh2=PH_GAP; e.shots++;
-            const a=leadAngle(e,265,.8);
-            ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*265,vy:Math.sin(a)*265,r:5,dmg:9*EASE(),col:'#a9b8ff'});
+            const a=leadAngle(e,300,.85);
+            ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:5,dmg:12*EASE(),col:'#a9b8ff'});
             if(e.shots>=PH_BURST){ e.shots=0; e.ph='out'; e.pt=0; }
           }
         }
@@ -4208,7 +4574,7 @@ function update(dt){
           e.x=clamp(T.x+Math.cos(a)*R,40+wallIn,W-40-wallIn);
           e.y=clamp(T.y+Math.sin(a)*R,40+wallIn,H-40-wallIn);
           e.ph='in'; e.pt=0; e.gone=0; e.dir*=-1;
-          e.cool=(PH_IN+rand(.5,1.1))*(e.rof||1);
+          e.cool=(PH_IN+rand(.3,.7))*(e.rof||1);
         }
       }
     }
@@ -4246,10 +4612,10 @@ function update(dt){
       e.spin+=dt*.5;
       e.cool-=dt;
       if(e.cool<=0&&d<720){
-        e.cool=3.2*(e.rof||1);
-        const base=leadAngle(e,180,.6);
-        for(let i=-1;i<=1;i++){ const a=base+i*.2;
-          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*180,vy:Math.sin(a)*180,r:8,dmg:14*EASE(),col:'#c9ccd4'}); }
+        e.cool=2.4*(e.rof||1);
+        const base=leadAngle(e,200,.7);
+        for(let i=-2;i<=2;i++){ const a=base+i*.17;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*200,vy:Math.sin(a)*200,r:8,dmg:17*EASE(),col:'#c9ccd4'}); }
       }
       if(e.on){
         e.dep-=dt;
@@ -4268,8 +4634,8 @@ function update(dt){
       e.y+=(L.y+Math.sin(e.oa)*R-e.y)*Math.min(1,dt*6);
       e.cool-=dt;
       if(e.cool<=0&&d<620){
-        e.cool=rand(1.8,2.6)*(e.rof||1);
-        ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.a)*230,vy:Math.sin(e.a)*230,r:3.5,dmg:6*EASE(),col:'#8fe3ff'});
+        e.cool=rand(1.2,1.8)*(e.rof||1);
+        ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.a)*270,vy:Math.sin(e.a)*270,r:3.5,dmg:8*EASE(),col:'#8fe3ff'});
       }
     }
     else if(e.t==='dart'){
@@ -4333,7 +4699,7 @@ function update(dt){
       if(b.hit.includes(e)) continue;
       const rr=e.r+b.r;
       if(dist2(b,e)<rr*rr){
-        if(e.inv>0){                                // mid-escalation: untouchable
+        if(e.inv>0||e.ward){                        // mid-escalation, or a Titan waiting: untouchable
         burst(b.x,b.y,'#e6dcff',5,240);
         bullets.splice(i,1); break;
       }
@@ -4351,10 +4717,12 @@ function update(dt){
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?9:4, e.open>0?260:150);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
-          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry');
+          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier');
           if(e.val) drop(e);
           burst(e.x,e.y,ecolOf(e),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
           enemies.splice(j,1);
+          // a Titan with its twin still standing falls on its own
+          if(e.t==='boss'&&e.twin&&enemies.includes(e.twin)){ duoFall(e); break; }
           if(e.t==='boss'){ // the boss falls: its escorts go with it
             // out of frame, on the route, and not the thing behind it: what
             // comes next is not the victory screen, whatever the screen says
@@ -4429,7 +4797,7 @@ function update(dt){
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0&&buffs.shield<=0){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
-              :e.t==='meteor'?12:e.t==='lander'?20:e.t==='drone'?6:10)
+              :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:10)
                *DIFF().dmgIn*P.st.armour;
         pilotHurt();
         P.inv=.5;
@@ -4517,6 +4885,11 @@ function endRun(win,why){
                        carry their momentum and overshoot; every round in it,
                        yours and theirs, slows to a float. It hurts nobody —
                        it just takes away the control you were relying on.
+     storm   (Neptune) A blizzard front sweeps straight across the arena, marked
+                       on the edge it is coming in from. Inside it hail chips
+                       your hull and a whiteout hides everything past a short
+                       ring round your ship — everything but the enemy fire,
+                       which stays lit. It hails on Iterations too.
      raiders (Icarus)  Robots that fly in, paint a line, fire a beam down it
                        and leave. They are weather rather than opposition: they
                        do not gate the wave, they do not count against the
@@ -4539,6 +4912,8 @@ const RING_HW=54, RING_WARN=1.3, RING_V=1300, RING_TRAIN=950, RING_DMG=18, RING_
 const RING_GAP=[3.2,4.8], RING_OFF=170;
 const LOWG_N=3, LOWG_R=[150,215], LOWG_FADE=1.1, LOWG_GRIP=.6, LOWG_DRAG=.18, LOWG_SLOW=.72;
 const LOWG_CARRY=.9, LOWG_MAXV=260;
+const STORM_HW=95, STORM_V=300, STORM_WARN=1.2, STORM_GAP=[5,8], STORM_HIT=5, STORM_TICK=.5;
+const STORM_FOG_R=150;
 const RAID_HP=46, RAID_AIM=.75, RAID_BEAM=.22, RAID_DMG=26, RAID_W=15;
 
 /* Scatter the vents rather than ring them: a ring leaves the middle of the
@@ -4632,11 +5007,26 @@ function lowgDrift(e,ox,oy,dt){
   e.x+=e.dvx*LOWG_CARRY*dt; e.y+=e.dvy*LOWG_CARRY*dt;
 }
 
+/* ---- Neptune: the blizzard front ----
+   A band STORM_HW either side of a line, moving along (cx,cy) through the
+   middle of the arena. `s` is how far along it the band's centre is; it
+   starts off the screen on one side and leaves off the other. */
+function placeFront(){
+  const a=Math.floor(rand(0,8))*Math.PI/4, cx=Math.cos(a), cy=Math.sin(a);
+  const L=Math.abs(W*cx)/2+Math.abs(H*cy)/2+STORM_HW;
+  return {cx, cy, L, s:-L, t:0};
+}
+function inFront(o,pad){
+  const F=world&&world.front; if(!F||F.t<STORM_WARN) return false;
+  const al=(o.x-W/2)*F.cx+(o.y-H/2)*F.cy;
+  return Math.abs(al-F.s)<STORM_HW+(pad||0);
+}
+
 // called when a system is entered: builds the arena, or leaves it empty
 function worldStart(){
   const h=SYS().haz;
   world = h ? {h, t:0, vents:[], dust:[], well:null, gap:1.8, raid:[], next:rand(3,5),
-               lane:null, bits:[], pads:[]} : null;
+               lane:null, bits:[], pads:[], front:null, fog:0, hail:0} : null;
   if(!world) return;
   if(h==='lowg') for(let i=0;i<LOWG_N;i++) world.pads.push(makePad());
   if(h==='vents'){ world.vents=ventRing();
@@ -4649,6 +5039,7 @@ function worldWave(){
   if(world.h==='vents') world.vents=ventRing();
   if(world.h==='well'){ world.well=null; world.gap=rand(1.6,3); }
   if(world.h==='raiders') world.next=rand(3.5,6)/HAZ_RATE();
+  if(world.h==='storm'&&!world.front) world.next=rand(1.6,2.6)/HAZ_RATE();
   if(world.h==='rings'){ world.lane=null; world.bits=[]; world.next=rand(2.4,3.6)/HAZ_RATE(); }
   // the old splotches drain away while the new ones fill in
   if(world.h==='lowg'){ for(const p of world.pads) p.die=1;
@@ -4796,6 +5187,20 @@ function scenePaint(name){
         }
       }});
   }
+  else if(name==='NEPTUNE'){
+    // deep blue, faint bands, one dark storm with white cloud riding beside it
+    const P=cap(W*.95,128);
+    scenePlanet(g,P.cx,P.cy,P.R,{hi:'#4f7fe8',lo:'#0b1a52',glow:'110,150,255',haze:34,
+      surf(){
+        sceneBands(g,cw,P.top,150,[
+          'rgba(40,70,170,.25)','rgba(120,160,255,.2)','rgba(30,60,160,.3)',
+          'rgba(100,140,240,.18)','rgba(25,50,140,.3)']);
+        const sx=P.cx-P.half*.3, sy=P.top+80;
+        sceneBlob(g,sx,sy,70,26,'10,20,70',.75);
+        for(let i=0;i<5;i++) sceneBlob(g,sx+sp(40,140),sy+sp(-30,30),sp(40,90),sp(5,10),'235,245,255',.55,sp(-.1,.1));
+        for(let i=0;i<8;i++) sceneBlob(g,P.cx+sp(-1,1)*P.half,P.top+sp(10,140),sp(60,160),sp(3,7),'220,235,255',.3,sp(-.08,.08));
+      }});
+  }
   else if(name==='ICARUS'){
     /* not a planet: the Ruler's ship, close enough to fill the bottom of the
        screen. A long hull with towers stood on it, lit windows, a rim of
@@ -4837,6 +5242,53 @@ function scenePaint(name){
   return c;
 }
 
+function stormDraw(){
+  const F=world.front;
+  if(F){
+    const ang=Math.atan2(F.cy,F.cx), diag=Math.hypot(W,H);
+    if(F.t<STORM_WARN){
+      // the edge it is coming in from, marked with chevrons running its way
+      const k=F.t/STORM_WARN, pu=.5+.5*Math.sin(F.t*12);
+      const ext=Math.abs(W*F.cx)/2+Math.abs(H*F.cy)/2-24;
+      ctx.save(); ctx.translate(W/2-F.cx*ext,H/2-F.cy*ext); ctx.rotate(ang);
+      ctx.strokeStyle='rgba(223,244,255,'+(.3+.5*k*pu)+')'; ctx.lineWidth=3;
+      for(let y=-diag/2;y<diag/2;y+=70){
+        ctx.beginPath(); ctx.moveTo(-10,y-14); ctx.lineTo(8,y); ctx.lineTo(-10,y+14); ctx.stroke();
+      }
+      ctx.restore();
+    }else{
+      ctx.save(); ctx.translate(W/2+F.cx*F.s,H/2+F.cy*F.s); ctx.rotate(ang);
+      // a hard-edged band: where it starts and stops is exactly where it hurts
+      ctx.fillStyle='rgba(220,240,255,.12)'; ctx.fillRect(-STORM_HW,-diag/2,STORM_HW*2,diag);
+      ctx.strokeStyle='rgba(235,248,255,.6)'; ctx.lineWidth=2;
+      for(const o of [-STORM_HW,STORM_HW]){ ctx.beginPath(); ctx.moveTo(o,-diag/2); ctx.lineTo(o,diag/2); ctx.stroke(); }
+      // hail, streaking the way the front moves and a little across it
+      ctx.strokeStyle='rgba(235,248,255,.7)'; ctx.lineWidth=1.4;
+      for(let i=0;i<140;i++){
+        const h1=Math.sin(i*91.7)*43758.5, h2=Math.sin(i*17.3)*24634.6;
+        const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
+        const x=-STORM_HW+((u*STORM_HW*2+F.t*260)%(STORM_HW*2));
+        const y=-diag/2+((v*diag+F.t*90)%diag);
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-12,y-4); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  // the whiteout: everything past a short ring round you goes white
+  if(world.fog>.02&&player){
+    const P=player, a=world.fog;
+    const g=ctx.createRadialGradient(P.x,P.y,STORM_FOG_R*.9,P.x,P.y,STORM_FOG_R*1.12);
+    g.addColorStop(0,'rgba(230,242,252,0)'); g.addColorStop(1,'rgba(230,242,252,'+(.93*a)+')');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // ...except the fire coming at you, which stays lit
+    for(const b of ebullets){
+      if(b.ghost>0) continue;
+      ctx.fillStyle=b.col; ctx.strokeStyle='rgba(10,14,30,.85)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill(); ctx.stroke();
+    }
+  }
+}
+
 // damage the pilot from the arena rather than from a bullet
 function hazHurt(dmg,x,y,col,kick){
   const P=player;
@@ -4854,6 +5306,8 @@ function hazHurt(dmg,x,y,col,kick){
    bounty is paid because this one you did earn — walking a boss into a column
    and keeping it there is harder than shooting it. */
 function hazBossKill(e){
+  if(e.twin&&enemies.includes(e.twin)){ const j=enemies.indexOf(e); if(j>=0) enemies.splice(j,1);
+    score+=e.val; duoFall(e); return; }
   score+=e.val; shake=Math.max(shake,26);
   credit(CREDIT_BOSS);
   bossDeathFx(e);
@@ -4863,7 +5317,7 @@ function hazBossKill(e){
 // a tool, not a second gun
 function hazKill(e,j,col){
   burst(e.x,e.y,col,e.t==='heavy'?30:16,320);
-  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry');
+  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier');
   enemies.splice(j,1);
 }
 
@@ -5019,6 +5473,33 @@ function worldStep(dt){
         const b=world.bits[i]; b.s+=b.v*dt; b.rot+=b.spin*dt;
         if(b.s>L.half+40) world.bits.splice(i,1);
       }
+    }
+  }
+
+  /* ---- Neptune: the blizzard ---- */
+  if(world.h==='storm'){
+    if(!world.front){
+      // it holds off while a Titan is standing
+      if(!enemies.some(e=>e.B&&e.B.duoPart)) world.next-=dt;
+      if(world.next<=0) world.front=placeFront();
+    }else{
+      const F=world.front; F.t+=dt;
+      if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*dt;
+      if(F.s>F.L){ world.front=null; world.next=rand(STORM_GAP[0],STORM_GAP[1])/HAZ_RATE(); }
+    }
+    const inside=inFront(P);
+    world.fog+=((inside?1:0)-world.fog)*Math.min(1,dt*3.5);
+    if(inside){
+      world.hail-=dt;
+      if(world.hail<=0){ world.hail=STORM_TICK; hazHurt(STORM_HIT,P.x,P.y,'#dff4ff',0); }
+    }else world.hail=0;
+    // it hails on them too
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j];
+      if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!inFront(e)) continue;
+      e.hp-=STORM_HIT*(e.t==='boss'?3:2)*dt;
+      if(Math.random()<.15) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#dff4ff',r:2});
+      if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#dff4ff'); }
     }
   }
 
@@ -5202,6 +5683,7 @@ function worldFloor(){
 }
 function worldDraw(){
   if(!world) return;
+  if(world.h==='storm') stormDraw();
   if(world.h==='vents'){
     for(const v of world.vents){
       const ph=ventPhase(v);
@@ -5488,6 +5970,7 @@ const SECRETS=[
   {k:'bounty',   n:'BOUNTY',           sub:'ELITE TRACKER'},
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
   {k:'echo',     n:'ECHO TRIAL',       sub:'THE HIVE MIND'},
+  {k:'none',     n:'',                 sub:''},
   {k:'none',     n:'',                 sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
@@ -5856,6 +6339,16 @@ function unitPath(g,kind,r,spin,morph){
     for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?r*.48:r;
       i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
     g.closePath();
+  }else if(kind==='glacier'){
+    // a six-point ice crystal round a hex core
+    g.rotate(spin*.3);
+    g.beginPath();
+    for(let i=0;i<12;i++){const a=i/12*TAU, rr=i%2?r*.55:r;
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
+    g.closePath();
+    for(let i=0;i<6;i++){const a=i/6*TAU+Math.PI/6, rr=r*.32;
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
+    g.closePath();
   }else if(kind==='quarry'){
     // the Tracker's triangle, doubled and counter-turning
     for(const [f,sp] of [[1,1],[.55,-1.6]]){
@@ -5893,6 +6386,23 @@ function unitPath(g,kind,r,spin,morph){
   }else if(kind==='drone'){
     g.rotate(Math.PI/4);
     g.beginPath(); g.rect(-r*.7,-r*.7,r*1.4,r*1.4);
+  }else if(kind==='b_triton'){
+    // TRITON: a blade — an arrowhead with two swept prongs, a trident's head
+    g.beginPath();
+    g.moveTo(r,0); g.lineTo(r*.15,r*.28); g.lineTo(r*.5,r*.78); g.lineTo(-r*.25,r*.42);
+    g.lineTo(-r*.8,r*.5); g.lineTo(-r*.5,0); g.lineTo(-r*.8,-r*.5); g.lineTo(-r*.25,-r*.42);
+    g.lineTo(r*.5,-r*.78); g.lineTo(r*.15,-r*.28);
+    g.closePath();
+  }else if(kind==='b_proteus'){
+    // PROTEUS: a boulder, turning slowly, the same lumps every time
+    g.rotate(spin*.25);
+    const J=[1,.86,.97,.8,.93,1,.84,.95,.78,.92,.88];
+    g.beginPath();
+    J.forEach((j,i)=>{const a=i/J.length*TAU, rr=r*j;
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);});
+    g.closePath();
+    g.moveTo(r*.3,r*.1); g.arc(r*.2,r*.1,r*.12,0,TAU);
+    g.moveTo(-r*.2,-r*.32); g.arc(-r*.3,-r*.32,r*.09,0,TAU);
   }else if(kind==='b_crescent'){
     // THE CRESCENT: a sliver with its horns forward. The outer edge is a
     // circle; the inner one is a wider circle set forward of it, through
@@ -6140,6 +6650,25 @@ function draw(){
         ctx.restore();
       }
       if(m.k==='beam') beamDraw(e);
+      if(m.k==='trident'&&m.t<TRIDENT_TEL){
+        const k=clamp(m.t/TRIDENT_TEL,0,1);
+        ctx.save(); ctx.strokeStyle='rgba(230,246,255,'+(.15+.55*k)+')';
+        ctx.lineWidth=2+12*k*k; ctx.shadowColor=e.col; ctx.shadowBlur=20;
+        for(const o of [-.22,0,.22]){ const a=m.a+o;
+          ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(a)*1300,e.y+Math.sin(a)*1300); ctx.stroke(); }
+        ctx.restore(); ctx.shadowBlur=0;
+      }
+      if(m.k==='slam'&&!m.hit){
+        const k=clamp(m.t/SLAM_TEL,0,1);
+        ctx.save();
+        ctx.strokeStyle='rgba(127,156,255,'+(.35+.6*k)+')'; ctx.lineWidth=2+4*k;
+        ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.stroke();
+        ctx.fillStyle='rgba(127,156,255,'+(.06+.2*k*k)+')';
+        ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
+        ctx.strokeStyle='rgba(200,215,255,'+(.5+.5*k)+')'; ctx.lineWidth=2.5;
+        ctx.beginPath(); ctx.arc(m.x,m.y,m.r*(1.9-.9*k),0,TAU); ctx.stroke();
+        ctx.restore();
+      }
       if(m.k==='cross'&&!m.hit&&m.lines){
         const k=clamp(m.t/HEAVY_TEL,0,1);
         ctx.save();
@@ -6173,6 +6702,8 @@ function draw(){
         ctx.globalAlpha=1;
       }
       if(e.gone) continue;                     // a phantom between seats
+      if(e.t==='glacier') glacierArms(e);
+      if(e.k==='triton'&&tetherOn(e)) tetherDraw(e,e.twin);
       ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
       if(e.t==='echo') ctx.globalAlpha=.42+.28*(e.fade||0);
       if(e.t==='phantom') ctx.globalAlpha=e.vis;
@@ -6244,6 +6775,13 @@ function draw(){
         ctx.strokeStyle='rgba(255,210,77,.5)'; ctx.lineWidth=1.4; ctx.stroke();
         ctx.setLineDash([]);
       }
+      if(e.ward){                               // a Titan waiting on the other
+        ctx.save(); ctx.rotate(-e.a);
+        ctx.setLineDash([10,7]); ctx.lineDashOffset=-performance.now()/30;
+        ctx.strokeStyle='rgba(159,216,255,.85)'; ctx.lineWidth=3; ctx.shadowColor='#9fd8ff'; ctx.shadowBlur=18;
+        ctx.beginPath(); ctx.arc(0,0,e.r+16,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+        ctx.restore(); ctx.shadowBlur=0;
+      }
       if(e.t==='boss'&&e.inv>0){
         ctx.beginPath(); ctx.arc(0,0,e.r+10+(1-e.inv)*130,0,TAU);
         ctx.strokeStyle='rgba(230,220,255,'+clamp(e.inv,0,1)*.8+')'; ctx.lineWidth=4;
@@ -6275,6 +6813,7 @@ function draw(){
       if(e.t!=='boss'&&e.t!=='echo'&&!(e.t==='phantom'&&e.vis<.5)) hpbar(e.x,e.y-e.r-11,e.r*2.3,e.hp/e.max,col);
     }
 
+    iceDraw();
     wallDraw();
     bossSpots();
     if(entrance) entranceDraw();
@@ -6307,6 +6846,44 @@ function draw(){
   if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
   if(state==='play') hurtDraw();
   if(state==='play'||state==='over'||state==='dying') hud();
+}
+
+/* The Titans' bar: one bar, Triton's half on the left and Proteus's on the
+   right, each draining toward the middle, with the halfway marks where each
+   one waits for the other. A fallen Titan's half stays empty. */
+function duoBar(any){
+  const w=520, x=(W-w)/2, y=H-42, hw=w/2;
+  const tri=enemies.find(e=>e.k==='triton'), pro=enemies.find(e=>e.k==='proteus');
+  ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x,y,w,13);
+  const half=(e,col,left)=>{
+    const f=e?clamp(e.hp/e.max,0,1):0, bw=hw*f;
+    const bx=left?x+hw-bw:x+hw;
+    ctx.fillStyle='#0b0a14'; ctx.fillRect(bx,y,bw,13);
+    ctx.strokeStyle=col; ctx.strokeRect(bx+.5,y+.5,bw,13);
+    // where it stops and waits
+    ctx.strokeStyle='rgba(230,220,255,.5)'; const m=left?x+hw*.5:x+hw*1.5;
+    ctx.beginPath(); ctx.moveTo(m,y); ctx.lineTo(m,y+13); ctx.stroke();
+  };
+  half(tri,TRITON.col,true); half(pro,PROTEUS.col,false);
+  ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.moveTo(x+hw,y-3); ctx.lineTo(x+hw,y+16); ctx.stroke();
+  ctx.globalAlpha=.35; ctx.strokeStyle='#9fd8ff'; ctx.strokeRect(x+.5,y+.5,w,13); ctx.globalAlpha=1;
+  ctx.textAlign='center'; ctx.font='11px Menlo,monospace';
+  const p2=(tri&&tri.tier>=1)||(pro&&pro.tier>=1);
+  ctx.fillStyle=p2?'#9fd8ff':'#b7a6ef';
+  ctx.fillText('THE TITANS'+(p2?' \u2014 PHASE 2':''),W/2,y-8);
+  ctx.font='10px Menlo,monospace';
+  ctx.fillStyle=TRITON.col; ctx.textAlign='left'; ctx.fillText(TRITON.n,x,y+26);
+  ctx.fillStyle=PROTEUS.col; ctx.textAlign='right'; ctx.fillText(PROTEUS.n,x+w,y+26);
+  ctx.textAlign='center';
+  const waiting=[tri,pro].find(e=>e&&e.ward);
+  if(waiting){
+    ctx.fillStyle='#9fd8ff'; ctx.font='600 11px Menlo,monospace';
+    ctx.fillText(waiting.B.n+' SHIELDED \u00b7 BRING '+waiting.twin.B.n+' TO HALF',W/2,y-24);
+  }else{
+    const op=[tri,pro].find(e=>e&&e.open>0);
+    if(op){ ctx.fillStyle='#ffd24d'; ctx.font='600 11px Menlo,monospace';
+      ctx.fillText(op.B.n+' EXPOSED  \u00d7'+player.st.punish.toFixed(1),W/2,y-24); }
+  }
 }
 
 /* The branches that run on a clock put it front and centre: a bar draining
@@ -6411,7 +6988,8 @@ function hud(){
 
   // boss bar
   const boss=enemies.find(e=>e.t==='boss'&&!e.hidden);
-  if(boss){
+  if(boss&&boss.B.duoPart) duoBar(boss);
+  else if(boss){
     const w=520,x=(W-w)/2,y=H-42;
     ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x,y,w,13);
     ctx.fillStyle='#0b0a14'; ctx.fillRect(x,y,w*clamp(boss.hp/boss.max,0,1),13);
@@ -7120,9 +7698,8 @@ function buildTree(){
   respecArmed=0;
 }
 /* ---- the skill readout ----
-   Everything under the tree is worked out from stats() itself — the skill's
-   numbers on this hull, before and after — so it can never disagree with what
-   the ship actually does. `treeSel` is the node last clicked or tapped.     */
+   The card under the tree: the skill's tier, name, price or state, and what
+   it does. `treeSel` is the node last clicked or tapped.                   */
 let treeSel=null;
 function buySkill(s){
   if(!canBuy(s)) return;
@@ -7131,39 +7708,9 @@ function buySkill(s){
   refreshMenu();
   setTimeout(()=>{ if(landed===s.id){ landed=null; buildTree(); } },950);
 }
-// stats() for this hull as if its tree were exactly `ids`
-function statsFor(ids){
-  const i=treeShip(), real=save.trees[i];
-  save.trees[i]=ids;
-  try{ return stats(); } finally{ save.trees[i]=real; }
-}
-const reqChain=s=>{ const a=[]; for(let q=s.req&&byId(s.req); q; q=q.req&&byId(q.req)) a.push(q.id); return a; };
-const needsOf=id=>SKILLS.filter(k=>reqChain(k).includes(id)).map(k=>k.id);
 function skillInfo(s){
   const box=$('skillInfo');
   if(!s){ box.innerHTML='<span class="si-hint">CLICK A SKILL TO READ IT, AGAIN TO BUY</span>'; return; }
-  // before and after: what you own plus everything this skill needs, without
-  // and then with it. Anything that needs this skill comes off both sides.
-  const drop=new Set([s.id,...needsOf(s.id)]);
-  const base=[...new Set([...owned(),...reqChain(s)])].filter(id=>!drop.has(id));
-  const a=statsFor(base), b=statsFor(base.concat(s.id));
-  const f1=v=>Math.round(v*10)/10, dps=x=>f1(x.dmg*x.shots/x.delay);
-  const row=(k,x,y)=> x===y ? '' : lrow(k, x+'  \u2192  '+y, 'good');
-  const on=v=>v?'ON':'OFF';
-  const rows=
-    row('DAMAGE / ROUND', f1(a.dmg), f1(b.dmg))+
-    row('ROUNDS / SEC',   f1(1/a.delay), f1(1/b.delay))+
-    row('ROUNDS / TRIGGER', a.shots, b.shots)+
-    row('TARGETS / ROUND', a.pierce+1, b.pierce+1)+
-    (dps(a)!==dps(b) ? row('MAX DAMAGE / SEC', dps(a), dps(b)) : '')+
-    row('EXPOSED HITS', '\u00d7'+a.punish, '\u00d7'+b.punish)+
-    row('MAX HULL', a.maxHp, b.maxHp)+
-    row('REPAIR', f1(a.regen)+' HP/S', f1(b.regen)+' HP/S')+
-    row('DAMAGE TAKEN', Math.round(a.armour*100)+'%', Math.round(b.armour*100)+'%')+
-    row('TOP SPEED', Math.round(a.speed), Math.round(b.speed))+
-    row('DASH (SHIFT)', on(a.dash), on(b.dash))+
-    row('DASH I-FRAMES', on(a.iframe), on(b.iframe))+
-    row('DASH LENGTH', f1(a.dashLen*100)/100+'s', f1(b.dashLen*100)/100+'s');
   const own=has(s.id), ready=!s.req||has(s.req), cr=SKILL_CR(s);
   const status = own ? ['own','OWNED']
                : !ready ? ['no','NEEDS '+byId(s.req).n.replace(/\n/g,' ')]
@@ -7175,9 +7722,7 @@ function skillInfo(s){
       '<div class="si-s '+status[0]+'">'+status[1]+'</div>'+
       '<p>'+s.info+'</p>'+
       (canBuy(s)?'<button id="btnSkillBuy">BUY \u2014 '+cr+' CR</button>':'')+
-    '</div>'+
-    '<div class="si-r">'+lpanel(own?'WHAT IT GIVES THIS HULL':'WHAT IT WILL GIVE THIS HULL',
-      rows||lrow('\u2014','\u2014'))+'</div>';
+    '</div>';
   const bb=$('btnSkillBuy');
   if(bb) bb.onclick=()=>{ treeSel=s.id; buySkill(s); buildTree(); };
 }
@@ -7224,7 +7769,7 @@ $('gearWipe').onclick=()=>{
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
   save={points:0, credits:0, owned:[], trees:[], unlocked:true, best:0, deepest:1, deepestSys:0,
         ships:[0], ship:0,
-        branches:[], beaten:[], route:3,
+        branches:[], beaten:[], route:4,
         vol:SND.vol, sound:SND.on, seen:[], diff:save.diff};
   persist();
   landed=null; respecArmed=0;
@@ -7275,15 +7820,18 @@ const CODEX={
      u:'orbiter', a:[150,215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
      t:'A new Iteration type that will circle you and fire inwards.'},
     {c:'#a9b8ff', n:'PHANTOM', tag:'LUNA  ·  LINE UNIT', sys:4,
-     u:'phantom', a:[36,92,9,.6,10], ctr:'Nail it when it is far away and before it shoots.',
+     u:'phantom', a:[58,110,12,.8,10], ctr:'Nail it when it is far away and before it shoots.',
      t:'Fires, then teleports and fades away. It is unhittable while it is gone. Shoot it when it is not teleporting.'},
     {c:'#ff9a5c', n:'METEOR', tag:'LUNA  ·  RAM', sys:4,
-     u:'meteor', a:[18,560,0,0,12], ctr:'Get out of the cluster of them, then shoot a barrage of spreaded rounds at them.',
+     u:'meteor', a:[30,680,0,0,18], ctr:'Get out of the cluster of them, then shoot a barrage of spreaded rounds at them.',
      t:'A fast unit that launches at you over and over again. It telegraphs its attack with  a glowing line.'},
     {c:'#c9ccd4', n:'LANDER', tag:'LUNA  ·  HEAVY', sys:4,
-     u:'lander', a:[150,40,14,.31,20], ctr:'Focus a barrage of spread rounds on it before its drones begin to fire.',
+     u:'lander', a:[240,46,17,.42,24], ctr:'Focus a barrage of spread rounds on it before its drones begin to fire.',
      t:'A tough unit that will fire at you in bursts while spawning little drones that orbit it.'},
-    {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:5,
+    {c:'#9fe8ff', n:'GLACIER', tag:'NEPTUNE  ·  AOE', sys:5,
+     u:'glacier', a:[340,40,20,0,24], ctr:'Fire spread rounds from distance.',
+     t:'A tanky enemy that fires icy beams and spread patterns.'},
+    {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:6,
      u:'splinter', a:[169,110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
        'you. It holds a working distance and weaves while it reloads, so the orb '+
@@ -7309,7 +7857,13 @@ const CODEX={
     {c:'#d6d9e0', n:'THE CRESCENT', tag:'LUNA  ·  WAVE 5', sys:4,
      u:'b_crescent', a:[2600,460,11,.6,15], ctr:'Sit in one spot as long as possible, then fire a barrage of high-power spread rounds.',
      t:'A fast boss unit that will zoom around you in the low-g and fire AOE beams at you.'},
-    {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:5, void:1,
+    {c:'#2fa8ff', n:'TRITON', tag:'NEPTUNE  ·  WAVE 5', sys:5,
+     u:'b_triton', a:[2300,950,13,.8,15], ctr:'Get away from it to get a free window of damage.',
+     t:'The fast Titan. Stay away and dodge its attacks while firing the whole time.'},
+    {c:'#3a5bd0', n:'PROTEUS', tag:'NEPTUNE  ·  WAVE 5', sys:5,
+     u:'b_proteus', a:[2300,46,29,.55,20], ctr:'Get in its face and avoid its AOE attacks.',
+     t:'The tanky Titan. Get in close and dodge its lightning attacks and AOE beams.'},
+    {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:6, void:1,
      u:'b_ruler', a:[1553,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
      t:'The enemy leader, and the creature the other three answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
@@ -7677,8 +8231,8 @@ function buildStory(){
   el.innerHTML=html;
 }
 /* ---- save codes: MF3-<base64 payload>-<checksum> ----
-   MF3, MF2 and MF1 are the same payload. The prefix changes whenever a system
-   goes in ahead of Icarus — Saturn for MF2, Luna for MF3 — so an older code's
+   MF4 to MF1 are the same payload. The prefix changes whenever a system goes
+   in ahead of Icarus — Saturn for MF2, Luna for MF3, Neptune for MF4 — so an older code's
    system count is read on the route it was made on. */
 function checksum(raw){
   let sum=0;
@@ -7700,12 +8254,12 @@ function makeCode(){
              smask*8+SHIPS.indexOf(SHIP()),save.credits]
             .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1))).join('.');
   const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
-  return 'MF3-'+b64+'-'+checksum(raw);
+  return 'MF4-'+b64+'-'+checksum(raw);
 }
 function loadCode(code){
   code=(code||'').trim();
   const ver=code.slice(0,4).toUpperCase();
-  if(ver!=='MF1-'&&ver!=='MF2-'&&ver!=='MF3-') return 'Codes start with MF3-';
+  if(!['MF1-','MF2-','MF3-','MF4-'].includes(ver)) return 'Codes start with MF4-';
   const body=code.slice(4), cut=body.lastIndexOf('-');
   if(cut<1) return 'That code is incomplete.';
   let raw;
@@ -7714,7 +8268,7 @@ function loadCode(code){
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   const f=raw.split('.').map(Number);
   if(f.length<5||f.length>7+SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
-  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:SYSTEMS.length-1);
+  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:ver==='MF3-'?5:SYSTEMS.length-1);
   const fromMask=m=>SKILLS.filter((sk,i)=>m&(1<<i)).map(sk=>sk.id);
   save.trees=[fromMask(f[3])];
   for(let i=1;i<SHIPS.length;i++) save.trees[i]=f.length>6+i?fromMask(f[6+i]):[];
