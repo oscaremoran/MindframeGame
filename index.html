@@ -1955,7 +1955,7 @@ function cineDraw(){
 /* A run starts at the system you picked on the map and climbs from there. Every
    system you have already taken stays taken, so falling in 003 costs you 003 —
    not the two systems underneath it. */
-const branchTitle=k=> k==='boss'?'QUANTUM PORTAL':k==='escort'?'ESCORT':'SALVAGE';
+const branchTitle=k=>branchName(k);
 
 /* A branch flown as a sortie of its own off the title map, rather than as a
    detour partway up a campaign. One mission, paid the same, and then straight
@@ -2036,13 +2036,22 @@ function sysOverview(i){
 }
 
 function branchOverview(k,i){
-  const M={salvage:['Grab the green salvage to get credits, but avoid the asteroids.','No iterations, only a growing number of asteroids.'],
-           escort: ['Protect the yellow supply ship from damage and get it across the line.','Swarms of Iterations attacking you and the supply ship.'],
-           boss:   ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
+  const M={hold:    ['Defend the space station from enemy attackers.',
+                    'Swarms of enemies attacking the base, not you.'],
+           run:     ['Fly through every gate before time runs out.',
+                    'No enemies come, the hazards are the only enemy.'],
+           bounty:  ['Defeat the elite enemy before time runs out.',
+                    'A powerful Tracker variant that calls others to its aid.'],
+           gauntlet:['Defeat three swarms of enemies back-to-back with a damaged ship. One hit kills you.',
+                    'The full party of Saturn enemies. They can now destroy your ship with one hit.'],
+           echo:    ['The alien swarm is back with a vengeance. Destroy it again, this time on Luna.',
+                    'An echo of the Hive Mind, the previous enemy commander of Venus.'],
+           boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
+  const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   return lpanel('ENEMY FORCES',
            lrow('THE RUN', M[0], '', 1)+
-           lrow('OPPOSITION', M[1], k==='salvage'?'':'bad', 1)+
-           (k==='salvage'?lrow('TO FINISH','«WRITE: fly into the green EXIT to bank it and end the run»','good',1):'')+
+           lrow('OPPOSITION', M[1], k==='run'?'':'bad', 1)+
+           (best?lrow('BEST TIME', best.toFixed(1)+'s','good'):'')+
            (branchBanked(i,k)
               ? lrow('PAYOUT','+'+Math.max(1,Math.round(SECRET_PAY(i,k)*BRANCH_REPEAT))+
                               ' CR  (REFLOWN)','warn')
@@ -2063,10 +2072,13 @@ const LAUNCH_TEXT={
        'Eliminate the nearest Iteration outpost.',
        'Destroy a major Iteration bastion.',
        'Launch towards a seemingly unprotected Iteration shipment.',
-       '«WRITE: launch line for Luna»',
+       'Destroy a heavily defended base on the moon.',
        'Charge the Icarus in a final battle.'],
-  salvage:'Salvage scrap by collecting the green dots, but escape before you are crushed.',
-  escort: 'Defend the shipment of resources from raiding parties of Iterations.',
+  hold:    'Hold the space station.',
+  run:     'Fly through the gates while avoiding hazards.',
+  bounty:  'Defeat the powerful Tracker variant.',
+  gauntlet:'Clear three waves of tough enemies without getting hit once.',
+  echo:    'Defeat a stronger version of the Hive Mind.',
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function buildPortalPick(){
@@ -2128,7 +2140,7 @@ const SYS_CLEAR_TEXT=[
   'The alien swarm has been destroyed! Congratulations. Prepare and continue.',
   'The enemy commander Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The strange creation Iteration has been destroyed! Congratulations. Prepare and continue.',
-  '«WRITE: clear line for Luna, after the Crescent falls»',
+  'The Crescent has been destroyed! Congratulations. Prepare and continue.',
   'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
@@ -2204,7 +2216,7 @@ const angDiff=(a,b)=>{ let d=a-b; while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TA
 function leadAngle(e,speed,amount){
   // `lead` is how good a shot the thing is: on STARFARER it reads your drift
   // further ahead, so sidestepping a fan no longer works on its own
-  const P=(mission&&mission.k==='escort')?mission.ward:player,
+  const P=(mission&&mission.ward)?mission.ward:player,
         k=(amount===undefined?1:amount)*AGGR()*DIFF().lead;
   const d=Math.hypot(P.x-e.x,P.y-e.y), t=d/speed*k;
   return Math.atan2(P.y+P.vy*t-e.y, P.x+P.vx*t-e.x);
@@ -2212,7 +2224,7 @@ function leadAngle(e,speed,amount){
 
 const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
             tracker:'#ffb44d',overseer:'#3fd8e0',orbiter:'#e8c872',splinter:'#d9c6ff',
-            phantom:'#a9b8ff',meteor:'#ff9a5c',lander:'#c9ccd4',drone:'#8fe3ff'};
+            phantom:'#a9b8ff',meteor:'#ff9a5c',lander:'#c9ccd4',drone:'#8fe3ff',quarry:'#ffd24d'};
 const ecol=t=>ECOL[t]||'#4d9dff';
 const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
@@ -2243,9 +2255,14 @@ const ORB_R=250, ORB_LEAD=.35;
    LANDER   the heavy. Slow, tanky, lobs a few shells, and keeps a little ring
             of DRONES round itself, topping it up until it is killed — when it
             goes, its drones go with it. */
+/* The Bounty's target: a Tracker grown into something worth a price. It keeps
+   its distance, kicks away hard when you close on it, fires seekers in a
+   spread, and calls Trackers in to cover it — more of all of it once it is
+   below half. QUARRY_HP is in Tracker hulls' units, before system scaling. */
+const QUARRY_HP=420, QUARRY_HELP=8, QUARRY_KICK=620;
 const PH_IN=.5, PH_OUT=.35, PH_GONE=[1.0,1.6], PH_BURST=3, PH_GAP=.13;
 const MET_AIM=.6, MET_V=560, MET_RUN=.95, MET_COAST=.9;
-const LAND_DRONES=3, LAND_DEPLOY=3.6, DRONE_ORB=54;
+const LAND_DRONES=4, LAND_DEPLOY=1.5, DRONE_ORB=54;
 
 /* ---- the SPLINTER's cascade ----
    One orb, and every piece of it comes apart again until there is nothing left
@@ -2288,6 +2305,10 @@ function spawn(type,at,def){
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:21,
       hp:130*sc,max:130*sc,spd:110*vm,cool:rand(1.4,2.6)/cd,a:0,val:190,
       rof:1/cd,spin:0,wob:rand(0,TAU)});
+  // QUARRY — the Bounty's elite Tracker: kites, floods seekers, calls for help
+  if(type==='quarry') enemies.push({t:'quarry',x:p.x,y:p.y,vx:0,vy:0,r:24,
+      hp:QUARRY_HP*sc,max:QUARRY_HP*sc,spd:190*vm,cool:1.6/cd,a:0,val:900,spin:0,
+      rof:1/cd,dashCd:1.5,help:QUARRY_HELP*.6,dir:Math.random()<.5?-1:1});
   // PHANTOM — Luna's line unit: a burst, a fade, a new seat
   if(type==='phantom') enemies.push({t:'phantom',x:p.x,y:p.y,vx:0,vy:0,r:16,
       hp:36*sc,max:36*sc,spd:92*vm,cool:rand(1.2,2.4)/cd,a:0,val:70,rof:1/cd,
@@ -2299,7 +2320,7 @@ function spawn(type,at,def){
   // LANDER — Luna's heavy: shells, and a ring of drones it keeps topped up
   if(type==='lander') enemies.push({t:'lander',x:p.x,y:p.y,vx:0,vy:0,r:26,
       hp:150*sc,max:150*sc,spd:40*vm,cool:rand(2,3.2)/cd,a:0,val:230,spin:0,
-      rof:1/cd,dep:1.4/cd});
+      rof:1/cd,dep:.5/cd});
   if(type==='boss'){
     // whichever one this system answers to, unless a mission named one. It has
     // watched every upgrade you bought, and it came ready for them.
@@ -2335,7 +2356,7 @@ clearBuffs();
 function drop(e){
   const odds = e.t==='boss'?1 : e.t==='heavy'?.5 : e.t==='overseer'?.42
              : e.t==='splinter'?.32 : e.t==='orbiter'?.3 : e.t==='tracker'?.3
-             : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0
+             : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0 : e.t==='quarry'?1
              : e.t==='grunt'?.15 : .07;
   const n = e.t==='boss'?3 : Math.random()<odds?1:0;
   for(let i=0;i<n;i++){
@@ -2432,16 +2453,16 @@ const BOSSES=[
      in front of it: 'zoom' is a run straight through where you are with its
      guns open, and 'beam' / 'tribeam' stop it dead to throw wide lanes of
      light down the arena. Low gravity carries it even further than it meant. */
-  { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:2010, val:2100,
-    spd:150, want:280, strafe:.9, sum:'phantom', nodes:{n:3, hp:200, orb:0.6, nm:'HORN'},
+  { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:2600, val:2100, dmgX:1.4,
+    spd:178, want:280, strafe:.9, sum:'phantom', nodes:{n:3, hp:200, orb:0.6, nm:'HORN'},
     mus:{bpm:150, prog:[0,0,1,1, 6,6,4,4], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 0,6,4,1], hook:'crescent', lead:'triangle', shimmer:1, ride:1},
     tiers:[
-      {n:'', seq:['zoom','fan','zoom','beam','|'], pool:['zoom','fan','beam','summon'], rest:[1.1,1.6], spd:1},
-      {n:'THE CRESCENT \u2014 WANING', seq:['zoom','beam','zoom','summon','|','zoom','fan','beam','zoom','|'],
-       pool:['zoom','fan','beam','summon'],                  rest:[.85,1.25], spd:1.25},
-      {n:'THE CRESCENT \u2014 ECLIPSE', seq:['zoom','tribeam','zoom','beam','|','blink','zoom','tribeam','fan','zoom','|'],
-       pool:['zoom','fan','beam','tribeam','blink','summon'], rest:[.6,.95],  spd:1.5},
+      {n:'', seq:['zoom','fan','beam','zoom','summon','beam','|'], pool:['zoom','fan','beam','summon'], rest:[.75,1.1], spd:1.1},
+      {n:'THE CRESCENT \u2014 WANING', seq:['zoom','beam','zoom','tribeam','summon','|','zoom','fan','beam','zoom','tribeam','|'],
+       pool:['zoom','fan','beam','tribeam','summon'],         rest:[.55,.85], spd:1.35},
+      {n:'THE CRESCENT \u2014 ECLIPSE', seq:['zoom','tribeam','blink','zoom','beam','tribeam','|','blink','zoom','tribeam','fan','zoom','beam','|'],
+       pool:['zoom','fan','beam','tribeam','blink','summon'], rest:[.35,.6],  spd:1.65},
     ]},
 
   /* The last thing in the campaign, and it is meant to feel like it. Heavier
@@ -2690,8 +2711,8 @@ function archForge(e){
    its waypoints are thrown out past you, so it keeps crossing your line.
    A beam is a lane fixed where it was aimed — it stops tracking partway
    through the warning — and it hits once, hard, for its whole length. */
-const CRES_TURN=2.6, CRES_ZOOM=2.3, CRES_GUN=.07;
-const BEAM_TEL=1.0, BEAM_ON=.5, BEAM_HW=46, BEAM_LEN=1800, BEAM_DMG=20, BEAM_SPREAD=.62;
+const CRES_TURN=3.0, CRES_ZOOM=2.6, CRES_GUN=.055;
+const BEAM_TEL=.85, BEAM_ON=.5, BEAM_HW=52, BEAM_LEN=1800, BEAM_DMG=24, BEAM_SPREAD=.62;
 function crescentWaypoint(e,through){
   const P=player;
   if(through||Math.random()<.5){
@@ -2730,8 +2751,9 @@ function actZoom(e,dt,T){
     const a=e.h+rand(-.06,.06);
     ebullets.push({x:e.x+Math.cos(e.h)*e.r*.7,y:e.y+Math.sin(e.h)*e.r*.7,
       vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:5,dmg:8*BOSS_DMG,col:'#eef0f5'});
-    // from the second tier the horns fire too, straight ahead off each tip
-    if(e.tier>=1&&(m.n=(m.n||0)+1)%2===0) for(const s of [-1,1]){
+    // the horns fire too, straight ahead off each tip: every other round at
+    // first, every round once it is hurt
+    if(e.tier>=1||(m.n=(m.n||0)+1)%2===0) for(const s of [-1,1]){
       const hx=e.x+Math.cos(e.h+s*1.05)*e.r, hy=e.y+Math.sin(e.h+s*1.05)*e.r;
       ebullets.push({x:hx,y:hy,vx:Math.cos(e.h)*sp*.9,vy:Math.sin(e.h)*sp*.9,r:4,dmg:7*BOSS_DMG,col:'#b9bfcc'});
     }
@@ -2754,8 +2776,8 @@ function actBeam(e,dt,dx,dy,T){
       const a=m.a+(i-(m.n-1)/2)*BEAM_SPREAD, cx=Math.cos(a), cy=Math.sin(a);
       const ox=P.x-m.x, oy=P.y-m.y, al=ox*cx+oy*cy, off=Math.abs(ox*cy-oy*cx);
       if(al>-20&&off<hw+12&&P.inv<=0&&buffs.shield<=0){
-        P.hp-=BEAM_DMG*BOSS_DMG*DIFF().dmgIn*P.st.armour;
-        P.inv=.5; pilotHurt(); shake=Math.max(shake,16);
+        P.hp-=BEAM_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
+        P.inv=.5; pilotHurt();
         // thrown out of the lane, to whichever side of it you were on
         const side=Math.sign(oy*cx-ox*cy)||1;
         P.vx+=-cy*side*260; P.vy+=cx*side*260;
@@ -3368,8 +3390,31 @@ const PUNISH_MULT=2;
 /* The window has to be earned. Any hit the pilot takes marks every boss on the
    field, and a marked boss keeps its guard up when its line reaches a '|' —
    so EXPOSED only ever opens at the end of a line you flew clean. */
+/* Getting hit is told by the edge of the screen, not by shaking it: a red
+   pulse round the border for HURT_T seconds. Below a sixth of your hull it
+   keeps coming on its own, a beat every HURT_BEAT seconds, until you are
+   patched up or gone. */
+const HURT_T=.2, HURT_BEAT=.6, HURT_LOW=1/6;
+let hurtT=0, hurtBeat=0;
+function hurtStep(dt){
+  hurtT=Math.max(0,hurtT-dt);
+  const P=player;
+  if(P && P.hp>0 && P.hp<P.st.maxHp*HURT_LOW){
+    hurtBeat-=dt;
+    if(hurtBeat<=0){ hurtBeat=HURT_BEAT; hurtT=HURT_T; }
+  }else hurtBeat=0;
+}
+function hurtDraw(){
+  if(hurtT<=0) return;
+  const k=hurtT/HURT_T;
+  const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.32,W/2,H/2,Math.hypot(W,H)*.55);
+  g.addColorStop(0,'rgba(255,34,51,0)');
+  g.addColorStop(.6,'rgba(255,34,51,'+(.28*k)+')');
+  g.addColorStop(1,'rgba(255,34,51,'+(.75*k)+')');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
 function pilotHurt(){
-  SFX.hurt();
+  SFX.hurt(); hurtT=HURT_T;
   for(const e of enemies) if(e.t==='boss') e.marked=1;
 }
 const GUARD_HELD=.6;
@@ -3505,7 +3550,7 @@ function bossAI(e,dt,dx,dy,d){
   if(B.k==='hive'&&!e.hidden){
     e.leak=(e.leak||rand(2.2,3.6))-dt;
     if(e.leak<=0){
-      e.leak=rand(3.2,5.4)/DIFF().erof;
+      e.leak=rand(3.2,5.4)/DIFF().erof*(B.echoTrial?.55:1);
       bossSummon(e,B.sum,e.tier>=2?2:1);
     }
   }
@@ -3745,7 +3790,7 @@ function bossAI(e,dt,dx,dy,d){
   }
   else if(k==='charge'){ e.act={k:'charge',t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='zoom'){
-    e.act={k:'zoom',t:0,fire:.15,dur:e.tier>=2?2.0:e.tier?1.8:1.6};
+    e.act={k:'zoom',t:0,fire:.15,dur:e.tier>=2?2.4:e.tier?2.1:1.8};
     e.wp=crescentWaypoint(e,true); SFX.dash();
   }
   else if(k==='beam'||k==='tribeam'){
@@ -3906,16 +3951,16 @@ function update(dt){
   waveTimer+=dt; if(bannerT>0)bannerT-=dt;
   shake=Math.max(0,shake-dt*34);
   if(flash>0) flash=Math.max(0,flash-dt*1.7);
-  fxStep(dt); wallStep(dt);
+  fxStep(dt); wallStep(dt); hurtStep(dt);
 
   // stars drift
   for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} }
 
   // spawn queue — Earth holds hostiles back so they arrive as a stream
   // rather than a pile-up. Nothing is skipped; the queue just waits its turn.
-  // an escort is the one place the arena is allowed to be busier than a system:
-  // the whole point of it is more inbound than one ship can cover
-  const maxLive = mission ? (mission.k==='escort'?12:10)
+  // holding the station is the one place the arena is allowed to be busier
+  // than a system: the whole point of it is more inbound than one ship can cover
+  const maxLive = mission ? (mission.ward?12:10)
                 : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : 10;
   while(spawnQ.length && !entrance && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
 
@@ -3982,8 +4027,8 @@ function update(dt){
   }
 
   /* --- enemies --- */
-  // On an escort everything hunts the hauler, not you.
-  const T = mission&&mission.k==='escort' ? mission.ward : P;
+  // Holding the station, everything hunts the station, not you.
+  const T = mission&&mission.ward ? mission.ward : P;
   for(const e of enemies){
     const dx=T.x-e.x, dy=T.y-e.y, d=Math.hypot(dx,dy)||1, ox=e.x, oy=e.y;
     e.a=Math.atan2(dy,dx);
@@ -4090,11 +4135,51 @@ function update(dt){
           r:9,dmg:11*EASE(),col:'#d9c6ff',orb:1,gen:0,fuse:clamp(d/210*.55,.35,1.1)});
       }
     }
+    else if(e.t==='quarry'){
+      const hurt=e.hp<e.max*.5;
+      e.spin+=dt*3;
+      // kite: hold a long range and circle, reversing now and then
+      const want=420, k=d>want+40?1:d<want-60?-1.1:0;
+      e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
+      e.x+=(-dy/d)*e.spd*.7*e.dir*dt; e.y+=(dx/d)*e.spd*.7*e.dir*dt;
+      if(Math.random()<dt*.25) e.dir*=-1;
+      // close on it and it kicks away, straight off the line you came in on
+      e.dashCd-=dt;
+      if(d<260&&e.dashCd<=0){
+        e.dashCd=hurt?1.5:2.4;
+        e.vx=-(dx/d)*QUARRY_KICK; e.vy=-(dy/d)*QUARRY_KICK;
+        burst(e.x,e.y,'#ffd24d',14,260); SFX.dash();
+      }
+      e.x+=e.vx*dt; e.y+=e.vy*dt;
+      const kk=Math.pow(.04,dt); e.vx*=kk; e.vy*=kk;
+      // seekers, in a spread
+      e.cool-=dt;
+      if(e.cool<=0){
+        e.cool=(hurt?1.3:1.8)*(e.rof||1);
+        const n=hurt?6:4;
+        for(let i=0;i<n;i++){ const a=e.a+(i-(n-1)/2)*.3;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*190,vy:Math.sin(a)*190,
+            r:6,dmg:13,col:'#ffd24d',seek:2.5,age:0}); }
+        // and a fast straight pair down the middle, so the spread is not the only read
+        for(const o of [-.06,.06]){ const a=leadAngle(e,360,.8)+o;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*360,vy:Math.sin(a)*360,r:4.5,dmg:9,col:'#fff1c8'}); }
+      }
+      // and help, when it has less than three Trackers covering it
+      e.help-=dt;
+      if(e.help<=0){
+        e.help=(hurt?7:QUARRY_HELP)*(e.rof||1);
+        if(enemies.filter(o=>o.t==='tracker').length<(hurt?4:3)){
+          for(let i=0;i<2;i++) spawn('tracker',{x:e.x+rand(-40,40),y:e.y+rand(-40,40)});
+          burst(e.x,e.y,'#ffb44d',16,280);
+        }
+      }
+    }
     else if(e.t==='phantom'){
       e.pt+=dt;
       if(e.ph==='on'||e.ph==='in'){
         // holds range and circles, like the line unit it replaces
-        const want=280, k=d>want?1:(d<want-70?-1.1:0);
+        // it never backs off until it is actually in the arena
+        const want=280, k=!e.on?1:d>want?1:(d<want-70?-1.1:0);
         e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
         e.x+=(-dy/d)*e.spd*.6*e.dir*dt; e.y+=(dx/d)*e.spd*.6*e.dir*dt;
       }
@@ -4154,7 +4239,9 @@ function update(dt){
     }
     else if(e.t==='lander'){
       // slow and deliberate, holding off at a distance its drones can work from
-      const want=340, k=d>want?1:-.4;
+      // ...but it comes all the way in before it starts keeping its distance,
+      // or it can back itself off the edge and never arrive
+      const want=340, k=!e.on?1:d>want?1:-.4;
       e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
       e.spin+=dt*.5;
       e.cool-=dt;
@@ -4200,6 +4287,8 @@ function update(dt){
       const n0=ebullets.length;
       bossAI(e,dt,dx,dy,d);
       if(inMeltdown(e)) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg=ONE_SHOT;
+      // a boss can hit harder than the shared numbers without editing every attack
+      else if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
     }
     else if(e.t==='echo'){ echoStep(e,dt,dx,dy,d); }
     if(lowgOn()) lowgDrift(e,ox,oy,dt);
@@ -4262,7 +4351,7 @@ function update(dt){
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?9:4, e.open>0?260:150);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
-          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander');
+          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry');
           if(e.val) drop(e);
           burst(e.x,e.y,ecolOf(e),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
           enemies.splice(j,1);
@@ -4327,7 +4416,7 @@ function update(dt){
     const rr=b.r+13;
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
-      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; shake=Math.max(shake,7); P.inv=.12; pilotHurt();
+      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; P.inv=.12; pilotHurt();
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -4343,7 +4432,7 @@ function update(dt){
               :e.t==='meteor'?12:e.t==='lander'?20:e.t==='drone'?6:10)
                *DIFF().dmgIn*P.st.armour;
         pilotHurt();
-        P.inv=.5; shake=Math.max(shake,11);
+        P.inv=.5;
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
       }
@@ -4359,9 +4448,11 @@ function update(dt){
   }
 
   /* --- the arena itself --- */
-  if(!mission) worldStep(dt);
+  if(world) worldStep(dt);
 
   /* --- end conditions --- */
+  // the gauntlet: any damage at all, from anything, is the end of it
+  if(mission&&mission.ohk){ if(P.hp<mission.mark-.01) P.hp=0; else mission.mark=P.hp; }
   if(P.hp<=0){
     P.hp=0; endRun(false); return;
   }
@@ -4751,7 +4842,7 @@ function hazHurt(dmg,x,y,col,kick){
   const P=player;
   if(P.inv>0||buffs.shield>0) return false;
   P.hp-=dmg*HAZ_DMG()*P.st.armour;
-  P.inv=.5; shake=Math.max(shake,15); pilotHurt();
+  P.inv=.5; pilotHurt();
   burst(P.x,P.y,col,14,260);
   if(kick){ const a=Math.atan2(P.y-y,P.x-x);
     P.vx+=Math.cos(a)*kick; P.vy+=Math.sin(a)*kick; }
@@ -4772,7 +4863,7 @@ function hazBossKill(e){
 // a tool, not a second gun
 function hazKill(e,j,col){
   burst(e.x,e.y,col,e.t==='heavy'?30:16,320);
-  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander');
+  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry');
   enemies.splice(j,1);
 }
 
@@ -5374,26 +5465,30 @@ function finaleDraw(){
 
 /* ══════════════════════ SECRET MISSIONS ══════════════════════
    The side branches off the space map. You are offered one on the map between
-   systems, once per run per system. Each is named from the first time you see
-   it and each asks for a tier of the skill tree before it will open — salvage a
-   tier-1 skill, escort a tier-2, the Portal a tier-3 — so a branch is something
-   your loadout earns rather than a blind coin flip. Failing one costs you the
+   systems, once per run per system, and off the title map any time. Each is
+   named from the first time you see it. Failing one costs you the
    payout and the second attempt, and drops you back on the route: the campaign
    is never on the table. They pay rather less than a system does: they are
    shorter, and the route is meant to stay the way you earn a campaign.
 
-   Two are flyable. The third is a placeholder for the secret bosses.       */
-/* One branch per system, and only where there is something to fly. Earth
-   has none — a first system with an unreachable node on the map beside it is
-   just a dead label — and neither do 004 or 005: the way to the two off-roster
-   bosses is the QUANTUM PORTAL beside 003, on the other side of the spine. */
+   One branch per system, each built round the place it hangs off, and each
+   flown in that system's own weather:
+     hold      (Earth)   a station in the middle of the field; keep it alive
+                         until the clock runs out
+     run       (Venus)   a chain of gates through the vents, against the clock
+     bounty    (Jupiter) an elite Tracker that kites, calls for help, and
+                         leaves if you have not killed it in time
+     gauntlet  (Saturn)  three Saturn waves back to back; one hit and it is over
+     echo      (Luna)    the Hive Mind again, faster, with less rest
+   Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
+   the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
-  {k:'none',    n:'',               sub:''},
-  {k:'salvage', n:'SALVAGE',        sub:'OPEN DEBRIS FIELD'},
-  {k:'escort',  n:'ESCORT',         sub:'CONVOY RUN'},
-  {k:'none',    n:'',               sub:''},
-  {k:'none',    n:'',               sub:''},
-  {k:'none',    n:'',               sub:''},
+  {k:'hold',     n:'HOLD THE STATION', sub:'DEFEND THE PLATFORM'},
+  {k:'run',      n:'HAZARD RUN',       sub:'CHECKPOINT RACE'},
+  {k:'bounty',   n:'BOUNTY',           sub:'ELITE TRACKER'},
+  {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
+  {k:'echo',     n:'ECHO TRIAL',       sub:'THE HIVE MIND'},
+  {k:'none',     n:'',                 sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
 const PORTAL_SYS=2;
@@ -5404,17 +5499,18 @@ const PORTAL={k:'boss', n:'QUANTUM PORTAL', sub:'DESTINATION UNKNOWN'};
    to it. `save.seen` still records what you have flown, for the bestiary. */
 const surveyed=k=>save.seen.includes(k);
 function survey(k){ if(k&&!save.seen.includes(k)){ save.seen.push(k); persist(); } }
-const branchName=k=> k==='boss' ? 'QUANTUM PORTAL' : k==='escort' ? 'ESCORT' : 'SALVAGE';
+const branchName=k=> k==='boss' ? 'QUANTUM PORTAL' : (SECRETS.find(x=>x.k===k)||{n:''}).n;
 const branchSub=k=> k==='boss' ? PORTAL.sub : SECRETS.find(x=>x.k===k).sub;
 const SECRET=i=>SECRETS[Math.min(i,SECRETS.length-1)];
-const secretFlyable=k=>k==='salvage'||k==='escort'||k==='boss';
+const secretFlyable=k=>!!k&&k!=='none';
 /* A system pays 5 waves plus its boss, and that is the wage the campaign is
    balanced around. A side branch is shorter than a system and pays like it:
-   a little over half. The Portal pays more than the other two because what is
+   under a third, so it tops a loadout up rather than buying one. The Portal pays more than the other two because what is
    through it is harder than anything on the route — but it used to pay three
    and a half systems for one fight, which made the route itself optional, and
-   a shortcut that good is not a secret, it is the game.                    */
-const SECRET_PAY=(i,k)=>Math.round((k==='boss'?2.4:.55)*(5*CREDITS_PER_WAVE(i)+CREDIT_BOSS));
+   a shortcut that good is not a secret, it is the game. The Echo Trial is a
+   whole boss fight, so it sits between the two.                            */
+const SECRET_PAY=(i,k)=>Math.max(2,Math.round((k==='boss'?2.4:k==='echo'?.4:.3)*(5*CREDITS_PER_WAVE(i)+CREDIT_BOSS)));
 
 let mission=null, runSecrets=[];
 /* ---- the Portal's destination ----
@@ -5427,7 +5523,7 @@ let portalPick=0;
 const portalOpen=i=> i===0 || bossBeaten(SECRET_BOSSES[0].k);
 
 /* A branch is a fixed payout for a fixed job, and off the title map it can be
-   flown as often as you like — which made salvage in particular a credit tap
+   flown as often as you like — which made the old salvage run a credit tap
    you could sit on forever rather than a detour. So it pays in full ONCE, and
    a third of that every time after. Replaying is still worth doing and still
    worth something; it is just no longer better than flying the route.      */
@@ -5450,6 +5546,9 @@ function startMission(kind){
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
   waveTimer=0; paused=false; toast=''; toastT=0; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
+  /* The Portal is somewhere else entirely and brings no weather with it. Every
+     other branch is flown in the system it hangs off, hazard and all. */
+  if(kind==='boss') worldClear(); else worldStart();
 
   if(kind==='boss'){
     const B=SECRET_BOSSES[portalPick] || SECRET_BOSSES[0];
@@ -5459,123 +5558,102 @@ function startMission(kind){
     banner=B.n; bannerT=2.8;
     hideAll(); state='play'; return;
   }
-  if(kind==='escort'){
-    // a yellow hauler crossing the field at walking pace. Everything out there
-    // is coming for it, and it is your guns between them and it. It is not
-    // armoured and it does not shoot back, so every hostile that reaches it is
-    // a hostile you did not kill in time.
-    mission.dur=44;
-    mission.ward={x:100,y:H*.42,hp:340,max:340,r:26,vy:0,a:0};
-    mission.ward.vx=(W-200)/mission.dur;
-    const n=11+i*4;                        // a stream, but one ship can cover it
+  if(kind==='hold'){
+    // a platform in the middle of the field, and everything comes for it
+    wave=3;
+    mission.dur=HOLD_T;
+    mission.ward={x:W/2,y:H*.45,hp:HOLD_HP,max:HOLD_HP,r:30,vx:0,vy:0,a:0};
+    player.y=Math.min(H-110,H*.45+150);
+    const R=ROSTER(), n=16;
     for(let q=0;q<n;q++){
-      const t=1.8+q*(mission.dur-5)/n;
-      spawnQ.push({t, type: q%3===2?'grunt' : q%5===4?'heavy':'dart'});
-      if(q%4===1) spawnQ.push({t:t+.6, type:'dart'});          // Watchers come in pairs
-      if(unlockedType('tracker') &&q%4===3) spawnQ.push({t:t+.8,type:'tracker'});
-      if(unlockedType('overseer')&&q%6===5) spawnQ.push({t:t+1.1,type:'overseer'});
-      if(unlockedType('orbiter') &&q%6===2) spawnQ.push({t:t+1.2,type:'orbiter'});
-      if(unlockedType('splinter')&&q%7===6) spawnQ.push({t:t+1.3,type:'splinter'});
+      const t=1.2+q*(HOLD_T-6)/n;
+      spawnQ.push({t, type: q%3===2?R.line : q%7===6?R.heavy : R.ram});
+      if(q%3===1) spawnQ.push({t:t+.5, type:R.ram});
     }
-    // and two pushes: everything at once, timed to the thirds of the crossing
-    for(const [at,k] of [[mission.dur*.34,3],[mission.dur*.7,4]])
-      for(let q=0;q<k+i;q++) spawnQ.push({t:at+q*.26, type: q%2?'dart':'grunt'});
-    banner='ESCORT — KEEP IT ALIVE'; bannerT=2.6;
-  }else{
-    // a debris field, and it never settles. There is no clock and nothing
-    // crushes you at the end of one — the wreckage just keeps arriving, more
-    // of it and moving faster, until staying is its own punishment. When you
-    // leave is entirely your call.
-    mission.base=17+i*5;
-    mission.exit={x:W*.5,y:88,r:34};   // clear of the HUD, and a whole wreck away
-    mission.got=0;
-    mission.motes=[];
-    for(let q=0;q<pay;q++) mission.motes.push({
-      x:rand(70,W-70), y:rand(70,H-70), t:rand(0,TAU), got:false});
-    mission.junk=[];
-    for(let q=0;q<mission.base;q++) missionJunk();
-    banner='SALVAGE — IT ONLY GETS WORSE'; bannerT=2.6;
+    // two rushes from every side, at the thirds of the clock
+    for(const [at,k] of [[HOLD_T*.34,5],[HOLD_T*.68,7]])
+      for(let q=0;q<k;q++) spawnQ.push({t:at+q*.22, type: q%2?R.ram:R.line});
+    spawnQ.sort((a,b)=>a.t-b.t);
+    banner='HOLD THE STATION'; bannerT=2.6;
+  }
+  else if(kind==='run'){
+    // nothing to shoot: the place itself is the opposition
+    mission.gates=runGates(); mission.gi=0;
+    banner='HAZARD RUN'; bannerT=2.2;
+  }
+  else if(kind==='bounty'){
+    wave=3;
+    mission.dur=BOUNTY_T;
+    const a=rand(-Math.PI*.8,-Math.PI*.2);
+    spawn('quarry',{x:W/2+Math.cos(a)*W*.3, y:H*.42+Math.sin(a)*H*.3});
+    banner='BOUNTY'; bannerT=2.4;
+  }
+  else if(kind==='gauntlet'){
+    // three of this system's waves, back to back, and the first hit is the last
+    mission.ohk=1; mission.w=1; mission.mark=player.hp;
+    wave=GAUNT_FROM-1; nextWave();
+    banner='GAUNTLET — WAVE 1 / '+GAUNT_N; bannerT=2.4;
+  }
+  else if(kind==='echo'){
+    const B=echoOf('hive');
+    mission.B=B;
+    spawn('boss',null,B);
+    banner=B.n; bannerT=2.8;
   }
   hideAll(); state='play';
 }
 
-/* How far a salvage run is allowed to escalate. There is no timer on one, so
-   these two are what eventually makes staying a bad idea — and the ceilings
-   are there so a very long run stays a fair fight and a steady frame rate. */
-const SALV_CAP=76, SALV_VMAX=3.4;
+/* ---- the side branches' numbers ---- */
+const HOLD_T=35, HOLD_HP=420;               // how long, and how much the station takes
+const BOUNTY_T=30;                          // how long before the target gets away
+const RUN_N=8, RUN_GATE=40, RUN_LIMIT=32;   // gates, gate radius, seconds allowed
+const GAUNT_FROM=2, GAUNT_N=3;              // which wave it starts on, and how many
 
-// one more piece of the wreck, thrown in from an edge
-function makeJunk(list,at){
-  const p=at||edgeSpawn(), a=Math.atan2(H/2-p.y,W/2-p.x)+rand(-.6,.6), sp=rand(45,120);
-  list.push({x:p.x,y:p.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-    r:rand(16,42), spin:rand(0,TAU), rot:rand(-.9,.9),
-    n:Math.floor(rand(5,8)), seed:rand(0,9)});
+/* HAZARD RUN — a chain of gates through the arena, taken in order. A gate is
+   never placed inside a vent's reach, but it is often placed beside one, so
+   the line through the course runs past fire that is on a clock. */
+function runGates(){
+  const out=[], vents=(world&&world.vents)||[], m=80;
+  let px=W/2, py=H-110;
+  for(let n=0;n<RUN_N;n++){
+    let x=0,y=0;
+    for(let tries=0;tries<120;tries++){
+      x=rand(m,W-m); y=rand(m+20,H-m);
+      const d=Math.hypot(x-px,y-py);
+      if(d<260||d>560) continue;
+      if(vents.some(v=>Math.hypot(v.x-x,v.y-y)<VENT_R+RUN_GATE+24)) continue;
+      break;
+    }
+    out.push({x,y}); px=x; py=y;
+  }
+  return out;
 }
-const missionJunk=()=>makeJunk(mission.junk);
 
-// wreckage drifts, turns, bounces off the walls, and hurts on contact
-function junkStep(list,dt,speed,dmg){
-  const P=player;
-  for(const j of list){
-    j.x+=j.vx*speed*dt; j.y+=j.vy*speed*dt; j.spin+=j.rot*dt;
-    if(j.x<j.r&&j.vx<0) j.vx*=-1;  if(j.x>W-j.r&&j.vx>0) j.vx*=-1;
-    if(j.y<j.r&&j.vy<0) j.vy*=-1;  if(j.y>H-j.r&&j.vy>0) j.vy*=-1;
-    const rr=j.r*.86+13;
-    if(P.inv<=0&&buffs.shield<=0&&dist2(j,P)<rr*rr){
-      P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.55; shake=Math.max(shake,17); pilotHurt();
-      const a=Math.atan2(P.y-j.y,P.x-j.x);
-      P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
-      burst(P.x,P.y,'#8ea0c8',14,260);
-    }
-  }
-}
-function junkDraw(list){
-  for(const j of list){
-    ctx.save(); ctx.translate(j.x,j.y); ctx.rotate(j.spin);
-    ctx.beginPath();
-    for(let i=0;i<j.n;i++){
-      const a=i/j.n*TAU, rr=j.r*(.62+.38*Math.abs(Math.sin(a*2.1+j.seed)));
-      i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
-    }
-    ctx.closePath();
-    ctx.fillStyle='#111726'; ctx.fill();
-    ctx.strokeStyle='#4a5878'; ctx.lineWidth=2; ctx.stroke();
-    ctx.restore();
-  }
-}
-// returns how many were picked up this frame
-function moteStep(list,dt,onGet){
-  const P=player; let got=0;
-  for(const u of list){
-    if(u.got) continue;
-    u.t+=dt*2.2;
-    if(dist2(u,P)<26*26){ u.got=true; got++; burst(u.x,u.y,'#46e39b',8,180); if(onGet) onGet(); }
-  }
-  return got;
-}
-function moteDraw(list){
-  for(const u of list){
-    if(u.got) continue;
-    const r=5+Math.sin(u.t)*1.3;
-    ctx.beginPath(); ctx.arc(u.x,u.y,r,0,TAU);
-    ctx.fillStyle='#46e39b'; ctx.shadowColor='#46e39b'; ctx.shadowBlur=12;
-    ctx.fill(); ctx.shadowBlur=0;
-  }
+/* ECHO TRIAL — a boss you have already put down, come back quicker: its whole
+   line runs faster, it carries more hull, and its rest windows are cut to
+   well under half. It keeps its key,
+   so it looks, sounds and arrives exactly like itself. */
+const ECHO_HP=1.6, ECHO_SPD=1.45, ECHO_REST=.42, ECHO_DMG=1.5;
+function echoOf(k){
+  const H0=BOSSES.find(b=>b.k===k);
+  return Object.assign({},H0,{ n:'ECHO OF '+H0.n, echoTrial:1, dmgX:ECHO_DMG, hp:H0.hp*ECHO_HP, spd:H0.spd*ECHO_SPD,
+    tiers:H0.tiers.map(T=>Object.assign({},T,{ spd:T.spd*ECHO_SPD,
+      rest:[T.rest[0]*ECHO_REST,T.rest[1]*ECHO_REST] })) });
 }
 
 function missionTick(dt){
   const P=player, M=mission;
   M.t+=dt;
 
-  if(M.k==='boss'){
+  if(M.k==='boss'||M.k==='echo'){
     // nothing to collect and no clock: kill it, or it kills you
     if(!enemies.some(e=>e.t==='boss')) missionEnd(true);
     return;
   }
 
-  if(M.k==='escort'){
+  if(M.k==='hold'){
     const w=M.ward;
-    w.x+=w.vx*dt; w.a+=dt*.5;
+    w.a+=dt*.5;
     // enemy fire that misses you does not miss it
     for(let i=ebullets.length-1;i>=0;i--){
       const b=ebullets[i], rr=b.r+w.r;
@@ -5584,32 +5662,54 @@ function missionTick(dt){
         ebullets.splice(i,1);
       }
     }
-    // and neither do the Watchers, which came for it
+    // and neither do the rammers, which came for it
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j], rr=e.r+w.r;
+      if(e.gone||e.t==='echo') continue;
       if(dist2(e,w)<rr*rr){
-        w.hp-=e.t==='dart'?40:e.t==='heavy'?34:24; burst(e.x,e.y,'#ffd24d',16,300);
+        w.hp-=(e.t==='dart'||e.t==='meteor')?40:e.t==='heavy'||e.t==='lander'?34:24;
+        burst(e.x,e.y,'#ffd24d',16,300);
         shock(w.x,w.y,'#ffd24d',w.r,w.r*2.4,.35,4);
         shake=Math.max(shake,9);
-        if(e.t==='dart'||e.t==='splinter') enemies.splice(j,1);
+        if(e.t==='dart'||e.t==='meteor') enemies.splice(j,1);
+        else{ const a=Math.atan2(e.y-w.y,e.x-w.x); e.x=w.x+Math.cos(a)*(rr+2); e.y=w.y+Math.sin(a)*(rr+2); }
       }
     }
-    if(w.hp<=0){ missionEnd(false,'CONVOY LOST'); return; }
-    if(w.x>=W-90){ missionEnd(true); return; }
+    if(w.hp<=0){ missionEnd(false,'STATION LOST'); return; }
+    if(M.t>=M.dur){ missionEnd(true); return; }
     return;
   }
 
-  // ---- salvage ----
-  // No clock. The only thing that escalates is the wreckage itself: a new
-  // piece roughly every 1.8s, and everything already out there moving faster,
-  // until the field is thick enough that another mote is not worth it.
-  if(M.junk.length < Math.min(SALV_CAP, M.base+Math.floor(M.t/1.1))) missionJunk();
-  junkStep(M.junk,dt,Math.min(SALV_VMAX,1+M.t/17),34);
-  // salvage pays per cell rather than on the way out, so the repeat rate has
-  // to be applied to the pile at the end instead of to each one
-  M.got+=moteStep(M.motes,dt,()=>{ if(M.first) credit(1); });
-  const ex=M.exit, rr=ex.r+13;
-  if(dist2(ex,P)<rr*rr) missionEnd(true);
+  if(M.k==='run'){
+    const g=M.gates[M.gi], rr=RUN_GATE+13;
+    if(g&&dist2(g,P)<rr*rr){
+      M.gi++; SFX.pickup('rapid');
+      burst(g.x,g.y,'#ffd24d',18,260); shock(g.x,g.y,'#ffd24d',RUN_GATE,RUN_GATE*2,.35,4);
+      if(M.gi>=M.gates.length){
+        save.runBest=save.runBest||{};
+        const key=String(M.sys), was=save.runBest[key];
+        M.best=!was||M.t<was;
+        if(M.best){ save.runBest[key]=Math.round(M.t*10)/10; persist(); }
+        missionEnd(true); return;
+      }
+    }
+    if(M.t>=RUN_LIMIT){ missionEnd(false,'OUT OF TIME'); return; }
+    return;
+  }
+
+  if(M.k==='bounty'){
+    if(!enemies.some(e=>e.t==='quarry')){ missionEnd(true); return; }
+    if(M.t>=M.dur){ missionEnd(false,'TARGET ESCAPED'); return; }
+    return;
+  }
+
+  if(M.k==='gauntlet'){
+    if(!spawnQ.length && !enemies.length && bannerT<=0){
+      if(M.w>=GAUNT_N){ missionEnd(true); return; }
+      M.w++; nextWave();
+      banner='GAUNTLET — WAVE '+M.w+' / '+GAUNT_N; bannerT=2.4;
+    }
+  }
 }
 
 function missionEnd(win,why){
@@ -5624,62 +5724,96 @@ function missionEnd(win,why){
     return;
   }
   if(M.k==='boss'&&M.B&&!save.beaten.includes(M.B.k)){ save.beaten.push(M.B.k); persist(); }
-  if(M.k==='salvage'){
-    if(!M.first){ M.got=Math.max(1,Math.round(M.got*BRANCH_REPEAT)); credit(M.got); }
-  }else credit(M.pay);
+  credit(M.pay);
   bankBranch(M.sys,M.k);
   player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*.15);
-  toast=(M.k==='boss'?'RETURNED THROUGH THE PORTAL':'SIDE BRANCH HELD')+
-        '  \u00b7  +'+(M.k==='salvage'?M.got:M.pay)+' CR'+
-        (M.first?'':'  \u00b7  REFLOWN'); toastT=3.4;
-  branchSortie=false; openMap('menu');
+  save.best=Math.max(save.best,score); persist();
+  branchSortie=false;
+  missionVictory(M);
+}
+
+/* The result screen for a side branch: the same card a held system gets, with
+   the numbers that branch was actually decided by. SPACE MAP goes back to the
+   chart. */
+/* PROSE — your line for winning each branch, under the result. */
+const SIDE_CLEAR_TEXT={
+  hold:    'Congratulations on holding the station.',
+  run:     'Congratulations on completing the supply run.',
+  bounty:  'Congratulations on tracking down the variant.',
+  gauntlet:'Congratulations on wiping out the hordes without getting damaged.',
+  echo:    'Congratulations on defeating the second alien swarm.',
+  boss:    'Congratulations on defeating the strange enemy!',
+};
+function missionVictory(M){
+  const secs=t=>t.toFixed(1)+'s';
+  const extra = M.k==='hold'     ? lrow('STATION HULL', Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max,'good')
+              : M.k==='run'      ? lrow('TIME', secs(M.t), M.best?'good':'')+
+                                   lrow('BEST', secs(save.runBest[String(M.sys)]), M.best?'good':'')
+              : M.k==='bounty'   ? lrow('TIME TO KILL', secs(M.t),'good')
+              : M.k==='gauntlet' ? lrow('WAVES CLEARED', GAUNT_N+' / '+GAUNT_N,'good')
+              :                    lrow('TIME', secs(M.t),'good');
+  $('doneKind').textContent = M.k==='boss' ? 'QUANTUM PORTAL' : 'SIDE MISSION COMPLETE';
+  $('doneTitle').textContent = M.B ? M.B.n : branchName(M.k);
+  $('doneSub').textContent = M.k==='run'&&M.best ? 'NEW BEST' : 'VICTORY';
+  $('doneStats').innerHTML = lpanel('RESULT',
+    extra+
+    lrow('CREDITS EARNED','+'+M.pay+' CR'+(M.first?'':'  (REFLOWN)'),'good')+
+    lrow('CREDITS BANKED', save.credits)+
+    lrow('SCORE', score));
+  const t=SIDE_CLEAR_TEXT[M.k];
+  $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
+  state='done'; show('done');
 }
 
 function missionDraw(){
-  const M=mission;
-  if(M.k==='boss') return;          // it draws itself, and it has its own bar
-  if(M.k==='escort'){
+  const M=mission, P=player;
+  if(M.k==='boss'||M.k==='echo') return;   // it draws itself, and it has its own bar
+  if(M.k==='hold'){
     const w=M.ward;
     ctx.save(); ctx.translate(w.x,w.y);
-    const g=ctx.createRadialGradient(0,0,w.r*.4,0,0,w.r*2.4);
+    const g=ctx.createRadialGradient(0,0,w.r*.4,0,0,w.r*2.6);
     g.addColorStop(0,'rgba(255,210,77,.22)'); g.addColorStop(1,'rgba(255,210,77,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,w.r*2.4,0,TAU); ctx.fill();
-    ctx.rotate(w.a*.2);
-    ctx.strokeStyle='#ffd24d'; ctx.fillStyle='rgba(255,210,77,.13)';
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,w.r*2.6,0,TAU); ctx.fill();
+    // a ring station: hub, rim, and four spokes turning slowly
+    ctx.rotate(w.a*.4);
+    ctx.strokeStyle='#ffd24d'; ctx.fillStyle='rgba(255,210,77,.12)';
     ctx.lineWidth=2.6; ctx.shadowColor='#ffd24d'; ctx.shadowBlur=16;
-    ctx.beginPath();
-    ctx.moveTo(w.r,0); ctx.lineTo(w.r*.3,w.r*.7); ctx.lineTo(-w.r*.9,w.r*.55);
-    ctx.lineTo(-w.r*.9,-w.r*.55); ctx.lineTo(w.r*.3,-w.r*.7);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,w.r,0,TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,w.r*.36,0,TAU); ctx.stroke();
+    for(let i=0;i<4;i++){ const a=i/4*TAU;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*w.r*.36,Math.sin(a)*w.r*.36);
+      ctx.lineTo(Math.cos(a)*w.r,Math.sin(a)*w.r); ctx.stroke(); }
     ctx.shadowBlur=0; ctx.restore();
     hpbar(w.x,w.y-w.r-13,w.r*2.6,w.hp/w.max,'#ffd24d');
-    // the line it is trying to reach
-    ctx.strokeStyle='rgba(255,210,77,.28)'; ctx.setLineDash([6,8]); ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(W-90,40); ctx.lineTo(W-90,H-40); ctx.stroke();
-    ctx.setLineDash([]);
     return;
   }
-  // ---- salvage: wreckage, motes, and the way out ----
-  junkDraw(M.junk); moteDraw(M.motes);
-  const ex=M.exit, pulse=.5+.5*Math.sin(M.t*3);
-  ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r,0,TAU);
-  ctx.strokeStyle='rgba(70,227,155,'+(.5+.4*pulse)+')'; ctx.lineWidth=3;
-  ctx.shadowColor='#46e39b'; ctx.shadowBlur=20; ctx.stroke(); ctx.shadowBlur=0;
-  ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r*(.35+.5*pulse),0,TAU);
-  ctx.strokeStyle='rgba(70,227,155,.35)'; ctx.lineWidth=1.5; ctx.stroke();
-  ctx.font='10px Menlo,monospace'; ctx.fillStyle='#46e39b'; ctx.textAlign='center';
-  const all=M.got>=M.motes.length;
-  ctx.fillText(all?'ALL SALVAGED — EXIT':'EXIT',ex.x,ex.y+ex.r+16); ctx.textAlign='left';
-  // once you are holding something, a chevron off the hull points the way
-  // out — brighter when there is nothing left to stay for
-  const P=player, dx=ex.x-P.x, dy=ex.y-P.y, d=Math.hypot(dx,dy);
-  if(M.got>0 && d>ex.r+70){
-    const a=Math.atan2(dy,dx), o=38;
-    ctx.save(); ctx.translate(P.x+Math.cos(a)*o,P.y+Math.sin(a)*o); ctx.rotate(a);
-    ctx.strokeStyle='rgba(70,227,155,'+(all?.6+.4*pulse:.35+.25*pulse)+')';
-    ctx.lineWidth=2.4; ctx.shadowColor='#46e39b'; ctx.shadowBlur=all?14:6;
-    ctx.beginPath(); ctx.moveTo(-5,-7); ctx.lineTo(4,0); ctx.lineTo(-5,7); ctx.stroke();
-    ctx.restore();
+  if(M.k==='run'){
+    const pulse=.5+.5*Math.sin(M.t*5);
+    // the course from here on, faint; the gate you want, bright and numbered
+    ctx.save();
+    ctx.setLineDash([6,10]); ctx.strokeStyle='rgba(255,210,77,.22)'; ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let n=M.gi;n<M.gates.length;n++){ const g=M.gates[n]; n===M.gi?ctx.moveTo(g.x,g.y):ctx.lineTo(g.x,g.y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.font='11px Menlo,monospace'; ctx.textAlign='center';
+    for(let n=M.gates.length-1;n>=M.gi;n--){
+      const g=M.gates[n], cur=n===M.gi, nxt=n===M.gi+1;
+      ctx.globalAlpha=cur?1:nxt?.5:.18;
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=cur?3:2;
+      ctx.shadowColor='#ffd24d'; ctx.shadowBlur=cur?18:0;
+      ctx.beginPath(); ctx.arc(g.x,g.y,RUN_GATE*(cur?1+.08*pulse:1),0,TAU); ctx.stroke();
+      ctx.shadowBlur=0; ctx.fillStyle='#ffd24d';
+      ctx.fillText(String(n+1),g.x,g.y+4);
+    }
+    ctx.globalAlpha=1; ctx.textAlign='left'; ctx.restore();
+    // a chevron off the hull pointing at the gate you want
+    const g=M.gates[M.gi];
+    if(g){ const dx=g.x-P.x, dy=g.y-P.y, d=Math.hypot(dx,dy);
+      if(d>RUN_GATE+60){ const a=Math.atan2(dy,dx), o=38;
+        ctx.save(); ctx.translate(P.x+Math.cos(a)*o,P.y+Math.sin(a)*o); ctx.rotate(a);
+        ctx.strokeStyle='rgba(255,210,77,'+(.5+.4*pulse)+')'; ctx.lineWidth=2.4;
+        ctx.beginPath(); ctx.moveTo(-5,-7); ctx.lineTo(4,0); ctx.lineTo(-5,7); ctx.stroke();
+        ctx.restore(); } }
   }
 }
 
@@ -5722,6 +5856,15 @@ function unitPath(g,kind,r,spin,morph){
     for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?r*.48:r;
       i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
     g.closePath();
+  }else if(kind==='quarry'){
+    // the Tracker's triangle, doubled and counter-turning
+    for(const [f,sp] of [[1,1],[.55,-1.6]]){
+      g.save(); g.rotate(spin*sp);
+      g.beginPath();
+      for(let i=0;i<3;i++){const a=i/3*TAU;
+        i?g.lineTo(Math.cos(a)*r*f,Math.sin(a)*r*f):g.moveTo(Math.cos(a)*r*f,Math.sin(a)*r*f);}
+      g.closePath(); g.restore();
+    }
   }else if(kind==='phantom'){
     // a four-point glint: there, and then not
     g.rotate(spin*.5);
@@ -6113,6 +6256,14 @@ function draw(){
       }
       if(e.t==='heavy'){ ctx.beginPath(); ctx.arc(0,0,e.r*.3,0,TAU); ctx.fillStyle=col; ctx.fill(); }
       if(e.t==='tracker'){ ctx.beginPath(); ctx.arc(0,0,e.r*.26,0,TAU); ctx.fillStyle=col; ctx.fill(); }
+      if(e.t==='quarry'){                       // the price on it: a reticle that never leaves
+        ctx.rotate(-e.a); ctx.setLineDash([6,8]); ctx.lineDashOffset=-performance.now()/40;
+        ctx.strokeStyle='rgba(255,210,77,.7)'; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.arc(0,0,e.r+14,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+        for(let i=0;i<4;i++){ const a=i/4*TAU;
+          ctx.beginPath(); ctx.moveTo(Math.cos(a)*(e.r+8),Math.sin(a)*(e.r+8));
+          ctx.lineTo(Math.cos(a)*(e.r+22),Math.sin(a)*(e.r+22)); ctx.stroke(); }
+      }
       if(e.sh){
         ctx.rotate(-e.a);                       // shield angle is absolute, not facing
         ctx.beginPath(); ctx.arc(0,0,e.r+7,e.shA-e.sh,e.shA+e.sh);
@@ -6154,7 +6305,37 @@ function draw(){
   ctx.restore();
 
   if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
+  if(state==='play') hurtDraw();
   if(state==='play'||state==='over'||state==='dying') hud();
+}
+
+/* The branches that run on a clock put it front and centre: a bar draining
+   across the bottom of the arena and the seconds above it, big. (The top
+   centre is where the settings button sits.) Under ten it
+   goes red and pulses, and the last five each tick out loud. */
+function missionClock(){
+  const M=mission; if(!M) return;
+  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold' ? M.dur : 0;
+  if(!lim) return;
+  const left=Math.max(0,lim-M.t), k=left/lim, hot=left<10;
+  const sec=Math.ceil(left);
+  if(hot&&sec<=5&&sec!==M.tick){ M.tick=sec; SFX.deny(); }
+  const pu=hot?.5+.5*Math.sin(M.t*10):0;
+  const col=hot?'255,77,94':M.k==='hold'?'255,210,77':'255,210,77';
+  const bw=Math.min(560,W*.44), x=W/2-bw/2, y=H-28;
+  ctx.save();
+  ctx.fillStyle='rgba(8,12,24,.75)'; ctx.fillRect(x-2,y-2,bw+4,14);
+  ctx.fillStyle='rgba('+col+','+(.75+.25*pu)+')';
+  ctx.shadowColor='rgb('+col+')'; ctx.shadowBlur=hot?18+14*pu:10;
+  ctx.fillRect(x,y,bw*k,10);
+  ctx.shadowBlur=0; ctx.strokeStyle='rgba('+col+',.5)'; ctx.lineWidth=1; ctx.strokeRect(x-2.5,y-2.5,bw+5,15);
+  ctx.textAlign='center';
+  ctx.font='600 '+Math.round(30+(hot?8*pu:0))+'px Menlo,monospace';
+  ctx.fillStyle='rgba('+col+','+(.85+.15*pu)+')';
+  ctx.fillText(left.toFixed(1),W/2,y-12);
+  ctx.font='10px Menlo,monospace'; ctx.fillStyle='rgba('+col+',.7)';
+  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':'TIME LEFT',W/2,y-48);
+  ctx.restore();
 }
 
 function hud(){
@@ -6172,23 +6353,23 @@ function hud(){
   ctx.fillStyle='#7d8bb0'; ctx.font='11px Menlo,monospace';
   if(mission){
     const M=mission;
-    ctx.fillStyle=M.k==='escort'?'#ffd24d':M.k==='boss'?M.B.col:'#46e39b';
+    ctx.fillStyle=M.B?M.B.col:'#ffd24d';
     ctx.fillText(M.k==='boss'?'QUANTUM PORTAL — CLASSIFIED'
-      :'SIDE BRANCH — '+(M.k==='escort'?'ESCORT':'SALVAGE'),W-24,52);
-    if(M.k!=='boss'){
-      ctx.fillStyle='#7d8bb0';
-      ctx.fillText(M.k==='escort'
-        ? 'CONVOY '+Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max
-        : 'WRECKAGE  '+M.junk.length+(M.junk.length>=SALV_CAP?'  MAX':''),W-24,70);
-    }
+      :'SIDE BRANCH — '+branchName(M.k),W-24,52);
+    // the one number each branch is decided by
+    const left=s=>Math.max(0,Math.ceil(s))+'s';
+    const line = M.k==='hold'     ? 'STATION '+Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max+'  ·  '+left(M.dur-M.t)
+               : M.k==='run'      ? 'GATE '+Math.min(M.gi+1,M.gates.length)+' / '+M.gates.length+'  ·  '+M.t.toFixed(1)+'s / '+RUN_LIMIT+'s'
+               : M.k==='bounty'   ? 'ESCAPES IN '+left(M.dur-M.t)
+               : M.k==='gauntlet' ? 'WAVE '+M.w+' / '+GAUNT_N+'  ·  ONE HIT KILLS'
+               : '';
+    let y=70;
+    if(line){ ctx.fillStyle=M.k==='gauntlet'?'#ff6b8a':'#7d8bb0'; ctx.fillText(line,W-24,y); y+=18; }
+    if(M.k==='run'&&save.runBest&&save.runBest[String(M.sys)]){
+      ctx.fillStyle='#7d8bb0'; ctx.fillText('BEST '+save.runBest[String(M.sys)].toFixed(1)+'s',W-24,y); y+=18; }
     ctx.fillStyle='#46e39b';
-    ctx.fillText(M.k==='salvage'?'SALVAGED '+M.got+' / '+M.motes.length
-                                :'PAYS '+M.pay+' CR',W-24,M.k==='boss'?70:88);
-    // salvage has no clock and no last wave, so say outright how it ends
-    if(M.k==='salvage'){
-      ctx.fillStyle='rgba(70,227,155,'+(.6+.4*Math.sin(M.t*4))+')';
-      ctx.fillText('FLY INTO THE EXIT TO FINISH',W-24,106);
-    }
+    ctx.fillText('PAYS '+M.pay+' CR',W-24,y);
+    missionClock();
   }else{
     ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
     ctx.fillText('HOSTILES '+(enemies.length+spawnQ.length),W-24,70);
@@ -7094,14 +7275,14 @@ const CODEX={
      u:'orbiter', a:[150,215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
      t:'A new Iteration type that will circle you and fire inwards.'},
     {c:'#a9b8ff', n:'PHANTOM', tag:'LUNA  ·  LINE UNIT', sys:4,
-     u:'phantom', a:[36,92,9,.6,10], ctr:'«WRITE: one-line counter for the Phantom»',
-     t:'«WRITE: codex entry for the Phantom — fires a three-round burst, fades out, and reappears somewhere else round you; cannot be shot while it is gone»'},
+     u:'phantom', a:[36,92,9,.6,10], ctr:'Nail it when it is far away and before it shoots.',
+     t:'Fires, then teleports and fades away. It is unhittable while it is gone. Shoot it when it is not teleporting.'},
     {c:'#ff9a5c', n:'METEOR', tag:'LUNA  ·  RAM', sys:4,
-     u:'meteor', a:[18,560,0,0,12], ctr:'«WRITE: one-line counter for the Meteor»',
-     t:'«WRITE: codex entry for the Meteor — marks a line, rockets down it, then coasts; low gravity carries it further»'},
+     u:'meteor', a:[18,560,0,0,12], ctr:'Get out of the cluster of them, then shoot a barrage of spreaded rounds at them.',
+     t:'A fast unit that launches at you over and over again. It telegraphs its attack with  a glowing line.'},
     {c:'#c9ccd4', n:'LANDER', tag:'LUNA  ·  HEAVY', sys:4,
-     u:'lander', a:[150,40,14,.31,20], ctr:'«WRITE: one-line counter for the Lander»',
-     t:'«WRITE: codex entry for the Lander — slow and tanky, lobs shells, keeps up to three drones orbiting it that shoot at you; kill it and its drones die too»'},
+     u:'lander', a:[150,40,14,.31,20], ctr:'Focus a barrage of spread rounds on it before its drones begin to fire.',
+     t:'A tough unit that will fire at you in bursts while spawning little drones that orbit it.'},
     {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:5,
      u:'splinter', a:[169,110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
@@ -7126,8 +7307,8 @@ const CODEX={
      u:'b_architect', a:[2225,76,14,.45,15], ctr:'Get outside of its shapes before they burst.',
      t:'A new Iteration that builds exploding shapes. Move through the gaps in them to escape.'},
     {c:'#d6d9e0', n:'THE CRESCENT', tag:'LUNA  ·  WAVE 5', sys:4,
-     u:'b_crescent', a:[2010,345,11,.5,15], ctr:'«WRITE: one-line counter for the Crescent»',
-     t:'«WRITE: codex entry for the Crescent — zooms around firing where it points, runs straight through you, and stops to throw wide beams (three at once at the end)»'},
+     u:'b_crescent', a:[2600,460,11,.6,15], ctr:'Sit in one spot as long as possible, then fire a barrage of high-power spread rounds.',
+     t:'A fast boss unit that will zoom around you in the low-g and fire AOE beams at you.'},
     {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:5, void:1,
      u:'b_ruler', a:[1553,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
      t:'The enemy leader, and the creature the other three answered to. Extremely '+
