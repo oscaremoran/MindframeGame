@@ -7041,7 +7041,8 @@ function hud(){
 let last=performance.now();
 function frame(now){
   // with settings open nothing moves: not a level, a cutscene, or the feed
-  const raw=gearIsOpen() ? 0 : Math.min(.033,(now-last)/1000); last=now;
+  // Chrome can stamp the first frame before `last` was taken, so never negative
+  const raw=gearIsOpen() ? 0 : clamp((now-last)/1000,0,.033); last=now;
   timerStep(raw);                                  // scheduled beats keep real time
   if(slowT>0) slowT=Math.max(0,slowT-raw);
   const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
