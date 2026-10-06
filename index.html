@@ -4955,6 +4955,11 @@ let world=null;
 const HAZ_DMG =()=>DIFF().dmgIn*1.5;   // the arena hits harder than a hostile does
 const HAZ_RATE=()=>{const k=DIFF().k; return k==='low'?.72:k==='high'?1.32:1;};
 
+/* What a hazard does to the Iteration, against what it does to you: every
+   hazard that can hurt a hostile (vents, ring debris, the ice storm) hits it
+   this many times harder than its own numbers say, bosses included. Steering
+   a fight into the arena is meant to pay. */
+const HAZ_ENEMY=5;
 const VENT_N=4, VENT_R=76, VENT_CYC=4.6, VENT_WARN=1.0, VENT_BURN=.72, VENT_DMG=15;
 const VENT_BOSS=14;   // a boss burns at this multiple of the tick a hostile takes
 const DUST_N=3, DUST_DRAG=.12, DUST_MOTES=80;
@@ -5403,7 +5408,7 @@ function worldStep(dt){
           // a boss is slow, it is big, and it does not get to ignore the arena.
           // Walking one into a column is the best damage in the fight that does
           // not come out of your gun — which is exactly what a hazard is for.
-          e.hp-=VENT_DMG*(e.t==='boss'?VENT_BOSS:3)*dt;
+          e.hp-=VENT_DMG*(e.t==='boss'?VENT_BOSS:3)*HAZ_ENEMY*dt;
           if(Math.random()<.4) parts.push({x:e.x,y:e.y,vx:0,vy:0,life:.3,t:0,col:'#ffb44d',r:2});
           if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#ffb44d'); }
         }
@@ -5506,7 +5511,7 @@ function worldStep(dt){
         for(let j=enemies.length-1;j>=0;j--){
           const e=enemies[j];
           if(e.inv>0||e.t==='echo'||!inLane(e,e.r*.6)) continue;
-          e.hp-=RING_DMG*(e.t==='boss'?RING_BOSS:3)*dt;
+          e.hp-=RING_DMG*(e.t==='boss'?RING_BOSS:3)*HAZ_ENEMY*dt;
           if(Math.random()<.3) parts.push({x:e.x,y:e.y,vx:L.cx*200,vy:L.cy*200,life:.3,t:0,col:'#e8d9a8',r:2});
           if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#e8d9a8'); }
         }
@@ -5548,7 +5553,7 @@ function worldStep(dt){
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
       if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!inFront(e)) continue;
-      e.hp-=STORM_HIT*(e.t==='boss'?3:2)*dt;
+      e.hp-=STORM_HIT*(e.t==='boss'?3:2)*HAZ_ENEMY*dt;
       if(Math.random()<.15) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#dff4ff',r:2});
       if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#dff4ff'); }
     }
