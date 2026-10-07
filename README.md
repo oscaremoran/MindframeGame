@@ -185,10 +185,9 @@ The gear sits in the same corner of every screen: volume, difficulty,
 
 ## Writing the text
 
-All player-facing story text lives in the block marked
-`★ WRITE YOUR TEXT HERE ★` at the top of the script in `index.html`:
-`SYSTEMS[].brief` / `clear`, `SYS_CLEAR_TEXT` and `LAUNCH_TEXT`. Blank text
-skips that screen. Venus through Icarus are still blank.
+Player-facing text lives in the block marked `★ WRITE YOUR TEXT HERE ★` at the
+top of the script in `index.html` (system names), plus `SYS_CLEAR_TEXT` (the
+line under a cleared system), `SIDE_CLEAR_TEXT` and `LAUNCH_TEXT`.
 
 ## Files
 

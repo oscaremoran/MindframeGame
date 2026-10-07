@@ -798,10 +798,6 @@
       <div id="mapKey"><div><i></i>MAIN ROUTE</div><div><i class="side"></i><b>SIDE MISSION</b>&nbsp;·&nbsp;OPTIONAL</div></div>
       <i class="mcnr k1"></i><i class="mcnr k2"></i><i class="mcnr k3"></i><i class="mcnr k4"></i>
     </div>
-    <div class="row" style="margin-top:0">
-      <button id="btnMapSecret" class="hot" style="display:none">SIDE MISSION</button>
-      <button id="btnMapPortal" class="hot" style="display:none">ENTER THE QUANTUM PORTAL</button>
-    </div>
   </div>
 
   <div id="pause" class="overlay">
@@ -809,7 +805,6 @@
     <h2 id="pauseSub">EARTH</h2>
     <div class="row">
       <button id="btnResume">RESUME</button>
-      <button id="btnPauseTree" class="ghost">SKILL TREE</button>
       <button id="btnPauseCodex" class="ghost">BESTIARY</button>
       <button id="btnQuit" class="ghost">QUIT TO TITLE</button>
     </div>
@@ -872,16 +867,6 @@
     <p id="codeMsg"></p>
   </div>
 
-  <div id="brief" class="overlay">
-    <button id="btnBriefBack" class="ghost back">BACK — ESC</button>
-    <h1 id="briefTitle" style="font-size:clamp(22px,3.6vw,40px)">EARTH</h1>
-    <h2 id="briefSub">INBOUND</h2>
-    <div class="prose" id="briefText"></div>
-    <div class="row">
-      <button id="btnBriefGo">ENGAGE</button>
-      <button id="btnBriefTree" class="ghost">SKILL TREE</button>
-    </div>
-  </div>
 
   <div id="story" class="overlay">
     <button id="btnStoryBack" class="ghost back">BACK</button>
@@ -931,14 +916,8 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
 /* ╔══════════════════════════════════════════════════════════════════════╗
    ║  ★  WRITE YOUR TEXT HERE  ★                                          ║
    ║                                                                      ║
-   ║  One entry per system. Only three fields matter to you:              ║
-   ║    name  — shown on the HUD and the briefing screen                  ║
-   ║    brief — shown BEFORE the system's five waves                      ║
-   ║    clear — shown WHEN you finish it                                  ║
-   ║                                                                      ║
-   ║  Blank text ('') just skips that screen, so the game plays fine      ║
-   ║  until you fill them in. Blank lines separate paragraphs. A line     ║
-   ║  wrapped in [SQUARE BRACKETS] renders as green terminal output.      ║
+   ║  One entry per system. `name` is shown on the HUD and the launching  ║
+   ║  screen. The line under a cleared system is SYS_CLEAR_TEXT, below.   ║
    ║                                                                      ║
    ║  `adds` names the new enemy that system introduces (it stays in     ║
    ║  every later system of the same roster): 'tracker', 'overseer',     ║
@@ -965,37 +944,21 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  and the campaign ending all adapt on their own.                     ║
    ╚══════════════════════════════════════════════════════════════════════╝ */
 const SYSTEMS=[
-  { id:'001', name:'EARTH', hp:1.00, spd:1.00, extra:0, haz:null,
-    brief:`[DEFENSE ORDER — EARTH]
+  { id:'001', name:'EARTH', hp:1.00, spd:1.00, extra:0, haz:null },
 
-Hello, cadet. You have been selected to operate our most advanced spaceship to fight off the Iterations. They are AIs that escaped from humanity's control and now serve an alien called the Ruler. You are our last hope. All of Earth is counting on you. Good luck, cadet. - Commander`,
-    clear:`You have fended off the Iterations besieging Earth, but more remain. The Ruler was defeated, but it has grown stronger and is creating stronger Iterations. Prepare and continue.` },
+  { id:'002', name:'VENUS', hp:1.32, spd:1.05, extra:1, haz:'vents', adds:'tracker' },
 
-  { id:'002', name:'VENUS', hp:1.32, spd:1.05, extra:1, haz:'vents', adds:'tracker',
-    brief:``,
-    clear:`` },
+  { id:'003', name:'JUPITER', hp:1.58, spd:1.10, extra:2, haz:'well', adds:'overseer' },
 
-  { id:'003', name:'JUPITER', hp:1.58, spd:1.10, extra:2, haz:'well', adds:'overseer',
-    brief:``,
-    clear:`` },
-
-  { id:'004', name:'SATURN', hp:1.78, spd:1.13, extra:2, haz:'rings', adds:'orbiter',
-    brief:``,
-    clear:`` },
+  { id:'004', name:'SATURN', hp:1.78, spd:1.13, extra:2, haz:'rings', adds:'orbiter' },
 
   { id:'005', name:'LUNA', hp:1.89, spd:1.145, extra:2, haz:'lowg', roster:'sol2',
-    wave:{hp:1.6, dmg:1.5, rof:1.2, more:3, gap:.75, live:13},
-    brief:``,
-    clear:`` },
+    wave:{hp:1.6, dmg:1.5, rof:1.2, more:3, gap:.75, live:13} },
 
   { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier',
-    wave:{hp:1.8, dmg:1.7, rof:1.3, more:4, gap:.7, live:14},
-    brief:``,
-    clear:`` },
+    wave:{hp:1.8, dmg:1.7, rof:1.3, more:4, gap:.7, live:14} },
 
-  { id:'007', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter',
-    brief:``,
-    clear:`` },
+  { id:'007', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter' },
 ];
 
 /* ---- regions ----
@@ -1929,7 +1892,7 @@ makeStars();
    Every run opens the same way: the defence net comes up, reads the pilot it
    has been given, and hands them four systems. It is the one place the game
    states the stake out loud — one hull, one run — so it plays before the
-   Earth briefing rather than after it. Any key skips it.              */
+   first wave. Any key skips it.                                       */
 let cine=null;
 const CINE_DUR=6.2;
 
@@ -2079,9 +2042,9 @@ function newBranch(kind,i){
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
-  score=0; shake=0; wave=0; sysIdx=i; paused=false; runHeld=i;
-  mission=null; runSecrets=[]; fxClear(); flash=0; worldClear();
-  mapBrief=null; branchSortie=true; runCr=0;
+  score=0; shake=0; wave=0; sysIdx=i; paused=false;
+  mission=null; fxClear(); flash=0; worldClear();
+  branchSortie=true; runCr=0;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   hideAll(); startMission(kind);
@@ -2094,8 +2057,8 @@ function newRun(quick){
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
-  score=0; shake=0; wave=0; sysIdx=mapPick; paused=false; runHeld=mapPick;
-  mission=null; runSecrets=[]; fxClear(); flash=0; worldClear();
+  score=0; shake=0; wave=0; sysIdx=mapPick; paused=false;
+  mission=null; fxClear(); flash=0; worldClear();
   branchSortie=false; runCr=0;
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
   MUS.crit=false;
@@ -2223,15 +2186,7 @@ function openLaunch(kind,i){
   state='launch'; show('launch');
 }
 
-function openBrief(title,sub,html){
-  $('briefTitle').textContent=title;
-  $('briefSub').textContent=sub;
-  $('briefText').innerHTML=html;
-  $('briefText').style.display=html?'':'none';
-  state='brief'; show('brief');
-}
-
-// enter the current system: re-apply skills bought at the briefing, then fight
+// enter the current system: re-apply skills bought since, then fight
 function beginSystem(){
   player.st=stats();
   if(sysIdx>0) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.4);
@@ -2244,8 +2199,7 @@ function beginSystem(){
   state='play';
 }
 
-/* Clearing a system hands you the map, with the node you just took now green.
-   The briefing for the next one is behind CONTINUE. */
+/* Clearing a system hands you the map, with the node you just took now green. */
 /* PROSE — your line for clearing each system. Shown on the level complete
    screen, under the result. */
 const SYS_CLEAR_TEXT=[
@@ -2270,7 +2224,7 @@ function systemCleared(){
   save.best=Math.max(save.best,score);
   if(!fake) save.deepestSys=Math.max(save.deepestSys,i+1);
   persist();
-  runHeld=fake?i:i+1; mission=null;
+  mission=null;
   $('doneKind').textContent = last?'CAMPAIGN COMPLETE':'LEVEL COMPLETE';
   $('doneTitle').textContent = done.name;
   $('doneSub').textContent = last?'VICTORY':'HELD';
@@ -2353,12 +2307,38 @@ const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
 const ecol=t=>ECOL[t]||'#4d9dff';
 const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
-function edgeSpawn(){
+function edgePoint(){
   const s=Math.floor(rand(0,4)), m=70;
   if(s===0)return{x:rand(0,W),y:-m};
   if(s===1)return{x:W+m,y:rand(0,H)};
   if(s===2)return{x:rand(0,W),y:H+m};
   return{x:-m,y:rand(0,H)};
+}
+/* Hostiles come in off an edge, and close is fine — but never so close that
+   one can reach you before you have had SPAWN_REACT to see it. So the gap a
+   spawn needs is per hostile: how far it can close in that time at its
+   fastest approach (a Watcher's rush, not its cruise), plus its body and your
+   hull. A Primary can arrive near you; a Watcher cannot. If the arena will
+   not give a clear point, take the furthest of the tries. */
+const SPAWN_REACT=.3;
+// fastest approach in px/s before the system and setting scale it, and body radius
+const SPAWN_RUSH={grunt:[78,17], heavy:[44,27], tracker:[120,15], overseer:[62,22],
+  orbiter:[215,18], splinter:[127,21], quarry:[190,24], glacier:[40,28],
+  phantom:[110,16], meteor:[130,13], lander:[46,26]};
+function spawnClear(type,vm){
+  const R = type==='dart' ? [(122+wave*7)*1.35,12] : SPAWN_RUSH[type];
+  return R ? R[0]*vm*SPAWN_REACT + R[1] + 13 : 0;
+}
+function edgeSpawn(clear){
+  if(clear===undefined) clear=120;
+  if(!player||!clear) return edgePoint();
+  let best=null, bd=-1;
+  for(let k=0;k<12;k++){
+    const p=edgePoint(), d=Math.hypot(p.x-player.x,p.y-player.y);
+    if(d>=clear) return p;
+    if(d>bd){ bd=d; best=p; }
+  }
+  return best;
 }
 
 /* Every hostile on the roster carries 30% more hull than it was first tuned
@@ -2409,8 +2389,9 @@ const SPLIT_COL   =['#d9c6ff', '#c9b3ff', '#b9a0f5', '#a98eea'];
 
 function spawn(type,at,def){
   const ez=EASE(), D=DIFF();
-  const p=at||edgeSpawn(), S=SYS(),
+  const S=SYS(),
         V=WV(), sc=(1+(wave-1)*.13)*S.hp*ez*D.ehp*EHP*V.hp, vm=S.spd*(.72+.28*ez)*D.espd;
+  const p=at||edgeSpawn(spawnClear(type,vm));
   // one number for every cooldown below: a rest window, so the setting divides it
   const cd=ez*D.erof*V.rof;
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
@@ -4943,13 +4924,17 @@ function update(dt){
   }
   if(st.regen) P.hp=Math.min(st.maxHp,P.hp+st.regen*dt);
 
+  /* While a boss entrance or a phase cutscene holds the fight, nothing on a
+     clock runs down: buffs keep their seconds and cells on the floor do not
+     age. You can still fly into a cell and take it. */
+  const held=!!(entrance||phaseCut);
   // buffs tick down; the barrier is what stands between you and a hit
-  for(const k in buffs) if(buffs[k]>0) buffs[k]=Math.max(0,buffs[k]-dt);
+  if(!held) for(const k in buffs) if(buffs[k]>0) buffs[k]=Math.max(0,buffs[k]-dt);
   if(toastT>0) toastT-=dt;
 
   // pickups drift, get pulled in from close range, and expire
   for(let i=pickups.length-1;i>=0;i--){
-    const u=pickups[i]; u.t+=dt; u.spin+=dt*1.6;
+    const u=pickups[i]; if(!held) u.t+=dt; u.spin+=dt*1.6;
     if(u.t>PU_LIFE){ pickups.splice(i,1); continue; }
     const dx=P.x-u.x, dy=P.y-u.y, d=Math.hypot(dx,dy)||1;
     if(d<150){ const pull=1350*(1-d/150); u.vx+=dx/d*pull*dt; u.vy+=dy/d*pull*dt; }
@@ -4984,6 +4969,7 @@ function update(dt){
   const T = mission&&mission.ward ? mission.ward : P;
   for(const e of enemies){
     const dx=T.x-e.x, dy=T.y-e.y, d=Math.hypot(dx,dy)||1, ox=e.x, oy=e.y;
+    const n0=ebullets.length;                 // to take back a shot fired from off screen
     e.a=Math.atan2(dy,dx);
     if(e.t==='grunt'){
       // holds its range, but now reverses its orbit so you cannot settle into it
@@ -5267,6 +5253,12 @@ function update(dt){
       else if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
     }
     else if(e.t==='echo'){ echoStep(e,dt,dx,dy,d); }
+    /* Nothing fires from off screen: a round from something you cannot see is
+       not a shot you can be asked to read. Whatever a hostile fired this frame
+       while its middle was still outside the arena is taken back; its cooldown
+       has already reset, so it simply fires once it is in. Bosses and their
+       echoes are left alone — their fights are authored on their own terms. */
+    if(e.t!=='boss'&&e.t!=='echo'&&ebullets.length>n0&&(e.x<0||e.x>W||e.y<0||e.y>H)) ebullets.length=n0;
     if(lowgOn()) lowgDrift(e,ox,oy,dt);
     // Nothing leaves the arena. An enemy is free until it has arrived, and
     // is then held inside the walls for the rest of its life.
@@ -6624,7 +6616,7 @@ const secretFlyable=k=>!!k&&k!=='none';
    whole boss fight, so it sits between the two.                            */
 const SECRET_PAY=(i,k)=>Math.max(2,Math.round((k==='boss'?2.4:k==='echo'?.4:.3)*(5*CREDITS_PER_WAVE(i)+CREDIT_BOSS)));
 
-let mission=null, runSecrets=[];
+let mission=null;
 /* ---- the Portal's destination ----
    It used to be a coin flip on the way through. It is a choice now, because
    the two behind it are the hardest fights in the game and picking your fight
@@ -6652,7 +6644,7 @@ function startMission(kind){
   const i=sysIdx, first=!branchBanked(i,kind);
   const pay=first ? SECRET_PAY(i,kind)
                   : Math.max(1,Math.round(SECRET_PAY(i,kind)*BRANCH_REPEAT));
-  runSecrets.push(i); survey(kind);
+  survey(kind);
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
   clearBuffs();
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
@@ -7792,8 +7784,7 @@ function frame(now){
   try{ MUS.tick(); }catch(err){ frameFault(err,'music'); }
   requestAnimationFrame(frame);
 }
-/* A frame that throws is reported, not swallowed: logged to the console and
-   printed small in the bottom-left corner so it can be read off the screen.
+/* A frame that throws is reported, not swallowed: logged once to the console.
    Whatever was mid-cutscene is dropped so the fight can carry on rather than
    fail the same way every frame. */
 let faultSeen={};
@@ -7804,15 +7795,6 @@ function frameFault(err,where){
   if(faultSeen[msg]) return;
   faultSeen[msg]=1;
   try{ console.error('[mindframe] '+msg, err); }catch(e){}
-  try{
-    let el=$('faultLine');
-    if(!el){ el=document.createElement('div'); el.id='faultLine';
-      el.style.cssText='position:absolute;left:8px;bottom:6px;z-index:70;max-width:70%;'+
-        'font:11px Menlo,monospace;color:#ff6b7a;pointer-events:none;white-space:pre-wrap';
-      $('wrap').appendChild(el); }
-    const top=String(err&&err.stack||'').split('\n').slice(0,2).join(' | ');
-    el.textContent='ERROR '+msg+(top?'  ['+top+']':'');
-  }catch(e){}
 }
 requestAnimationFrame(frame);
 
@@ -7821,8 +7803,10 @@ function setPause(on){
   if(state!=='play') return;
   paused=on;
   if(on){
-    $('pauseSub').textContent = SYS().name+'  ·  WAVE '+wave;
-    buildTree(); buildSound(); buildDiff(); show('pause');
+    $('pauseSub').textContent = mission
+      ? (mission.B?mission.B.n:branchName(mission.k))+'  ·  '+(mission.k==='boss'?'SIDE BOSS':'SIDE MISSION')
+      : SYS().name+'  ·  WAVE '+wave;
+    buildSound(); buildDiff(); show('pause');
   }else hideAll();
 }
 // leaving a run early still banks what you earned — the run is what ends
@@ -7960,7 +7944,7 @@ function gearBack(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','brief','launch','done','code','codex','pause','garage','map']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','launch','done','code','codex','pause','garage','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -8006,9 +7990,10 @@ const MAP_X=40, SECRET_X=78, PORTAL_X=11;
 /* HELD is a record, not run state: a system you have cleared once reads HELD on
    every map you ever open, and you can launch straight back into it. What the
    save remembers is `deepestSys` — how many systems have fallen — and that is
-   the unlock line. `mapMode` is 'menu' before a run and 'run' between systems,
-   and `mapPick` is the node you last opened. */
-let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null, mapPick=0, mapPickK=null;
+   the unlock line. `mapPick` is the node you last opened. */
+let mapPick=0, mapPickK=null;
+// how many systems the save holds: the green part of the route
+const heldN=()=>Math.min(save.deepestSys,SYSTEMS.length);
 /* On the title map a branch is a launch target like a system is: it is
    selectable once you have reached the system it hangs off. `mapPickK` set means the last pick was the branch at
    `mapPick` rather than the system there. */
@@ -8016,27 +8001,17 @@ let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null, mapPick=0, mapPickK=
    system you have never flown pulls a new pilot off the route before they
    have flown it, so on a fresh save Earth is the only thing on the chart
    asking to be clicked. */
-const branchPickable=(i,k)=> mapMode==='menu' && sysHeld(i);
+const branchPickable=(i,k)=> sysHeld(i);
 
 // reaching a system is all it takes to fly it
 const sysReached=i=>i<=Math.min(save.deepestSys,SYSTEMS.length-1);
 const sysHeld=i=>i<Math.min(save.deepestSys,SYSTEMS.length);
 const sysOpen=sysReached;
 
-/* The side branch beside the system you are about to fly, offered once per run
-   and only while you are actually on the route. */
-const secretOffered=i=> mapMode==='run' && mapThen==='brief' && i===sysIdx
-  && secretFlyable(SECRET(i).k) && !runSecrets.includes(i);
-// the portal is its own offer, on its own system, taken at most once a run
-const portalOffered=()=> mapMode==='run' && mapThen==='brief' && sysIdx===PORTAL_SYS
-  && !runSecrets.includes(-1);
-
 function buildMap(){
   const c=$('chart'), svg=$('mlines'), ns='http://www.w3.org/2000/svg';
-  const run=mapMode==='run';
-  // mid-run the green nodes are this run's progress; on the title map they are
-  // the save's record, which is the whole point of a level select
-  const held=Math.min(run?runHeld:save.deepestSys, SYSTEMS.length);
+  // the green nodes are the save's record, which is the whole point of a level select
+  const held=heldN();
   c.querySelectorAll('.mnode').forEach(n=>n.remove());
   svg.innerHTML='';
   const line=(x1,y1,x2,y2,col,dash,flow)=>{
@@ -8075,44 +8050,36 @@ function buildMap(){
       return;
     }
     const i=it.i, sy=SYSTEMS[i], done=i<held;
-    // mid-run the blue node is the one you are about to fly; on the title map
-    // it is the one you have picked to launch into
-    const sel=run ? i===held : (i===mapPick && !mapPickK);
-    const open=run ? false : sysOpen(i);
+    // the blue node is the one you have picked to launch into
+    const sel=i===mapPick && !mapPickK;
+    const open=sysOpen(i);
     if(slot>0) line(MAP_X,MAP_Y(slot-1),MAP_X,y, done?'#46e39b':sel?'#4d9dff':'#22293f',
                  false, sel);            // the segment you are about to fly runs
-    // a branch: taken as a detour mid-run, or flown on its own off the title map
+    // a branch: flown on its own off the map, once the system it hangs off is held
     const branch=(k,bx,cls,col,dim)=>{
-      const offer=run ? (k==='boss'?portalOffered():secretOffered(i)) : false;
       const pick=branchPickable(i,k), selB=pick && mapPickK===k && mapPick===i;
-      const lit=offer||pick;
-      line(bx,y,MAP_X,y, lit?col:dim, true, offer);
+      const lit=pick;
+      line(bx,y,MAP_X,y, lit?col:dim, true, false);
       const bn=node(bx,y,cls+(lit?' open':'')+(selB?' sel':''), branchName(k),
         selB   ? 'SELECTED'
         : lit  ? branchSub(k)
-        : run  ? 'OFFERED AT '+sysLabel(i)
         : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'   // «WRITE:» lock label
         : 'LOCKED',
         k==='boss' ? 'SIDE BOSS' : 'SIDE MISSION');       // «WRITE:» the tag in the corner
-      if(offer) bn.onclick=()=>{
-        if(k!=='boss'){ startMission(k); return; }
-        openLaunch('boss',i);
-        launchGo=()=>{ runSecrets.push(-1); hideAll(); startMission('boss'); };
-      };
-      else if(pick) bn.onclick=()=>mapLaunch(i,k);
+      if(pick) bn.onclick=()=>mapLaunch(i,k);
     };
     const sec=SECRET(i);
     if(secretFlyable(sec.k)) branch(sec.k,SECRET_X,'secret','#ffd24d','#4e5d84');
     if(i===PORTAL_SYS)       branch('boss',PORTAL_X,'secret portal','#c78dff','#57447e');
     // OPEN is the level-select state: cleared or not, you may fly it right now
     const st = done ? 'HELD'
-             : sel ? (run?'NEXT':'SELECTED')
+             : sel ? 'SELECTED'
              : open ? 'OPEN'
              : 'LOCKED';
     const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sysLabel(i), st,
          String(i+1).padStart(2,'0'));
     // on the title map every unlocked node opens its launching screen
-    if(!run && (open||done)){ n.style.cursor='pointer'; n.onclick=()=>mapLaunch(i); }
+    if(open||done){ n.style.cursor='pointer'; n.onclick=()=>mapLaunch(i); }
   });
 
   // which region is on screen, and whether there is one either side of it
@@ -8124,16 +8091,7 @@ function buildMap(){
   $('btnRegNext').disabled=mapReg>=REGIONS.length-1;
 
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
-  $('btnMapBack').style.display = run ? 'none' : '';   // mid-run, the pause menu is the only way out
-  const sec=$('btnMapSecret'), off=secretOffered(sysIdx);
-  sec.style.display=off?'':'none';
-  if(off){
-    sec.textContent='SIDE MISSION — '+SECRET(sysIdx).n;
-  }
-  const por=$('btnMapPortal'), pOff=portalOffered();
-  por.style.display=pOff?'':'none';
-  por.textContent='ENTER THE QUANTUM PORTAL';
-  $('mapBest').textContent = run||!save.deepestSys ? ''
+  $('mapBest').textContent = !save.deepestSys ? ''
     : 'FURTHEST HELD  '+SYSTEMS[Math.min(save.deepestSys,SYSTEMS.length)-1].name;
 }
 /* The chart's backdrop runs off the main loop while the map is open: a grid,
@@ -8196,7 +8154,7 @@ function mapArt(dt){
     g.fillRect(sx,sy,1.6,1.6);
   }
 
-  const held=Math.min(runHeld,SYSTEMS.length);
+  const held=heldN();
   const items=regItems(mapReg), nIt=items.length;
   const x0=px(MAP_X), yBot=py(MAP_Y(0)), yTop=py(MAP_Y(nIt-1));
 
@@ -8286,7 +8244,7 @@ function mapArt(dt){
   // ── the portal, when there is one: a vortex rather than a box ──
   if(SYSTEMS.length>PORTAL_SYS && regOf(PORTAL_SYS)===mapReg){
     const y=py(MAP_Y(slotOf(PORTAL_SYS))), pxx=px(PORTAL_X);
-    const live=typeof portalOffered==='function'&&portalOffered();
+    const live=branchPickable(PORTAL_SYS,'boss');   // fast and lit once it can be flown
     const R1=Math.max(66,w*.075);          // outside the portal card
     for(let i=0;i<4;i++){
       const k=(mapT*(live?.55:.2)+i/4)%1;
@@ -8315,15 +8273,11 @@ function mapArt(dt){
   g.fillStyle='rgba(190,222,255,.40)'; g.fillRect(0,sy2,w,1);
 }
 
-function openMap(mode,then){
-  mapMode=mode||'menu'; mapThen=then||null;
-  if(mapMode==='menu'){
-    runHeld=Math.min(save.deepestSys,SYSTEMS.length);
-    // highlight the furthest thing you are cleared to fly, so the chart
-    // shows where the save left off rather than 001 every time
-    let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i) && regOf(i)===0) best=i;
-    mapPick=best; mapPickK=null;
-  }
+function openMap(){
+  // highlight the furthest thing you are cleared to fly, so the chart
+  // shows where the save left off rather than 001 every time
+  let best=0; for(let i=0;i<SYSTEMS.length;i++) if(sysOpen(i) && regOf(i)===0) best=i;
+  mapPick=best; mapPickK=null;
   // the chart always opens on the first region; the arrows walk on from there
   mapReg=0;
   buildMap(); state='map'; show('map');
@@ -8335,11 +8289,9 @@ function mapRegStep(d){
   const r=clamp(mapReg+d,0,REGIONS.length-1);
   if(r===mapReg) return;
   mapReg=r;
-  if(mapMode==='menu'){
-    let best=-1;
-    regItems(r).forEach(it=>{ if(it.ph===undefined && sysOpen(it.i)) best=it.i; });
-    if(best>=0){ mapPick=best; mapPickK=null; }
-  }
+  let best=-1;
+  regItems(r).forEach(it=>{ if(it.ph===undefined && sysOpen(it.i)) best=it.i; });
+  if(best>=0){ mapPick=best; mapPickK=null; }
   buildMap();
 }
 
@@ -9118,13 +9070,6 @@ $('gearControls').onclick=()=>gearGo(()=>{ codexTab='controls'; codexSel=0; buil
 $('gearCode').onclick=()=>gearGo(openCode);
 $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
 
-// ENGAGE: a system starts its waves; a branch launched off the title map
-// spins up a one-mission sortie instead
-$('btnBriefGo').onclick=()=>{hideAll();beginSystem();};
-// the briefing's way back: to the launching screen mid-campaign, the map otherwise
-$('btnBriefBack').onclick=()=>{ if(mapMode==='run'){ buildMap(); state='map'; show('map'); }
-                                else { openLaunch(null,sysIdx); } };
-$('btnBriefTree').onclick=()=>{treeReturn='brief';buildTree();show('skills');};
 $('btnStoryBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 
 $('btnStart').onclick=()=>openMap('menu');
@@ -9140,20 +9085,12 @@ function mapLaunch(i,k){
 $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
 $('btnDoneGo').onclick=()=>{ hideAll(); openMap('menu'); };
 $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
-$('btnMapSecret').onclick=()=>{ if(secretOffered(sysIdx)) startMission(SECRET(sysIdx).k); };
-$('btnMapPortal').onclick=()=>{
-  if(!portalOffered()) return;
-  openLaunch('boss',sysIdx);
-  launchGo=()=>{ runSecrets.push(-1); hideAll(); startMission('boss'); };
-};
 $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnRegPrev').onclick=()=>mapRegStep(-1);
 $('btnRegNext').onclick=()=>mapRegStep(1);
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnTreeBack').onclick=()=>{
-  if(treeReturn==='brief'){ show('brief'); }
-  else if(treeReturn==='pause'){ show('pause'); }
-  else if(treeReturn==='over'){ show('over'); }
+  if(treeReturn==='over'){ show('over'); }
   else { state='menu'; refreshMenu(); show('menu'); }
 };
 $('btnTreeMenu').onclick=()=>{treeReturn='menu';buildTree();show('skills');};
@@ -9162,7 +9099,7 @@ $('btnTreeOver').onclick=()=>{treeReturn='over';buildTree();show('skills');};
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','brief','launch','done','code','codex','pause','garage','map']
+const openOverlay=()=>['menu','over','skills','story','launch','done','code','codex','pause','garage','map']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -9173,13 +9110,12 @@ function onEscape(){
   if(o==='garage'){ closeGarage(); return; }
   if(o==='launch'){ $('btnLaunchBack').onclick(); return; }
   if(o==='skills'){ $('btnTreeBack').onclick(); return; }
-  if(o==='brief'||o==='menu') return;          // mid-campaign: no accidental exits
-  if(o==='map'&&mapMode==='run') return;       // ditto: CONTINUE or TITLE SCREEN, deliberately
+  if(o==='menu') return;
   if(o){ refreshMenu(); show('menu'); }
 }
 function onEnter(){
   const o=openOverlay();
-  const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnRetry':'btnRelaunch',pause:'btnResume',brief:'btnBriefGo',
+  const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnRetry':'btnRelaunch',pause:'btnResume',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',
               story:'btnStoryBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
@@ -9191,7 +9127,6 @@ function onEnter(){
 $('btnResume').onclick=()=>setPause(false);
 $('btnQuit').onclick=quitRun;
 $('btnPauseCodex').onclick=()=>{ buildCodex(); show('codex'); };
-$('btnPauseTree').onclick=()=>{ treeReturn='pause'; buildTree(); show('skills'); };
 
 /* ---- bestiary ---- */
 
