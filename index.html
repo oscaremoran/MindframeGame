@@ -879,8 +879,6 @@
     <p id="overMeta"></p>
     <div class="row">
       <button id="btnRelaunch">RELAUNCH</button>
-      <button id="btnRetry" class="ghost">SPACE MAP</button>
-      <button id="btnTreeOver" class="ghost">SKILL TREE</button>
       <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
     </div>
   </div>
@@ -9061,7 +9059,6 @@ $('btnLoadCode').onclick=()=>{
   if(!err){ $('codeOut').value=makeCode(); refreshMenu(); }
 };
 
-let treeReturn='menu';
 $('gearStory').onclick=()=>gearGo(()=>{ buildStory(); show('story'); });
 $('gearBtn').onclick=()=>{ gearIsOpen()?gearClose():gearOpen(); };
 $('gearClose').onclick=gearClose;
@@ -9074,7 +9071,6 @@ $('btnStoryBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(
 
 $('btnStart').onclick=()=>openMap('menu');
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
-$('btnRetry').onclick=()=>{hideAll();openMap('menu');};
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
 // every flight off the map goes through the launching screen first
 function mapLaunch(i,k){
@@ -9089,12 +9085,9 @@ $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnRegPrev').onclick=()=>mapRegStep(-1);
 $('btnRegNext').onclick=()=>mapRegStep(1);
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
-$('btnTreeBack').onclick=()=>{
-  if(treeReturn==='over'){ show('over'); }
-  else { state='menu'; refreshMenu(); show('menu'); }
-};
-$('btnTreeMenu').onclick=()=>{treeReturn='menu';buildTree();show('skills');};
-$('btnTreeOver').onclick=()=>{treeReturn='over';buildTree();show('skills');};
+// the tree only opens from the home screen now, so it only ever goes back there
+$('btnTreeBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
+$('btnTreeMenu').onclick=()=>{buildTree();show('skills');};
 
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
@@ -9115,7 +9108,7 @@ function onEscape(){
 }
 function onEnter(){
   const o=openOverlay();
-  const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnRetry':'btnRelaunch',pause:'btnResume',
+  const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnOverMenu':'btnRelaunch',pause:'btnResume',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',
               story:'btnStoryBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
