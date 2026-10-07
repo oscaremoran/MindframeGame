@@ -2125,8 +2125,9 @@ function branchOverview(k,i){
                     'A powerful Tracker variant that calls others to its aid.'],
            gauntlet:['Defeat three swarms of enemies back-to-back with a damaged ship. One hit kills you.',
                     'The full party of Saturn enemies. They can now destroy your ship with one hit.'],
-           echo:    ['The alien swarm is back with a vengeance. Destroy it again, this time on Luna.',
-                    'An echo of the Hive Mind, the previous enemy commander of Venus.'],
+           // «WRITE:» reworded to name both echoes equally — Oscar, make it yours
+           echo:    ['The Hive Mind and Iteration 2117 are back with a vengeance, together. Destroy them both again, this time on Luna.',
+                    'Echoes of the Hive Mind and Iteration 2117, the previous enemy commanders of Venus and Jupiter.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   return lpanel('ENEMY FORCES',
@@ -2160,7 +2161,7 @@ const LAUNCH_TEXT={
   run:     'Fly through the gates while avoiding hazards.',
   bounty:  'Defeat the powerful Tracker variant.',
   gauntlet:'Clear three waves of tough enemies without getting hit once.',
-  echo:    'Defeat a stronger version of the Hive Mind.',
+  echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.',   // «WRITE:»
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function buildPortalPick(){
@@ -3968,7 +3969,10 @@ function phaseStart(e,tier){
     name: duo ? e.bn+' \u2014 PHASE 2' : (B.tiers[tier].n||B.n),
     tag: 'PHASE '+(tier+1)+' / '+(duo?2:B.tiers.length),
     streaks:Array.from({length:24},()=>({a:rand(0,TAU), d:rand(260,580), lag:rand(0,.45), w:rand(1,2.8)}))};
-  ebullets.length=0; bullets.length=0;
+  /* No clearing the rounds here. This can run from inside the loop that is
+     walking `bullets` (a kill that starts a cutscene), and emptying the list
+     under it crashed the next step of that loop. phaseStep clears both lists
+     on the cutscene's first frame instead. */
   flash=Math.max(flash,.3); shake=Math.max(shake,8); SFX.crack();
   if(sc){ if(sc.init) sc.init(phaseCut,e); phaseCut.ev=sc.ev?sc.ev(phaseCut,e):[]; }
   return true;
@@ -3988,7 +3992,7 @@ function absorbStart(dead,o){
     tag: 'FULL POWER',                          // «WRITE:»
     motes:Array.from({length:46},()=>({ox:rand(-1,1)*dead.r, oy:rand(-1,1)*dead.r,
       lag:rand(.45,1.5), dur:rand(.45,.7), bend:rand(-1,1)*220, r:rand(2,4.5)}))};
-  ebullets.length=0; bullets.length=0;
+  // called from inside the bullet loop on the killing shot: see phaseStart
   return true;
 }
 function absorbStep(C,e){
@@ -6542,7 +6546,8 @@ function finaleDraw(){
      bounty    (Jupiter) an elite Tracker that kites, calls for help, and
                          leaves if you have not killed it in time
      gauntlet  (Saturn)  three Saturn waves back to back; one hit and it is over
-     echo      (Luna)    the Hive Mind again, faster, with less rest
+     echo      (Luna)    the Hive Mind and 2117 again as a pair, faster,
+                         with less rest
    Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
    the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
@@ -6550,7 +6555,7 @@ const SECRETS=[
   {k:'hold',     n:'HOLD THE STATION', sub:'DEFEND THE PLATFORM'},
   {k:'bounty',   n:'BOUNTY',           sub:'ELITE TRACKER'},
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
-  {k:'echo',     n:'ECHO TRIAL',       sub:'THE HIVE MIND'},
+  {k:'echo',     n:'ECHO TRIAL',       sub:'HIVE MIND + 2117'},
   {k:'none',     n:'',                 sub:''},
   {k:'none',     n:'',                 sub:''},
 ];
@@ -7710,6 +7715,11 @@ function frame(now){
   timerStep(raw);                                  // scheduled beats keep real time
   if(slowT>0) slowT=Math.max(0,slowT-raw);
   const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
+  /* Each stage is guarded on its own. One bad frame used to throw straight out
+     of here, the next frame was never asked for, and the whole game stopped
+     dead while the page around it kept answering clicks. Now a throw is shown
+     (frameFault) and the loop carries on. */
+  try{
   if(state==='intro'){ cineStep(raw); }
   else if(state==='finale'){ finaleStep(raw); }
   else if(state==='play'&&!paused&&raw){ sceneT+=raw; update(dt); }
@@ -7720,14 +7730,45 @@ function frame(now){
     shake=Math.max(0,shake-dt*34); if(flash>0)flash=Math.max(0,flash-dt*1.7);
   }
   else { for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} } ctx.fillStyle='#05060d'; }
-  draw();
-  if($('codex').classList.contains('on')) assessArt(raw);
-  if($('map').classList.contains('on')) mapArt(raw);
-  if($('skills').classList.contains('on')) treeArt(raw);
-  if($('menu').classList.contains('on')) demoArt(raw);
-  gearHome();
-  MUS.tick();
+  }catch(err){ frameFault(err,'update'); }
+  try{ draw(); }catch(err){
+    // unwind whatever the broken draw left pushed, so the next frame starts clean
+    for(let i=0;i<40;i++) ctx.restore();
+    ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+    ctx.shadowBlur=0; ctx.setLineDash([]);
+    frameFault(err,'draw');
+  }
+  try{
+    if($('codex').classList.contains('on')) assessArt(raw);
+    if($('map').classList.contains('on')) mapArt(raw);
+    if($('skills').classList.contains('on')) treeArt(raw);
+    if($('menu').classList.contains('on')) demoArt(raw);
+  }catch(err){ frameFault(err,'screens'); }
+  try{ gearHome(); }catch(err){ frameFault(err,'gear'); }
+  try{ MUS.tick(); }catch(err){ frameFault(err,'music'); }
   requestAnimationFrame(frame);
+}
+/* A frame that throws is reported, not swallowed: logged to the console and
+   printed small in the bottom-left corner so it can be read off the screen.
+   Whatever was mid-cutscene is dropped so the fight can carry on rather than
+   fail the same way every frame. */
+let faultSeen={};
+function frameFault(err,where){
+  phaseCut=null; entrance=null;
+  if(state==='play'&&enemies) for(const e of enemies) if(e.hidden&&e.t==='boss') e.hidden=false;
+  const msg=where+': '+(err&&err.message||err);
+  if(faultSeen[msg]) return;
+  faultSeen[msg]=1;
+  try{ console.error('[mindframe] '+msg, err); }catch(e){}
+  try{
+    let el=$('faultLine');
+    if(!el){ el=document.createElement('div'); el.id='faultLine';
+      el.style.cssText='position:absolute;left:8px;bottom:6px;z-index:70;max-width:70%;'+
+        'font:11px Menlo,monospace;color:#ff6b7a;pointer-events:none;white-space:pre-wrap';
+      $('wrap').appendChild(el); }
+    const top=String(err&&err.stack||'').split('\n').slice(0,2).join(' | ');
+    el.textContent='ERROR '+msg+(top?'  ['+top+']':'');
+  }catch(e){}
 }
 requestAnimationFrame(frame);
 
