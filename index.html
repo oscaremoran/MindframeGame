@@ -237,10 +237,13 @@
   }
   #menuBtns button{margin:0; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
   #demoKeys{
-    display:flex; flex-wrap:wrap; justify-content:center; gap:6px 22px; margin-top:clamp(30px,5vw,58px);
-    font-size:clamp(10px,1.25vw,13px); letter-spacing:.16em; color:#a3b2d3;
+    display:flex; flex-wrap:wrap; justify-content:center; gap:10px 38px; margin-top:clamp(30px,5vw,58px);
+    font-size:clamp(15px,2.3vw,24px); letter-spacing:.16em; color:#a3b2d3;
   }
-  #demoKeys b{font-weight:400; color:#cfe2ff}
+  /* the key itself is a lit keycap; the word after it is what it does */
+  #demoKeys b{font-weight:600; color:#ffffff; padding:3px 10px; margin-right:9px;
+    border:1px solid #6fb2ff; border-radius:4px; background:rgba(77,157,255,.22);
+    box-shadow:0 0 14px rgba(77,157,255,.45); text-shadow:0 0 10px rgba(140,195,255,.8)}
 
   /* the live feed: the game playing itself, so the home screen shows the game */
   #demoBox{position:absolute; inset:0; z-index:0; overflow:hidden; background:#05070f}
@@ -584,6 +587,8 @@
     padding:18px 22px; display:flex; flex-direction:column; gap:13px;
     overflow-y:auto;
   }
+  #assess::-webkit-scrollbar{width:7px}
+  #assess::-webkit-scrollbar-thumb{background:#263050; border-radius:4px}
   #assess::before{                       /* scanlines over the whole readout */
     content:''; position:absolute; inset:0; pointer-events:none; z-index:2;
     background:repeating-linear-gradient(0deg,rgba(0,0,0,.11) 0 1px,transparent 1px 3px);
@@ -593,7 +598,7 @@
     background:linear-gradient(180deg,rgba(77,157,255,0),rgba(100,170,255,.14) 78%,rgba(185,220,255,.42));
     animation:assessScan 4.4s linear infinite;
   }
-  @keyframes assessScan{ 0%{top:-70px} 100%{top:100%} }
+  @keyframes assessScan{ 0%{top:-70px} 100%{top:calc(100% - 70px)} }
 
   .asHead{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
     border-bottom:1px solid #33456d; padding-bottom:11px}
@@ -924,6 +929,11 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  none of the old enemies fly there, only its own three and whatever  ║
    ║  its own systems add.                                                ║
    ║                                                                      ║
+   ║  `wave` (optional) toughens waves 1-4 only, never the boss wave:    ║
+   ║  hp/dmg/rof multiply hostile hull, damage and fire rate; `more` adds ║
+   ║  that many line + ram units a wave; `gap` scales the time between    ║
+   ║  arrivals; `live` is how many can be on screen at once (10 default). ║
+   ║                                                                      ║
    ║  `haz` names the hazard that belongs to the place itself, and unlike ║
    ║  `adds` it does NOT travel: each system has its own and nothing      ║
    ║  else. 'vents' (Venus), 'well' (Jupiter), 'rings' (Saturn),          ║
@@ -954,10 +964,12 @@ Hello, cadet. You have been selected to operate our most advanced spaceship to f
     clear:`` },
 
   { id:'005', name:'LUNA', hp:1.89, spd:1.145, extra:2, haz:'lowg', roster:'sol2',
+    wave:{hp:1.6, dmg:1.5, rof:1.2, more:3, gap:.75, live:13},
     brief:``,
     clear:`` },
 
   { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier',
+    wave:{hp:1.8, dmg:1.7, rof:1.3, more:4, gap:.7, live:14},
     brief:``,
     clear:`` },
 
@@ -981,6 +993,12 @@ const REGIONS=[
 /* ═══════════════ end of the text block — code below ═══════════════ */
 
 const SYS=()=>SYSTEMS[Math.min(sysIdx,SYSTEMS.length-1)];
+/* The system's wave dials, live only on waves 1-4 of a real system: the boss
+   wave, its escorts and every side branch keep their own tuning. A pilot who
+   gets to Solar System 2 is carrying most of the tree, and hull scaling alone
+   could not keep up with that without making the bosses sponges too. */
+const NOWAVE={hp:1, dmg:1, rof:1, more:0, gap:1, live:10};
+const WV=()=> (!mission && wave<5 && SYS().wave) ? Object.assign({},NOWAVE,SYS().wave) : NOWAVE;
 /* The first system is a runway: waves 1-3 come in thinner, softer and slower so
    a first-time pilot can reach the Ruler. Later systems ramp at full weight. */
 const EASE=()=> sysIdx>0 ? 1 : (wave<=1?.62 : wave===2?.75 : wave===3?.85 : wave===4?.92 : 1);
@@ -1562,6 +1580,14 @@ if(!save.route){ save.deepestSys=Math.min(save.deepestSys||0,3); save.route=2; }
 if(save.route<3){ save.deepestSys=Math.min(save.deepestSys||0,4); save.route=3; }
 // ...and Neptune after it: system 6 used to be Icarus, and lands on Neptune now
 if(save.route<4){ save.deepestSys=Math.min(save.deepestSys||0,5); save.route=4; }
+/* Hazard Run and Hold the Station swapped systems: Run is Earth's branch now
+   and Hold is Venus's. What a save banked, and its best Run time, move with
+   the mission rather than staying with the system. */
+if(!save.swapHR){
+  save.branches=(save.branches||[]).map(k=> k==='hold:0'?'hold:1' : k==='run:1'?'run:0' : k);
+  if(save.runBest&&save.runBest['1']!==undefined){ save.runBest['0']=save.runBest['1']; delete save.runBest['1']; }
+  save.swapHR=1;
+}
 SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
@@ -2237,11 +2263,12 @@ function nextWave(){
   const S=SYS(), R=ROSTER();
   if(wave<5){
     const soft=sysIdx===0;
-    const grunts=(soft?[3,5,7,7][wave-1]:(wave<3?4:2)+wave*2)+S.extra,
-          darts =(soft?[0,2,3,4][wave-1]:(wave<2?0:wave*2))+S.extra,
+    const V=WV();
+    const grunts=(soft?[3,5,7,7][wave-1]:(wave<3?4:2)+wave*2)+S.extra+V.more,
+          darts =(soft?[0,2,3,4][wave-1]:(wave<2?0:wave*2))+S.extra+V.more,
           heavies=soft?[0,0,1,1][wave-1]+(S.extra>1?1:0)
                       :(wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0));
-    const gap=soft&&wave<=2?1.8:1.15;               // they arrive one at a time early on
+    const gap=(soft&&wave<=2?1.8:1.15)*V.gap;               // they arrive one at a time early on
     for(let i=0;i<grunts;i++) push(i*gap+(soft?1.4:.6),R.line);
     for(let i=0;i<darts;i++) push(i*gap+(soft?4:2.6),R.ram);
     for(let i=0;i<heavies;i++) push(i*6+4,R.heavy);
@@ -2352,9 +2379,9 @@ const SPLIT_COL   =['#d9c6ff', '#c9b3ff', '#b9a0f5', '#a98eea'];
 function spawn(type,at,def){
   const ez=EASE(), D=DIFF();
   const p=at||edgeSpawn(), S=SYS(),
-        sc=(1+(wave-1)*.13)*S.hp*ez*D.ehp*EHP, vm=S.spd*(.72+.28*ez)*D.espd;
+        V=WV(), sc=(1+(wave-1)*.13)*S.hp*ez*D.ehp*EHP*V.hp, vm=S.spd*(.72+.28*ez)*D.espd;
   // one number for every cooldown below: a rest window, so the setting divides it
-  const cd=ez*D.erof;
+  const cd=ez*D.erof*V.rof;
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
       hp:32*sc,max:32*sc,spd:78*vm,cool:rand(1.2,3)/cd,a:0,val:60,rof:1/cd,
       dir:Math.random()<.5?-1:1,turn:rand(1,3),burst:0});
@@ -2405,7 +2432,7 @@ function spawn(type,at,def){
       // two bosses, one entrance: the first one stages it for both
       const parts=B0.duo.map(Bp=>makeBoss(Bp,S,D,vm));
       parts[0].twin=parts[1]; parts[1].twin=parts[0];
-      parts.forEach(b=>{ b.bn=B0.n; enemies.push(b); });
+      parts.forEach(b=>{ b.bn=B0.n; b.pair=parts; enemies.push(b); });
       bossEntrance(parts[0]);
       return;
     }
@@ -3013,9 +3040,13 @@ function duoFall(e){
   burst(e.x,e.y,e.col,70,480); shock(e.x,e.y,e.col,e.r,e.r*4,.6,8);
   shake=Math.max(shake,22); flash=Math.max(flash,.35); SFX.bossDown();
   if(o){
-    // the survivor takes what its partner had left: back to full
-    o.hp=o.max; o.ward=0; o.flare=1.6;
-    shock(o.x,o.y,o.col,o.r,o.r*3,.5,6); burst(o.x,o.y,o.col,40,380); SFX.tier();
+    // the survivor takes what its partner had left: back to full. Normally that
+    // plays out as a cutscene (absorbStart); this is what it lands on.
+    o.ward=0; o.flare=1.6;
+    if(!absorbStart(e,o)){
+      o.hp=o.max;
+      shock(o.x,o.y,o.col,o.r,o.r*3,.5,6); burst(o.x,o.y,o.col,40,380); SFX.tier();
+    }
     banner=e.B.n+' DOWN \u00b7 '+o.B.n+' RESTORED'; bannerT=2.4;
   }
 }
@@ -3221,9 +3252,10 @@ function bossSummon(e,type,n){
    Beats fire off the entrance's own clock rather than after(), so pausing
    halfway through cannot pull the sound away from the picture.            */
 let entrance=null;
+let phaseCut=null;                         // a boss climbing a tier: see PHASE CHANGE
 const ENTR_TAIL=2.7;                       // touchdown to the fight starting
 const eOut=k=>1-Math.pow(1-k,3);
-const stageKey=b=> b.B&&b.B.final ? 'final' : b.twin ? 'titans' : b.k;
+const stageKey=b=> b.B&&b.B.final ? 'final' : b.twin ? (b.k==='triton'?'titans':'pair') : b.k;
 
 const STAGES={
   /* the old arrival, kept for anything that has no staging of its own:
@@ -3468,6 +3500,38 @@ const STAGES={
       if(t>f0){
         const k=clamp((t-f0)/(f1-f0),0,1), y=-120+(E.ty+120)*k*k;
         body('b_proteus',PROTEUS.col,E.b.twin.r,E.tx,y,0,1);
+      }
+    }},
+
+  /* Any other pair — the Echo Trial — is dragged in as debris the way a lone
+     boss is, at two landing points at once. The shared ending only draws the
+     first, so this keeps drawing the second until the fight starts. */
+  pair:{ land:2.4,
+    init(E){
+      const tw=E.b.twin; tw.hidden=true;
+      E.x=W*.36; E.y=H*.34; E.tx=W*.64; E.ty=H*.34; tw.x=E.tx; tw.y=E.ty;
+      E.shards=[];
+      for(let i=0;i<44;i++){ const a=rand(0,TAU);
+        E.shards.push({a,d0:rand(300,760),r:rand(5,14),lag:rand(0,.4),tw:i%2}); }
+    },
+    ev(E){ const tw=E.b.twin;
+      return [[E.land,()=>{ shock(E.tx,E.ty,tw.col,10,240,.6,9); burst(E.tx,E.ty,tw.col,50,420); }]]; },
+    draw(E,t){
+      const tw=E.b.twin;
+      if(t<E.land) for(const p of E.shards){
+        const cx=p.tw?E.tx:E.x, cy=p.tw?E.ty:E.y, col=p.tw?tw.col:E.b.col;
+        const k=clamp((t-p.lag)/(E.land-.1-p.lag),0,1), e2=eOut(k), d=p.d0*(1-e2), a=p.a+e2*1.9;
+        ctx.globalAlpha=Math.min(1,k*2.2); ctx.strokeStyle=col; ctx.lineWidth=1.6;
+        ctx.shadowColor=col; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.arc(cx+Math.cos(a)*d,cy+Math.sin(a)*d,p.r*(1-e2*.55),0,TAU); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      if(t>=E.land){
+        ctx.save(); ctx.translate(E.tx,E.ty);
+        ctx.globalAlpha=clamp((t-E.land)/.4,0,1);
+        ctx.fillStyle='rgba(0,0,0,.7)'; ctx.strokeStyle=tw.col; ctx.lineWidth=3;
+        ctx.shadowColor=tw.col; ctx.shadowBlur=18;
+        unitPath(ctx,'b_'+tw.k,tw.r,0,t); ctx.fill(); ctx.stroke(); ctx.restore();
       }
     }},
 
@@ -3886,6 +3950,460 @@ function wallDraw(){
    and comes at you, and it knits itself back together the moment you stop
    putting rounds into it — so the last phase is a question about damage, not
    about patience. */
+/* ══════════════════════ PHASE CHANGE ══════════════════════
+   Every time a boss climbs a tier the fight stops for a beat, the way it does
+   when the boss arrives: the frame closes to letterbox, the arena dims down to
+   the boss, energy is dragged into it, it detonates, and the new phase names
+   itself. You can fly; nothing shoots, nothing moves, nothing spawns. Shared
+   by every boss — a boss that wants its own version would hang it off its key
+   here the way STAGES does for entrances.                                   */
+const PHASE_DUR=2.5, PHASE_HIT=1.0;
+function phaseStart(e,tier){
+  if(phaseCut) return false;
+  const B=e.B, duo=!!B.duoPart;
+  const sc=SCENES[(B.final?'final':e.k)+':'+tier]||null;
+  phaseCut={t:0, e, col:e.col, wt:waveTimer, hit:false, sc,
+    dur:sc?(sc.dur||SCENE_DUR):PHASE_DUR, hitT:sc?(sc.hit||SCENE_HIT):PHASE_HIT,
+    bare:!!(B.tiers[tier].bare && !e.bare),
+    name: duo ? e.bn+' \u2014 PHASE 2' : (B.tiers[tier].n||B.n),
+    tag: 'PHASE '+(tier+1)+' / '+(duo?2:B.tiers.length),
+    streaks:Array.from({length:24},()=>({a:rand(0,TAU), d:rand(260,580), lag:rand(0,.45), w:rand(1,2.8)}))};
+  ebullets.length=0; bullets.length=0;
+  flash=Math.max(flash,.3); shake=Math.max(shake,8); SFX.crack();
+  if(sc){ if(sc.init) sc.init(phaseCut,e); phaseCut.ev=sc.ev?sc.ev(phaseCut,e):[]; }
+  return true;
+}
+/* ---- a pair losing one of its two ----
+   The one left standing drinks the other in: what is left of the fallen hull
+   comes apart into motes that stream across the arena into the survivor, its
+   half of the bar fills back up as they land, and it goes off. Same freeze
+   and letterbox as a phase change; runs on the same `phaseCut` slot.        */
+const ABSORB_DUR=3.1, ABSORB_HIT=2.1, ABSORB_FILL=[.55,2.0];
+function absorbStart(dead,o){
+  if(phaseCut) return false;
+  phaseCut={kind:'absorb', t:0, e:o, col:o.col, dcol:dead.col, wt:waveTimer, hit:false,
+    dur:ABSORB_DUR, hitT:ABSORB_HIT,
+    dx:dead.x, dy:dead.y, dk:dead.k, dr:dead.r, h0:o.hp,
+    name: o.B.n+' ABSORBS '+dead.B.n,          // «WRITE:» the card for this moment
+    tag: 'FULL POWER',                          // «WRITE:»
+    motes:Array.from({length:46},()=>({ox:rand(-1,1)*dead.r, oy:rand(-1,1)*dead.r,
+      lag:rand(.45,1.5), dur:rand(.45,.7), bend:rand(-1,1)*220, r:rand(2,4.5)}))};
+  ebullets.length=0; bullets.length=0;
+  return true;
+}
+function absorbStep(C,e){
+  const [f0,f1]=ABSORB_FILL, k=clamp((C.t-f0)/(f1-f0),0,1);
+  e.hp=C.h0+(e.max-C.h0)*k;
+  if(C.t>.5 && !C.pull){ C.pull=true; SFX.crack(); }
+  if(!C.hit && C.t>=ABSORB_HIT){
+    C.hit=true; e.hp=e.max;
+    shake=Math.max(shake,34); flash=Math.max(flash,.75); SFX.tier();
+    shock(e.x,e.y,C.col,e.r*.6,Math.max(W,H)*.9,.9,10);
+    shock(e.x,e.y,C.dcol,e.r,e.r*4.5,.6,7);
+    burst(e.x,e.y,C.col,50,500); burst(e.x,e.y,C.dcol,40,420);
+  }
+}
+function absorbDraw(C,e,t){
+  // what is left of the fallen one: its outline, cracking, then gone
+  if(t<.8){
+    const a=1-clamp((t-.3)/.5,0,1);
+    ctx.save(); ctx.translate(C.dx,C.dy); ctx.globalAlpha=a;
+    ctx.strokeStyle=C.dcol; ctx.lineWidth=2; ctx.shadowColor=C.dcol; ctx.shadowBlur=16;
+    ctx.setLineDash([6,5+t*30]);
+    unitPath(ctx,'b_'+C.dk,C.dr,0,0); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+  // the motes: each leaves where it was on the hull and curves into the survivor
+  ctx.save(); ctx.shadowColor=C.dcol; ctx.shadowBlur=12;
+  const vx=e.x-C.dx, vy=e.y-C.dy, L=Math.hypot(vx,vy)||1, nx=-vy/L, ny=vx/L;
+  for(const m of C.motes){
+    const q=clamp((t-m.lag)/m.dur,0,1); if(q<=0||q>=1) continue;
+    const sx=C.dx+m.ox, sy=C.dy+m.oy, cx=(sx+e.x)/2+nx*m.bend, cy=(sy+e.y)/2+ny*m.bend;
+    const u=q*q, iu=1-u;
+    const x=iu*iu*sx+2*iu*u*cx+u*u*e.x, y=iu*iu*sy+2*iu*u*cy+u*u*e.y;
+    ctx.globalAlpha=.9; ctx.fillStyle=q>.8?C.col:C.dcol;
+    ctx.beginPath(); ctx.arc(x,y,m.r*(1-q*.4),0,TAU); ctx.fill();
+  }
+  // the survivor swelling as it takes them in
+  if(t<ABSORB_HIT){
+    const g=clamp((t-ABSORB_FILL[0])/(ABSORB_HIT-ABSORB_FILL[0]),0,1);
+    ctx.globalAlpha=.3+.6*g; ctx.strokeStyle=C.col; ctx.lineWidth=3; ctx.shadowColor=C.col; ctx.shadowBlur=36*g;
+    ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(1.15+.5*g+.08*Math.sin(t*30)),0,TAU); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---- each boss's own last phase ----
+   The generic phase change above is what every climb gets. The climb into a
+   boss's LAST phase (and, for the Archive and the thing behind the Ruler,
+   the one before it too) gets a scene of its own instead, keyed
+   '<boss k>:<tier>' ('final' for the thing behind the Ruler). Same freeze,
+   letterbox, impact and name card; a scene supplies the picture:
+     init(C,e)        set up            ev(C,e)  [[time, fn], ...]
+     step(C,e,dt)     per frame         atHit    extra on the impact
+     draw(C,e,t,k)    under the bars    top(C,e,t,k,bh)  over them
+     end(C,e)         cleanup           dur/hit  seconds (3.2 / 2.0)     */
+const SCENE_DUR=3.2, SCENE_HIT=2.0;
+const thump=()=>{ SND.tone('sine',70,34,.005,.35,.45); shake=Math.max(shake,8); };
+const scK=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+function ghost(kind,r,x,y,col,a,lw,spin){
+  ctx.save(); ctx.translate(x,y); if(spin) ctx.rotate(spin);
+  ctx.globalAlpha=a; ctx.strokeStyle=col; ctx.lineWidth=lw||2; ctx.shadowColor=col; ctx.shadowBlur=14;
+  unitPath(ctx,kind,r,0,0); ctx.stroke(); ctx.restore();
+}
+const SCENES={
+  /* 3296 → CRITICAL. The three plates it bolted on when it arrived blow off
+     one at a time, the entrance in reverse, and it glows red-hot under them. */
+  'primary:2':{
+    init(C,e){ C.pl=[0,1,2].map(i=>({a:e.spin+i*TAU/3, at:.55+i*.45, vx:0, vy:0, x:0, y:0, rot:0})); },
+    ev(C,e){ return C.pl.map(p=>[p.at,()=>{
+      p.x=e.x+Math.cos(p.a)*(e.r+6); p.y=e.y+Math.sin(p.a)*(e.r+6);
+      p.vx=Math.cos(p.a)*620; p.vy=Math.sin(p.a)*620;
+      SFX.crack(); shake=Math.max(shake,14); burst(p.x,p.y,'#ffb070',22,320); }]); },
+    step(C,e,dt){ for(const p of C.pl) if(C.t>p.at){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.2,dt); p.vy*=Math.pow(.2,dt); p.rot+=dt*9; } },
+    draw(C,e,t){
+      const g=scK(t,.4,C.hitT);
+      const gr=ctx.createRadialGradient(e.x,e.y,0,e.x,e.y,e.r*(1.1+.6*g));
+      gr.addColorStop(0,'rgba(255,240,200,'+(.85*g)+')'); gr.addColorStop(.45,'rgba(255,90,40,'+(.6*g)+')');
+      gr.addColorStop(1,'rgba(255,40,30,0)');
+      ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(1.1+.6*g),0,TAU); ctx.fill();
+      for(const p of C.pl){
+        const on=t<p.at, x=on?e.x+Math.cos(p.a)*(e.r+6):p.x, y=on?e.y+Math.sin(p.a)*(e.r+6):p.y;
+        ctx.save(); ctx.translate(x,y); ctx.rotate(p.a+p.rot);
+        ctx.globalAlpha=on?1:Math.max(0,1-(t-p.at)/1.1);
+        ctx.fillStyle='#2a1416'; ctx.strokeStyle=on&&t>p.at-.3?'#ffd0a0':e.col; ctx.lineWidth=2.5;
+        ctx.shadowColor=e.col; ctx.shadowBlur=12;
+        ctx.fillRect(-7,-14,14,28); ctx.strokeRect(-7,-14,14,28); ctx.restore();
+      }
+    }},
+
+  /* The Hive Mind → UNRAVELLING. Every Watcher on the field is pulled back
+     into the core — they are gone for real — and the core bursts open. */
+  'hive:2':{
+    init(C){ C.sw=[]; },
+    // taken on the first frame of the scene, not in init: init runs inside the
+    // enemy loop, and pulling hostiles out of the list there would trip it
+    step(C,e){
+      if(C.took) return; C.took=true;
+      for(let i=enemies.length-1;i>=0;i--){ const o=enemies[i];
+        if(o.t==='dart'||o.t==='meteor'){ C.sw.push({x:o.x,y:o.y,lag:rand(0,.5)}); enemies.splice(i,1); } }
+      while(C.sw.length<18){ const a=rand(0,TAU), d=rand(260,520);
+        C.sw.push({x:e.x+Math.cos(a)*d, y:e.y+Math.sin(a)*d, lag:rand(.1,.7)}); }
+    },
+    atHit(C,e){ burst(e.x,e.y,e.col,140,640); shred(e.x,e.y,e.col,18,420,12); },
+    draw(C,e,t){
+      ctx.fillStyle=e.col; ctx.shadowColor=e.col; ctx.shadowBlur=12;
+      for(const m of C.sw){
+        const q=scK(t,m.lag,C.hitT-.15); if(q>=1) continue;
+        const u=q*q*q, x=m.x+(e.x-m.x)*u, y=m.y+(e.y-m.y)*u, a=Math.atan2(e.y-m.y,e.x-m.x);
+        ctx.save(); ctx.translate(x,y); ctx.rotate(a);
+        ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-6,-5); ctx.lineTo(-6,5); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      const g=scK(t,.3,C.hitT);
+      ctx.globalAlpha=.3+.6*g; ctx.strokeStyle=e.col; ctx.lineWidth=3+g*3; ctx.shadowBlur=30*g;
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(.5+.35*g+.06*Math.sin(t*40)),0,TAU); ctx.stroke();
+    }},
+
+  /* Iteration 2117 → UNCOVERED. Its shield arc spins up faster and faster
+     until it flies apart; the shards leave the screen. */
+  'overseer:2':{
+    init(C,e){ C.sh0=e.sh; C.sp=0; },
+    step(C,e,dt){ if(!C.hit){ C.sp+=dt*16; e.shA=(e.shA||0)+C.sp*dt; } },
+    atHit(C,e){
+      C.shards=[]; const sh=C.sh0||1;
+      for(let i=0;i<14;i++){ const a=(e.shA||0)-sh+2*sh*i/13;
+        C.shards.push({a, x:e.x+Math.cos(a)*(e.r+7), y:e.y+Math.sin(a)*(e.r+7),
+          vx:Math.cos(a)*rand(600,900)-Math.sin(a)*C.sp*30, vy:Math.sin(a)*rand(600,900)+Math.cos(a)*C.sp*30, rot:rand(-9,9)}); }
+      e.sh=0; SFX.strip();
+    },
+    end(C,e){ e.sh=C.sh0; },
+    draw(C,e,t){
+      if(!C.hit){                         // a blur trail behind the spinning arc
+        const g=scK(t,.2,C.hitT);
+        ctx.strokeStyle=e.col; ctx.lineWidth=5; ctx.shadowColor=e.col; ctx.shadowBlur=20;
+        for(let i=1;i<5;i++){ ctx.globalAlpha=.4*g*(1-i/5);
+          ctx.beginPath(); ctx.arc(e.x,e.y,e.r+7,(e.shA||0)-(C.sh0||1)-i*.25*g,(e.shA||0)+(C.sh0||1)-i*.25*g); ctx.stroke(); }
+        return;
+      }
+      const dt=t-C.hitT;
+      ctx.strokeStyle=e.col; ctx.lineWidth=5; ctx.shadowColor=e.col; ctx.shadowBlur=16;
+      for(const p of C.shards){
+        ctx.save(); ctx.translate(p.x+p.vx*dt,p.y+p.vy*dt); ctx.rotate(p.a+p.rot*dt);
+        ctx.globalAlpha=Math.max(0,1-dt/1.1);
+        ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(0,9); ctx.stroke(); ctx.restore();
+      }
+    }},
+
+  /* The Architect → TRIANGLE. The circle folds into a triangle, and the
+     arena's grid redraws itself in triangles outward from it. */
+  'architect:2':{
+    step(C,e){ e.morph=1+eOut(scK(C.t,.3,1.7)); },
+    end(C,e){ e.morph=2; },
+    draw(C,e,t,k){
+      const R=scK(t,.5,C.hitT+.4)*Math.hypot(W,H), s=64, h=s*Math.sqrt(3)/2;
+      ctx.strokeStyle=e.col; ctx.lineWidth=1; ctx.shadowColor=e.col; ctx.shadowBlur=6;
+      ctx.globalAlpha=.32*k*(C.hit?Math.max(.3,1-(t-C.hitT)):1);
+      ctx.beginPath(); ctx.arc(e.x,e.y,Math.max(1,R),0,TAU); ctx.save(); ctx.clip();
+      ctx.beginPath();
+      for(let y=-h; y<H+h; y+=h){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+      for(let x=-H; x<W+H; x+=s){
+        ctx.moveTo(x,0); ctx.lineTo(x+H/Math.sqrt(3),H);
+        ctx.moveTo(x,0); ctx.lineTo(x-H/Math.sqrt(3),H); }
+      ctx.stroke(); ctx.restore();
+      ctx.globalAlpha=.8*k; ctx.lineWidth=2.5; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.arc(e.x,e.y,Math.max(1,R),0,TAU); ctx.stroke();
+    }},
+
+  /* The Crescent → ECLIPSE. A dark disc slides across it, the arena goes
+     dark, and only its outline and a corona stay lit. */
+  'crescent:2':{
+    atHit(C,e){ shock(e.x,e.y,'#ffffff',e.r*1.3,e.r*7,.8,8); },
+    draw(C,e,t,k){
+      const dk=scK(t,.7,1.6)*(C.hit?Math.max(0,1-(t-C.hitT)/.6):1);
+      ctx.fillStyle='rgba(0,0,0,'+(.6*dk).toFixed(3)+')'; ctx.fillRect(0,0,W,H);
+      if(t>1.3){                           // the corona
+        const c=scK(t,1.3,C.hitT)*(C.hit?Math.max(0,1-(t-C.hitT)/.8):1), R=e.r*1.25;
+        const gr=ctx.createRadialGradient(e.x,e.y,R*.9,e.x,e.y,R*2.6);
+        gr.addColorStop(0,'rgba(255,255,255,'+(.8*c)+')'); gr.addColorStop(1,'rgba(214,217,224,0)');
+        ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(e.x,e.y,R*2.6,0,TAU); ctx.fill();
+      }
+      const q=eOut(scK(t,.3,1.6)), dx=e.x-e.r*3.2*(1-q);
+      ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(dx,e.y-e.r*.1,e.r*1.25,0,TAU); ctx.fill();
+      ghost('b_crescent',e.r,e.x,e.y,'#ffffff',.5+.5*dk,2.5,e.a);
+    }},
+
+  /* The Ruler → CHAOS. The screen glitches and tears, and its shell is
+     ripped off it in pieces before what is underneath walks out. */
+  'ruler:3':{
+    init(C,e){ C.seg=Array.from({length:8},(_,i)=>({a:i*TAU/8, at:1.0+i*.11, v:rand(380,620), rot:rand(-5,5)})); },
+    ev(C,e){ return [[.35,()=>SFX.crack()],[1.0,()=>{ SFX.strip(); shake=Math.max(shake,22); }],
+                     [1.45,()=>SFX.strip()]]; },
+    draw(C,e,t){
+      ctx.strokeStyle=e.col; ctx.lineWidth=7; ctx.shadowColor=e.col; ctx.shadowBlur=14; ctx.lineCap='round';
+      for(const g of C.seg){
+        const d=Math.max(0,t-g.at), jit=t<g.at?rand(-2,2)*scK(t,.3,g.at):0;
+        const R=e.r+12+g.v*d*(1-Math.min(d,1)*.5);
+        ctx.save(); ctx.translate(e.x+Math.cos(g.a)*(R-e.r-12)+jit,e.y+Math.sin(g.a)*(R-e.r-12)+jit);
+        ctx.rotate(g.rot*d); ctx.globalAlpha=Math.max(0,1-d/.9);
+        ctx.beginPath(); ctx.arc(0,0,e.r+12,g.a-.3,g.a+.3); ctx.stroke(); ctx.restore();
+      }
+    },
+    top(C,e,t,k){
+      if(t<.2||t>C.hitT+.3) return;
+      const n=3+Math.floor(scK(t,.2,C.hitT)*12);
+      ctx.globalCompositeOperation='lighter';
+      for(let i=0;i<n;i++){
+        ctx.fillStyle=Math.random()<.5?'rgba(255,34,51,.35)':'rgba(63,216,224,.3)';
+        ctx.fillRect(rand(-60,W*.6),rand(0,H),rand(W*.2,W),rand(2,14));
+      }
+      const o=4+8*scK(t,.2,C.hitT);
+      ghost('b_ruler',e.r,e.x-o,e.y,'#ff2233',.6,2,e.a);
+      ghost('b_ruler',e.r,e.x+o,e.y,'#3fd8e0',.6,2,e.a);
+      ctx.globalCompositeOperation='source-over';
+    }},
+
+  /* The thing behind the Ruler → HADES. The arena sinks: rings fall inward
+     from the edges, embers rise, everything goes deep red, and a heartbeat
+     speeds up under it. */
+  'final:2':{
+    init(C){ C.emb=Array.from({length:46},()=>({x:rand(0,W), off:rand(0,H), v:rand(70,200), w:rand(.6,2.2), r:rand(1.2,3)})); },
+    ev(){ return [.35,.85,1.25,1.55,1.78,1.94].map(at=>[at,thump]); },
+    atHit(C,e){ shock(e.x,e.y,'#ff2233',e.r,Math.hypot(W,H),1.1,14); },
+    draw(C,e,t,k){
+      ctx.fillStyle='rgba(90,0,12,'+(.4*k).toFixed(3)+')'; ctx.fillRect(0,0,W,H);
+      const far=Math.hypot(W,H)*.7;
+      ctx.strokeStyle='#ff2233'; ctx.shadowColor='#ff2233'; ctx.shadowBlur=14;
+      for(let i=0;i<6;i++){
+        const q=((t*.55+i/6)%1), R=e.r+far*(1-q)*(1-q);
+        ctx.globalAlpha=q*.7*k; ctx.lineWidth=1+q*4;
+        ctx.beginPath(); ctx.arc(e.x,e.y,R,0,TAU); ctx.stroke();
+      }
+      ctx.shadowBlur=8;
+      for(const m of C.emb){
+        const y=H-((t*m.v+m.off)%H), x=m.x+Math.sin(t*m.w*3+m.off)*14;
+        ctx.globalAlpha=.8*k; ctx.fillStyle=m.r>2.4?'#ffb070':'#ff2233';
+        ctx.beginPath(); ctx.arc(x,y,m.r,0,TAU); ctx.fill();
+      }
+    }},
+
+  /* ...→ MELTDOWN. Everything it does kills in one hit from here, so the
+     picture is a core going critical: white-hot and swelling, the bars turned
+     to scrolling hazard stripes, and a siren under it. */
+  'final:3':{
+    ev(){ return [.15,.75,1.35].map(at=>[at,()=>{ SND.tone('square',880,440,.01,.45,.06); }]); },
+    atHit(C,e){ flash=1; shake=Math.max(shake,46); shock(e.x,e.y,'#ffffff',e.r,Math.hypot(W,H),1.0,16); },
+    draw(C,e,t,k){
+      const g=scK(t,.1,C.hitT), R=e.r*(.3+1.6*g*g)+Math.sin(t*50)*3*g;
+      const gr=ctx.createRadialGradient(e.x,e.y,0,e.x,e.y,Math.max(1,R*1.6));
+      gr.addColorStop(0,'rgba(255,255,255,'+(.95*g)+')'); gr.addColorStop(.4,'rgba(255,200,180,'+(.8*g)+')');
+      gr.addColorStop(.7,'rgba(255,34,51,'+(.55*g)+')'); gr.addColorStop(1,'rgba(255,34,51,0)');
+      ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(e.x,e.y,Math.max(1,R*1.6),0,TAU); ctx.fill();
+      // heat: the air above it ripples
+      ctx.strokeStyle='rgba(255,180,160,'+(.12*g*k)+')'; ctx.lineWidth=1.5;
+      for(let y=60;y<H-60;y+=18){
+        ctx.beginPath();
+        for(let x=0;x<=W;x+=24) ctx.lineTo(x,y+Math.sin(x*.03+t*9+y)*3*g);
+        ctx.stroke();
+      }
+    },
+    top(C,e,t,k,bh){
+      if(bh<2) return;
+      ctx.beginPath(); ctx.rect(0,0,W,bh); ctx.rect(0,H-bh,W,bh); ctx.clip();
+      ctx.fillStyle='#ff2233'; ctx.globalAlpha=.85;
+      const off=(t*90)%40;
+      for(let x=-80+off;x<W+80;x+=40){
+        for(const y0 of [0,H-bh]){
+          ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x+20,y0); ctx.lineTo(x+20-bh,y0+bh); ctx.lineTo(x-bh,y0+bh); ctx.fill();
+        }
+      }
+    }},
+
+  /* Iteration 3295 → RECORD. It blinks through ghost copies of itself,
+     faster and faster, and every copy snaps back into the one. */
+  's3295:2':{
+    init(C,e){
+      C.gh=[]; let at=.15;
+      for(let i=0;i<10;i++){ const a=i*2.4+rand(-.2,.2), d=rand(120,230);
+        C.gh.push({x:e.x+Math.cos(a)*d, y:e.y+Math.sin(a)*d, at}); at+=.3*Math.pow(.8,i); }
+    },
+    ev(C){ return C.gh.map(g=>[g.at,()=>{ SFX.dash(); burst(g.x,g.y,'#8dffc4',8,180); }]); },
+    atHit(C,e){ burst(e.x,e.y,'#ffffff',60,520); },
+    draw(C,e,t){
+      const snap=scK(t,1.6,C.hitT);
+      for(const g of C.gh){
+        if(t<g.at) continue;
+        const u=snap*snap, x=g.x+(e.x-g.x)*u, y=g.y+(e.y-g.y)*u;
+        const a=snap>0 ? .8 : Math.max(.25,1-(t-g.at)/.7);
+        ghost('b_s3295',e.r,x,y,'#8dffc4',a,2,e.a);
+      }
+    }},
+
+  /* The Archive → CORRUPTED. The stored minds flicker, the screen's colours
+     invert in stutters, and corrupt text crawls round the ring. */
+  'archive:2':{
+    init(C){ C.inv=[.35,.55,.62,1.05,1.12,1.5,1.58,1.66,1.9]; C.ch='01#%&@$<>/\\|=+*?!'; },
+    ev(){ return [[.35,()=>SFX.crack()],[1.05,()=>SFX.crack()],[1.5,()=>SFX.crack()]]; },
+    draw(C,e,t,k){
+      for(let i=0;i<7;i++){                    // the stored minds, misfiring
+        if(Math.random()<.35) continue;
+        const a=i*TAU/7+e.spin, R=e.r*1.15, x=e.x+Math.cos(a)*R, y=e.y+Math.sin(a)*R;
+        ctx.fillStyle=Math.random()<.5?'#ffffff':e.col; ctx.shadowColor=e.col; ctx.shadowBlur=14;
+        const s=rand(6,16); ctx.fillRect(x-s/2+rand(-4,4),y-s/2,s,s*rand(.3,1));
+      }
+      ctx.shadowBlur=0; ctx.font='13px Menlo,monospace'; ctx.textAlign='center';
+      const n=40, R=e.r*1.9, spin=t*.8;
+      for(let i=0;i<n;i++){
+        const a=i*TAU/n+spin;
+        ctx.save(); ctx.translate(e.x+Math.cos(a)*R,e.y+Math.sin(a)*R); ctx.rotate(a+Math.PI/2);
+        ctx.globalAlpha=k*(.4+.6*Math.random()); ctx.fillStyle=Math.random()<.15?'#ffffff':e.col;
+        ctx.fillText(C.ch[Math.floor(Math.random()*C.ch.length)],0,0); ctx.restore();
+      }
+    },
+    top(C,e,t){
+      if(C.inv.some(a=>t>=a&&t<a+.06)){
+        ctx.globalCompositeOperation='difference'; ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+        ctx.globalCompositeOperation='source-over';
+      }
+    }},
+
+  /* The Archive → TOTAL RECALL. All seven stored minds are drawn into the
+     empty middle, one bell at a time, as its clock starts. */
+  'archive:3':{
+    init(C,e){ C.m=Array.from({length:7},(_,i)=>({a:i*TAU/7+e.spin, lag:.3+i*.17})); },
+    ev(C){ return C.m.map((m,i)=>[m.lag+.75,()=>{ SND.tone('sine',660*Math.pow(1.122,i),660*Math.pow(1.122,i),.005,.9,.12); }]); },
+    draw(C,e,t){
+      ctx.shadowColor=e.col; ctx.shadowBlur=18;
+      let got=0;
+      for(const m of C.m){
+        const q=scK(t,m.lag,m.lag+.75); if(q>=1){ got++; continue; }
+        const R=e.r*2.4*(1-eOut(q)), a=m.a+q*2.6;
+        ctx.globalAlpha=.9; ctx.fillStyle='#e2c6ff';
+        ctx.beginPath(); ctx.arc(e.x+Math.cos(a)*R,e.y+Math.sin(a)*R,7,0,TAU); ctx.fill();
+        ctx.globalAlpha=.35; ctx.strokeStyle=e.col; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(e.x+Math.cos(a)*R,e.y+Math.sin(a)*R); ctx.lineTo(e.x,e.y); ctx.stroke();
+      }
+      const g=got/7;
+      ctx.globalAlpha=.4+.6*g; ctx.fillStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(e.x,e.y,4+g*16+Math.sin(t*30)*2*g,0,TAU); ctx.fill();
+    }},
+};
+
+function phaseStep(dt){
+  const C=phaseCut, e=C.e;
+  C.t+=dt; ebullets.length=0; bullets.length=0;
+  if(C.kind==='absorb'){
+    if(!enemies.includes(e)){ waveTimer=C.wt; phaseCut=null; return; }
+    absorbStep(C,e);
+    if(C.t>=ABSORB_DUR){ waveTimer=C.wt; phaseCut=null; bannerT=0; e.flare=1.6; }
+    return;
+  }
+  if(!enemies.includes(e)){ waveTimer=C.wt; phaseCut=null; return; }
+  const sc=C.sc;
+  if(sc){
+    for(const [at,fn] of C.ev) if(at>=C.t-dt && at<C.t) fn();
+    if(sc.step) sc.step(C,e,dt);
+  }
+  if(!C.hit && C.t>=C.hitT){
+    C.hit=true;
+    if(sc&&sc.atHit) sc.atHit(C,e);
+    shake=Math.max(shake,32); flash=Math.max(flash,.7); SFX.tier();
+    shock(e.x,e.y,C.col,e.r*.6,Math.max(W,H)*.9,.9,10);
+    shock(e.x,e.y,'#ffffff',e.r,e.r*4,.5,6);
+    burst(e.x,e.y,C.col,60,520);
+    if(C.bare) shellBreak(e,C.name);
+  }
+  if(C.t>=C.dur){
+    if(sc&&sc.end) sc.end(C,e);
+    waveTimer=C.wt;                   // the escorts' clock did not run while it played
+    phaseCut=null; bannerT=0; e.flare=1.6;
+  }
+}
+function phaseDraw(){
+  const C=phaseCut, e=C.e, t=C.t, col=C.col, ab=C.kind==='absorb', sc=C.sc;
+  const DUR=C.dur, HIT=C.hitT;
+  const outK=clamp((DUR-t)/.3,0,1), k=Math.min(eOut(clamp(t/.35,0,1)),outK);
+  // the arena dims down to the boss
+  const gr=ctx.createRadialGradient(e.x,e.y,e.r*1.6,e.x,e.y,Math.max(W,H)*.75);
+  gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,'+(.72*k).toFixed(3)+')');
+  ctx.fillStyle=gr; ctx.fillRect(0,0,W,H);
+  if(ab) absorbDraw(C,e,t);
+  else if(sc&&sc.draw){ ctx.save(); sc.draw(C,e,t,k); ctx.restore(); }
+  // energy dragged into it, and the boss swelling with it
+  else if(t<PHASE_HIT){
+    ctx.save(); ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=12; ctx.lineCap='round';
+    for(const s of C.streaks){
+      const q=clamp((t-s.lag)/(PHASE_HIT-s.lag),0,1); if(!q) continue;
+      const d1=s.d*(1-q*q)+e.r, d0=d1+12+46*(1-q);
+      ctx.globalAlpha=Math.min(1,q*3)*.85; ctx.lineWidth=s.w;
+      ctx.beginPath();
+      ctx.moveTo(e.x+Math.cos(s.a)*d0,e.y+Math.sin(s.a)*d0);
+      ctx.lineTo(e.x+Math.cos(s.a)*d1,e.y+Math.sin(s.a)*d1); ctx.stroke();
+    }
+    const g=t/PHASE_HIT;
+    ctx.globalAlpha=.25+.55*g; ctx.lineWidth=3; ctx.shadowBlur=34*g;
+    ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(2-.85*g),0,TAU); ctx.stroke();
+    ctx.restore();
+  }
+  // letterbox
+  const bh=58*k;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,bh); ctx.fillRect(0,H-bh,W,bh);
+  ctx.globalAlpha=.6*k; ctx.fillStyle=col; ctx.fillRect(0,bh-1,W,1); ctx.fillRect(0,H-bh,W,1);
+  ctx.globalAlpha=1;
+  if(sc&&sc.top){ ctx.save(); sc.top(C,e,t,k,bh); ctx.restore(); }
+  // the new phase names itself
+  if(t>HIT+.05){
+    const ink=clamp((t-HIT-.05)/.3,0,1), y=H*.74;
+    ctx.save(); ctx.globalAlpha=ink*outK; ctx.textAlign='center';
+    ctx.font='12px Menlo,monospace'; ctx.fillStyle=col;
+    ctx.fillText(C.tag,W/2,y-36);
+    ctx.font='600 '+(28+(1-ink)*12).toFixed(1)+'px Menlo,monospace';
+    ctx.shadowColor=col; ctx.shadowBlur=28*ink; ctx.fillStyle='#dfe9ff';
+    ctx.fillText(C.name,W/2,y);
+    ctx.restore();
+  }
+}
+
 function shellBreak(e,name){
   slow(1.1); shake=48; flash=.9;
   ebullets.length=0;
@@ -3925,19 +4443,24 @@ function bossAI(e,dt,dx,dy,d){
   const tier=B.duoPart ? duoTier(e)
             : Math.min(hpf<.15?3 : hpf<.28?2 : hpf<.62?1 : 0, B.tiers.length-1);
   if(tier!==e.tier){
+    // only a climb gets the cutscene: the Archive dropping back to 0 has its own
+    const cut = tier>e.tier && phaseStart(e,tier);
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
     e.nodes=null;
     // the Archive starts its clock here, and re-arms it if it ever recalls
     e.recall = (B.k==='archive' && B.tiers[tier].last) ? RECALL_T : 0;
-    shake=Math.max(shake,20); flash=Math.max(flash,.45); SFX.tier();
-    burst(e.x,e.y,e.col,46,430);
     ebullets.length=0;                        // the shockwave wipes the screen
-    banner=B.tiers[tier].n||B.n; bannerT=2.2;
+    // the second Titan climbing inside its twin's cutscene rides along with it
+    if(!cut && !phaseCut){
+      shake=Math.max(shake,20); flash=Math.max(flash,.45); SFX.tier();
+      burst(e.x,e.y,e.col,46,430);
+      banner=B.tiers[tier].n||B.n; bannerT=2.2;
+    }
     /* A tier marked `bare` is the finale: the shell comes off, the arena closes
        in around the two of you, and there is nowhere left to run the clock out
-       from. shellBreak() has always done this — it was simply never called. */
-    if(B.tiers[tier].bare && !e.bare) shellBreak(e,B.tiers[tier].n);
+       from. A cutscene saves it for its own moment of impact. */
+    if(!cut && B.tiers[tier].bare && !e.bare) shellBreak(e,B.tiers[tier].n);
   }
   if(e.inv>0) e.inv-=dt;
   if(e.open>0) e.open=Math.max(0,e.open-dt);
@@ -4230,7 +4753,7 @@ function slow(sec){ if(sec>slowT){ slowT=sec; slowMax=sec; } }
 const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; wallIn=wallWant=0; iceWalls=[]; }
+function fxClear(){ waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -4348,8 +4871,8 @@ function update(dt){
   // holding the station is the one place the arena is allowed to be busier
   // than a system: the whole point of it is more inbound than one ship can cover
   const maxLive = mission ? (mission.ward?12:10)
-                : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : 10;
-  while(spawnQ.length && !entrance && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
+                : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : WV().live;
+  while(spawnQ.length && !entrance && !phaseCut && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
 
   const P=player, st=P.st;
 
@@ -4404,10 +4927,12 @@ function update(dt){
 
   // a boss arriving freezes the fight: you can fly, nothing shoots
   if(entrance){ entranceStep(dt); return; }
+  // ...and so does one climbing a tier
+  if(phaseCut){ phaseStep(dt); return; }
 
   /* --- fire --- */
   P.cool-=dt;
-  if((mouse.down||keys.Space)&&P.cool<=0){
+  if(mouse.down&&P.cool<=0){
     P.cool=st.delay*(buffs.rapid>0?.55:1);
     const n=Math.max(st.shots,buffs.scatter>0?3:1), spread=.15;
     for(let i=0;i<n;i++){
@@ -4835,7 +5360,7 @@ function update(dt){
     const rr=b.r+13;
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
-      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour; P.inv=.12; pilotHurt();
+      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12; pilotHurt();
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -4849,7 +5374,7 @@ function update(dt){
       if(P.inv<=0&&buffs.shield<=0){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
               :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:10)
-               *DIFF().dmgIn*P.st.armour;
+               *DIFF().dmgIn*P.st.armour*WV().dmg;
         pilotHurt();
         P.inv=.5;
         const a=Math.atan2(P.y-e.y,P.x-e.x);
@@ -6011,9 +6536,9 @@ function finaleDraw(){
 
    One branch per system, each built round the place it hangs off, and each
    flown in that system's own weather:
-     hold      (Earth)   a station in the middle of the field; keep it alive
-                         until the clock runs out
-     run       (Venus)   a chain of gates through the vents, against the clock
+     run       (Earth)   a chain of gates across the field, against the clock
+     hold      (Venus)   a station in the middle of the field; keep it alive
+                         until the clock runs out — with the vents going
      bounty    (Jupiter) an elite Tracker that kites, calls for help, and
                          leaves if you have not killed it in time
      gauntlet  (Saturn)  three Saturn waves back to back; one hit and it is over
@@ -6021,8 +6546,8 @@ function finaleDraw(){
    Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
    the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
-  {k:'hold',     n:'HOLD THE STATION', sub:'DEFEND THE PLATFORM'},
   {k:'run',      n:'HAZARD RUN',       sub:'CHECKPOINT RACE'},
+  {k:'hold',     n:'HOLD THE STATION', sub:'DEFEND THE PLATFORM'},
   {k:'bounty',   n:'BOUNTY',           sub:'ELITE TRACKER'},
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
   {k:'echo',     n:'ECHO TRIAL',       sub:'THE HIVE MIND'},
@@ -6134,7 +6659,7 @@ function startMission(kind){
     banner='GAUNTLET — WAVE 1 / '+GAUNT_N; bannerT=2.4;
   }
   else if(kind==='echo'){
-    const B=echoOf('hive');
+    const B=ECHO_TRIAL();
     mission.B=B;
     spawn('boss',null,B);
     banner=B.n; bannerT=2.8;
@@ -6173,6 +6698,19 @@ function runGates(){
    well under half. It keeps its key,
    so it looks, sounds and arrives exactly like itself. */
 const ECHO_HP=1.6, ECHO_SPD=1.45, ECHO_REST=.42, ECHO_DMG=1.5;
+/* The Echo Trial is two echoes at once, built the way the Titans are: a pair
+   on one bar that take turns, each shielded at half until the other gets
+   there too, and the survivor absorbing whichever falls first. A pair runs
+   two phases, so each brings its opening line and its second one. Two at
+   once is a lot more than one, so each carries less hull than a lone echo. */
+const ECHO_DUO_HP=1.25;
+function echoPart(k){
+  const B=echoOf(k);
+  return Object.assign(B,{ n:BOSSES.find(b=>b.k===k).n, duoPart:1,
+    hp:B.hp/ECHO_HP*ECHO_DUO_HP, tiers:B.tiers.slice(0,2) });
+}
+const ECHO_TRIAL=()=>({ k:'echo', n:'ECHO TRIAL', col:'#46e39b', r:70, hp:3000, val:0,
+  duo:[echoPart('hive'), echoPart('overseer')] });
 function echoOf(k){
   const H0=BOSSES.find(b=>b.k===k);
   return Object.assign({},H0,{ n:'ECHO OF '+H0.n, echoTrial:1, dmgX:ECHO_DMG, hp:H0.hp*ECHO_HP, spd:H0.spd*ECHO_SPD,
@@ -6833,9 +7371,43 @@ function draw(){
       }
       if(e.ward){                               // a Titan waiting on the other
         ctx.save(); ctx.rotate(-e.a);
-        ctx.setLineDash([10,7]); ctx.lineDashOffset=-performance.now()/30;
-        ctx.strokeStyle='rgba(159,216,255,.85)'; ctx.lineWidth=3; ctx.shadowColor='#9fd8ff'; ctx.shadowBlur=18;
-        ctx.beginPath(); ctx.arc(0,0,e.r+16,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+        const now=performance.now(), R=e.r+16;
+        // a solid shell under the turning dashes, so it reads as a wall
+        ctx.fillStyle='rgba(159,216,255,.10)'; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.fill();
+        ctx.strokeStyle='rgba(159,216,255,.35)'; ctx.lineWidth=8;
+        ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.stroke();
+        ctx.setLineDash([10,7]); ctx.lineDashOffset=-now/30;
+        ctx.strokeStyle='rgba(159,216,255,.95)'; ctx.lineWidth=4; ctx.shadowColor='#9fd8ff'; ctx.shadowBlur=22;
+        ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+        // a padlock riding on top of the shell
+        ctx.shadowBlur=12; ctx.lineWidth=3; ctx.strokeStyle=ctx.fillStyle='#dff3ff';
+        const ly=-R-22;
+        ctx.beginPath(); ctx.arc(0,ly-4,6,Math.PI,0); ctx.stroke();
+        ctx.fillRect(-9,ly-4,18,13);
+        ctx.fillStyle='#0b1a2a'; ctx.fillRect(-1.5,ly,3,5);
+        // and a line out to the twin: that is the one to shoot
+        const o=e.twin&&enemies.includes(e.twin)?e.twin:null;
+        if(o&&!o.hidden){
+          const dx=o.x-e.x, dy=o.y-e.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
+          const a0=R+8, a1=L-o.r-22;
+          if(a1>a0){
+            ctx.shadowBlur=0; ctx.lineWidth=2; ctx.setLineDash([4,10]); ctx.lineDashOffset=now/25;
+            ctx.strokeStyle='rgba(159,216,255,.55)';
+            ctx.beginPath(); ctx.moveTo(ux*a0,uy*a0); ctx.lineTo(ux*a1,uy*a1); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle='rgba(159,216,255,.8)'; ctx.beginPath();
+            ctx.moveTo(ux*(a1+12),uy*(a1+12));
+            ctx.lineTo(ux*a1-uy*7,uy*a1+ux*7); ctx.lineTo(ux*a1+uy*7,uy*a1-ux*7); ctx.fill();
+          }
+        }
+        ctx.restore(); ctx.shadowBlur=0;
+      }
+      if(e.recall>0){                           // the Archive's clock, worn on the Archive
+        ctx.save(); ctx.rotate(-e.a);
+        const p=e.recall/RECALL_T, pu=.5+.5*Math.sin(performance.now()/(e.recall<6?45:110)), R=e.r+26;
+        ctx.lineWidth=6; ctx.strokeStyle='rgba(255,77,94,.16)';
+        ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.stroke();
+        ctx.strokeStyle='rgba(255,77,94,'+(.65+.35*pu)+')'; ctx.shadowColor='#ff4d5e'; ctx.shadowBlur=14+16*pu;
+        ctx.beginPath(); ctx.arc(0,0,R,-Math.PI/2,-Math.PI/2+TAU*p); ctx.stroke();
         ctx.restore(); ctx.shadowBlur=0;
       }
       if(e.t==='boss'&&e.inv>0){
@@ -6873,6 +7445,7 @@ function draw(){
     wallDraw();
     bossSpots();
     if(entrance) entranceDraw();
+    if(phaseCut) phaseDraw();
     worldDraw();
     if(mission) missionDraw();
 
@@ -6907,36 +7480,63 @@ function draw(){
 /* The Titans' bar: one bar, Triton's half on the left and Proteus's on the
    right, each draining toward the middle, with the halfway marks where each
    one waits for the other. A fallen Titan's half stays empty. */
+/* What a boss is doing right now, drawn on its own stretch of the bar so it
+   reads from the corner of an eye without reading a word: moving blue stripes
+   while nothing gets through, a pulsing gold fill while it is open. */
+function barState(e,bx,y,bw,h){
+  if(!e||bw<=0) return;
+  const now=performance.now();
+  ctx.save();
+  if(e.ward||e.inv>0){
+    ctx.beginPath(); ctx.rect(bx,y,bw,h); ctx.clip();
+    ctx.fillStyle='rgba(159,216,255,.14)'; ctx.fillRect(bx,y,bw,h);
+    ctx.strokeStyle='rgba(159,216,255,.6)'; ctx.lineWidth=4;
+    for(let sx=bx-h-14+(now/25)%14; sx<bx+bw+h; sx+=14){
+      ctx.beginPath(); ctx.moveTo(sx,y+h); ctx.lineTo(sx+h,y); ctx.stroke(); }
+    ctx.restore(); ctx.save();
+    ctx.strokeStyle='#9fd8ff'; ctx.lineWidth=2; ctx.shadowColor='#9fd8ff'; ctx.shadowBlur=14;
+    ctx.strokeRect(bx+.5,y+.5,bw,h);
+  }else if(e.open>0){
+    const pu=.5+.5*Math.sin(now/70);
+    ctx.fillStyle='rgba(255,210,77,'+(.4+.3*pu)+')'; ctx.fillRect(bx,y,bw,h);
+    ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2; ctx.shadowColor='#ffd24d'; ctx.shadowBlur=18+10*pu;
+    ctx.strokeRect(bx+.5,y+.5,bw,h);
+  }
+  ctx.restore();
+}
+
 function duoBar(any){
   const w=520, x=(W-w)/2, y=H-42, hw=w/2;
-  const tri=enemies.find(e=>e.k==='triton'), pro=enemies.find(e=>e.k==='proteus');
+  const [p0,p1]=any.pair||[any,any.twin];
+  const alive=e=>e&&enemies.includes(e);
   ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x,y,w,13);
   const half=(e,col,left)=>{
-    const f=e?clamp(e.hp/e.max,0,1):0, bw=hw*f;
+    const f=alive(e)?clamp(e.hp/e.max,0,1):0, bw=hw*f;
     const bx=left?x+hw-bw:x+hw;
     ctx.fillStyle='#0b0a14'; ctx.fillRect(bx,y,bw,13);
     ctx.strokeStyle=col; ctx.strokeRect(bx+.5,y+.5,bw,13);
+    if(alive(e)) barState(e,bx,y,bw,13);
     // where it stops and waits
     ctx.strokeStyle='rgba(230,220,255,.5)'; const m=left?x+hw*.5:x+hw*1.5;
     ctx.beginPath(); ctx.moveTo(m,y); ctx.lineTo(m,y+13); ctx.stroke();
   };
-  half(tri,TRITON.col,true); half(pro,PROTEUS.col,false);
+  half(p0,p0.col,true); half(p1,p1.col,false);
   ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.moveTo(x+hw,y-3); ctx.lineTo(x+hw,y+16); ctx.stroke();
   ctx.globalAlpha=.35; ctx.strokeStyle='#9fd8ff'; ctx.strokeRect(x+.5,y+.5,w,13); ctx.globalAlpha=1;
   ctx.textAlign='center'; ctx.font='11px Menlo,monospace';
-  const p2=(tri&&tri.tier>=1)||(pro&&pro.tier>=1);
+  const p2=(alive(p0)&&p0.tier>=1)||(alive(p1)&&p1.tier>=1);
   ctx.fillStyle=p2?'#9fd8ff':'#b7a6ef';
-  ctx.fillText('THE TITANS'+(p2?' \u2014 PHASE 2':''),W/2,y-8);
+  ctx.fillText(any.bn+(p2?' \u2014 PHASE 2':''),W/2,y-8);
   ctx.font='10px Menlo,monospace';
-  ctx.fillStyle=TRITON.col; ctx.textAlign='left'; ctx.fillText(TRITON.n,x,y+26);
-  ctx.fillStyle=PROTEUS.col; ctx.textAlign='right'; ctx.fillText(PROTEUS.n,x+w,y+26);
+  ctx.fillStyle=p0.col; ctx.textAlign='left'; ctx.fillText(p0.B.n,x,y+26);
+  ctx.fillStyle=p1.col; ctx.textAlign='right'; ctx.fillText(p1.B.n,x+w,y+26);
   ctx.textAlign='center';
-  const waiting=[tri,pro].find(e=>e&&e.ward);
-  if(waiting){
+  const waiting=[p0,p1].find(e=>alive(e)&&e.ward);
+  if(waiting&&waiting.twin){
     ctx.fillStyle='#9fd8ff'; ctx.font='600 11px Menlo,monospace';
     ctx.fillText(waiting.B.n+' SHIELDED \u00b7 BRING '+waiting.twin.B.n+' TO HALF',W/2,y-24);
   }else{
-    const op=[tri,pro].find(e=>e&&e.open>0);
+    const op=[p0,p1].find(e=>alive(e)&&e.open>0);
     if(op){ ctx.fillStyle='#ffd24d'; ctx.font='600 11px Menlo,monospace';
       ctx.fillText(op.B.n+' EXPOSED  \u00d7'+player.st.punish.toFixed(1),W/2,y-24); }
   }
@@ -7051,6 +7651,14 @@ function hud(){
     ctx.fillStyle='#0b0a14'; ctx.fillRect(x,y,w*clamp(boss.hp/boss.max,0,1),13);
     ctx.strokeStyle=boss.col; ctx.strokeRect(x+.5,y+.5,w*clamp(boss.hp/boss.max,0,1),13);
     ctx.globalAlpha=.35; ctx.strokeRect(x+.5,y+.5,w,13); ctx.globalAlpha=1;
+    if(boss.recall>0){                  // the whole bar throbs red while the Archive's clock runs
+      const pu=.5+.5*Math.sin(performance.now()/(boss.recall<6?45:110));
+      ctx.save(); ctx.fillStyle='rgba(255,77,94,'+(.12+.18*pu)+')'; ctx.fillRect(x,y,w,13);
+      ctx.strokeStyle='rgba(255,77,94,'+(.6+.4*pu)+')'; ctx.lineWidth=2;
+      ctx.shadowColor='#ff4d5e'; ctx.shadowBlur=10+18*pu;
+      ctx.strokeRect(x-2.5,y-2.5,w+5,18); ctx.restore();
+    }
+    barState(boss,x,y,w*clamp(boss.hp/boss.max,0,1),13);
     for(const t of [.62,.28,.15].slice(0,boss.B.tiers.length-1)){   // where it changes
       ctx.strokeStyle='rgba(230,220,255,.5)'; ctx.beginPath();
       ctx.moveTo(x+w*t,y); ctx.lineTo(x+w*t,y+13); ctx.stroke();
@@ -7319,7 +7927,11 @@ let runHeld=0, mapMode='menu', mapThen=null, mapBrief=null, mapPick=0, mapPickK=
 /* On the title map a branch is a launch target like a system is: it is
    selectable once you have reached the system it hangs off. `mapPickK` set means the last pick was the branch at
    `mapPick` rather than the system there. */
-const branchPickable=(i,k)=> mapMode==='menu' && sysReached(i);
+/* ...but only once that system is HELD. A branch that lights up beside a
+   system you have never flown pulls a new pilot off the route before they
+   have flown it, so on a fresh save Earth is the only thing on the chart
+   asking to be clicked. */
+const branchPickable=(i,k)=> mapMode==='menu' && sysHeld(i);
 
 // reaching a system is all it takes to fly it
 const sysReached=i=>i<=Math.min(save.deepestSys,SYSTEMS.length-1);
@@ -7393,7 +8005,9 @@ function buildMap(){
       const bn=node(bx,y,cls+(lit?' open':'')+(selB?' sel':''), branchName(k),
         selB   ? 'SELECTED'
         : lit  ? branchSub(k)
-        : 'OFFERED AT '+sysLabel(i));
+        : run  ? 'OFFERED AT '+sysLabel(i)
+        : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'   // «WRITE:» lock label
+        : 'LOCKED');
       if(offer) bn.onclick=()=>{
         if(k!=='boss'){ startMission(k); return; }
         openLaunch('boss',i);
@@ -7997,7 +8611,7 @@ const CODEX={
      t:'Thrusters to move.'},
     {c:'#4d9dff', n:'MOUSE', tag:'AIM', sys:0,
      t:'Aiming to fire.'},
-    {c:'#4d9dff', n:'CLICK / SPACE', tag:'FIRE', sys:0, t:'Click and hold to fire.'},
+    {c:'#4d9dff', n:'CLICK', tag:'FIRE', sys:0, t:'Click and hold to fire.'},
     {c:'#4d9dff', n:'SHIFT', tag:'BLINK DASH', sys:0,
      t:'Needs the Blink Drive skill. Dashes the way you are thrusting.'},
     {c:'#4d9dff', n:'P', tag:'PAUSE', sys:0,
