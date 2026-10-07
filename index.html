@@ -5458,11 +5458,9 @@ function endRun(win,why){
   document.getElementById('overMeta').innerHTML =
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
     (win?'':'<br><br>If your ship is destroyed, your progress in that system will be destroyed. '+
-            'You can re-launch to the system to try again.')+
-    (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades to your ship are permanent, take them into your next attack.':'');
+            'You can re-launch to the system to try again.');
   $('btnRelaunch').style.display = (win||!relaunch) ? 'none' : '';
   if(M&&!win){ branchSortie=false; sideFailText(M,why); }
-  if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   if(win){ state='over'; show('over'); return; }
   // a death is a scene, not a screen transition. Let it finish first.
   state='dying'; deathFx();
