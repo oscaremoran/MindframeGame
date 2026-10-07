@@ -8998,9 +8998,12 @@ const treeMask=i=>{
 };
 function makeCode(){
   let smask=0; SHIPS.forEach((sh,i)=>{ if(shipOwned(i)) smask|=(1<<i); });
+  // the Portal bosses put down ride last, as one mask: the Archive and the
+  // Worldbreaker are gated on them
+  let bmask=0; SECRET_BOSSES.forEach((B,i)=>{ if(bossBeaten(B.k)) bmask|=(1<<i); });
   const raw=[save.points,save.best,save.deepestSys,treeMask(0),save.unlocked?1:0,
              smask*8+SHIPS.indexOf(SHIP()),save.credits]
-            .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1))).join('.');
+            .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1)),[bmask]).join('.');
   const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
   return 'MF4-'+b64+'-'+checksum(raw);
 }
@@ -9016,19 +9019,25 @@ function loadCode(code){
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   const f=raw.split('.').map(Number);
   if(f.length<5||f.length>7+SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
-  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:ver==='MF3-'?5:SYSTEMS.length-1);
+  // an MF4 code can say every system is held; an older one is read on its own route
+  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:ver==='MF3-'?5:SYSTEMS.length);
   const fromMask=m=>SKILLS.filter((sk,i)=>m&(1<<i)).map(sk=>sk.id);
   save.trees=[fromMask(f[3])];
   for(let i=1;i<SHIPS.length;i++) save.trees[i]=f.length>6+i?fromMask(f[6+i]):[];
   save.owned=[];
   save.unlocked=true;   // the tree is never locked; the flag is kept for old codes
-  if(f.length===6){                       // codes from before the Garage keep the starter hull
+  /* Field 5 is the hulls and field 6 the credits. These used to be read only
+     when a code ended exactly there, so every code made since the per-hull
+     trees went in came back with the starter hull and no credits. */
+  if(f.length>=6){
     const smask=Math.floor(f[5]/8);
     save.ships=SHIPS.map((sh,i)=>i).filter(i=>i===0||(smask&(1<<i)));
     save.ship=clamp(f[5]%8,0,SHIPS.length-1);
     if(!save.ships.includes(save.ship)) save.ship=0;
   }else{ save.ships=[0]; save.ship=0; }
-  save.credits = f.length===7 ? f[6] : 0;   // codes from before credits carry none
+  save.credits = f.length>=7 ? f[6] : 0;    // codes from before credits carry none
+  const bm = f.length>=8+SHIPS.length-1 ? f[7+SHIPS.length-1] : 0;
+  save.beaten = SECRET_BOSSES.filter((B,i)=>bm&(1<<i)).map(B=>B.k);
   mergeTrees();                             // a code carries a tree per hull: one tree now
   persist();
   return null;
