@@ -1608,6 +1608,13 @@ if(!save.swapHR){
   if(save.runBest&&save.runBest['1']!==undefined){ save.runBest['0']=save.runBest['1']; delete save.runBest['1']; }
   save.swapHR=1;
 }
+/* ...and then Hazard Run and Bounty swapped too: Bounty is Earth's, Run is
+   Jupiter's. Same rule — the record goes with the mission. */
+if(!save.swapRB){
+  save.branches=(save.branches||[]).map(k=> k==='run:0'?'run:2' : k==='bounty:2'?'bounty:0' : k);
+  if(save.runBest&&save.runBest['0']!==undefined){ save.runBest['2']=save.runBest['0']; delete save.runBest['0']; }
+  save.swapRB=1;
+}
 SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
@@ -5435,7 +5442,18 @@ function update(dt){
   }
 }
 
+/* A side mission that fails — its goal lost, or the ship — gets the death
+   screen, but in its own words: nothing about the system is lost, it just
+   paid nothing. RELAUNCH flies the same mission again. */
+function sideFailText(M,why){
+  $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';   // «WRITE:»
+  $('overSub').textContent = (why||'SHIP DESTROYED')+' \u2014 '+(M.B?M.B.n:branchName(M.k));
+  $('overMeta').innerHTML = 'NO CREDITS EARNED &nbsp;\u00b7&nbsp; SCORE <span class="key">'+score+
+    '</span> &nbsp;\u00b7&nbsp; BEST <span class="key">'+save.best+'</span>';
+  $('btnRelaunch').style.display = relaunch ? '' : 'none';
+}
 function endRun(win,why){
+  const M=mission;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
@@ -5453,6 +5471,7 @@ function endRun(win,why){
             'You can re-launch to the system to try again.')+
     (!localStorage.getItem('mf.seen')&&save.unlocked?'<br><br>The skill tree is open. Upgrades to your ship are permanent, take them into your next attack.':'');
   $('btnRelaunch').style.display = (win||!relaunch) ? 'none' : '';
+  if(M&&!win){ branchSortie=false; sideFailText(M,why); }
   if(save.unlocked) try{localStorage.setItem('mf.seen','1');}catch(e){}
   if(win){ state='over'; show('over'); return; }
   // a death is a scene, not a screen transition. Let it finish first.
@@ -6563,20 +6582,21 @@ function finaleDraw(){
 
    One branch per system, each built round the place it hangs off, and each
    flown in that system's own weather:
-     run       (Earth)   a chain of gates across the field, against the clock
+     bounty    (Earth)   an elite Tracker that kites, calls for help, and
+                         leaves if you have not killed it in time
      hold      (Venus)   a station in the middle of the field; keep it alive
                          until the clock runs out — with the vents going
-     bounty    (Jupiter) an elite Tracker that kites, calls for help, and
-                         leaves if you have not killed it in time
+     run       (Jupiter) a chain of gates across the field against the clock,
+                         with the gravity well pulling you off the line
      gauntlet  (Saturn)  three Saturn waves back to back; one hit and it is over
      echo      (Luna)    the Hive Mind and 2117 again as a pair, faster,
                          with less rest
    Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
    the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
-  {k:'run',      n:'HAZARD RUN',       sub:'CHECKPOINT RACE'},
-  {k:'hold',     n:'HOLD THE STATION', sub:'DEFEND THE PLATFORM'},
   {k:'bounty',   n:'BOUNTY',           sub:'ELITE TRACKER'},
+  {k:'hold',     n:'HOLD THE STATION', sub:'DEFEND THE PLATFORM'},
+  {k:'run',      n:'HAZARD RUN',       sub:'CHECKPOINT RACE'},
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
   {k:'echo',     n:'ECHO TRIAL',       sub:'HIVE MIND + 2117'},
   {k:'none',     n:'',                 sub:''},
@@ -6823,9 +6843,10 @@ function missionEnd(win,why){
   if(!win){
     // the detour failed; the route is untouched. You lose the payout and the
     // second attempt at this branch, and you carry on up the spine.
-    player.hp=Math.max(player.hp, player.st.maxHp*.25);
-    toast='SIDE MISSION LOST — '+why+'  ·  NO CREDITS'; toastT=3.6;
-    branchSortie=false; openMap('menu');
+    branchSortie=false;
+    save.best=Math.max(save.best,score); persist();
+    sideFailText(M,why);
+    state='over'; show('over');
     return;
   }
   if(M.k==='boss'&&M.B&&!save.beaten.includes(M.B.k)){ save.beaten.push(M.B.k); persist(); }

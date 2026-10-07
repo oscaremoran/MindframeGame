@@ -88,11 +88,13 @@ thing that can be clicked.
 
 | System | Side mission | What it is |
 |---|---|---|
-| Earth | Hazard Run | A gate race against the clock |
+| Earth | Bounty | An elite Tracker that kites and leaves if you are too slow |
 | Venus | Hold the Station | Keep a platform alive until the clock runs out, with the vents going |
-| Jupiter | Bounty | An elite Tracker that kites and leaves if you are too slow |
+| Jupiter | Hazard Run | A gate race against the clock, with the gravity well pulling you off the line |
 | Saturn | Gauntlet | Three Saturn waves back to back; one hit ends it |
 | Luna | Echo Trial | Echoes of the Hive Mind and Iteration 2117 together, faster, with less rest. A pair like the Titans: one bar, they take turns, each is shielded at half until the other gets there |
+
+Failing one (its goal, or your ship) shows a SIDE MISSION FAILED screen: no credits, RELAUNCH to try again.
 
 A side mission pays about a third of its system the first time, and a third of
 that on every repeat.
