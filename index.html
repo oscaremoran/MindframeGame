@@ -368,6 +368,9 @@
     width:min(92vw,470px); margin:22px 0 4px; text-align:left;
   }
   .lpanel{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:14px 16px 12px}
+  /* a side mission's launch screen leads with the fact that it is one */
+  .lopt{text-align:center; font-size:clamp(9px,1.05vw,11px); letter-spacing:.24em; color:#ffd24d;
+    border:1px dashed rgba(255,210,77,.55); padding:9px 12px; background:rgba(48,38,12,.35)}
   .lpanel h3{
     margin:0 0 10px; font-size:clamp(8px,.92vw,10px); font-weight:400;
     letter-spacing:.3em; color:#4d9dff; border-bottom:1px solid #16203a; padding-bottom:9px;
@@ -393,6 +396,15 @@
      a grid, a scan bar, and pulses running up the spine you have already held.
      Nodes are clipped-corner readouts carrying the system's real scaling.   */
   #map{justify-content:flex-start; padding:2.4% 4%}
+  /* the key: what a solid line and a dashed one mean */
+  #mapKey{position:absolute; left:2.2%; bottom:3%; z-index:3; pointer-events:none;
+    display:flex; flex-direction:column; gap:7px; padding:9px 12px;
+    background:rgba(8,12,24,.78); border:1px solid #1e2a46;
+    font-size:clamp(7.5px,.86vw,9.5px); letter-spacing:.2em; color:#8b9ac0}
+  #mapKey div{display:flex; align-items:center; gap:10px}
+  #mapKey i{display:block; width:30px; height:0; border-top:3px solid #4d9dff}
+  #mapKey i.side{border-top:3px dashed #ffd24d}
+  #mapKey b{font-weight:400; color:#ffd24d}
   #chart{
     position:relative; width:100%; flex:1; margin-top:10px; min-height:0;
     border:1px solid #2c3d61; background:linear-gradient(165deg,#111a2e 0%,#0a1020 72%);
@@ -440,22 +452,28 @@
   .mnode.next .mx{border-top-color:#1e3358; color:#5d6c8f}
   .mnode.locked{opacity:.52}
   .mnode.locked.ph{opacity:.42; border-style:dashed}
-  .mnode.secret{width:17%; padding:12px 9px; border-style:dashed; opacity:.62}
-  .mnode.secret .id{font-size:clamp(11px,1.45vw,16px); line-height:1.35}
+  /* a side card is smaller and quieter than a system: it is off the route */
+  .mnode.secret{width:15%; padding:25px 9px 11px; border-style:dashed; opacity:.62}
+  .mnode.secret .mi{left:50%; transform:translateX(-50%); white-space:nowrap; top:7px;
+    font-size:clamp(7px,.82vw,9px); letter-spacing:.24em; color:#8a7433}
+  .mnode.secret.open .mi{color:#ffd24d}
+  .mnode.portal .mi{color:#57447e} .mnode.portal.open .mi{color:#c78dff}
+  .mnode.secret .id{font-size:clamp(10px,1.3vw,14px); line-height:1.35}
   .mnode.secret .st{margin-top:7px; font-size:clamp(8px,.95vw,10.5px)}
   .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
     background:rgba(48,38,12,.95); cursor:pointer;
-    animation:mapSecret 1.5s ease-in-out infinite}
+    animation:mapSecret 3s ease-in-out infinite}
+  /* slower and dimmer than the system you are about to fly, so the route wins */
   @keyframes mapSecret{
-    0%,100%{ box-shadow:0 0 20px rgba(255,210,77,.22) }
-    50%    { box-shadow:0 0 40px rgba(255,210,77,.5) }
+    0%,100%{ box-shadow:0 0 12px rgba(255,210,77,.14) }
+    50%    { box-shadow:0 0 24px rgba(255,210,77,.3) }
   }
   .mnode.secret.open .id{color:#ffd24d} .mnode.secret.open .st{color:#8a7433}
   .mnode.secret.open:hover{transform:translate(-50%,-50%) scale(1.06)}
   .mnode.secret.open.sel{border-width:2px; box-shadow:0 0 0 3px rgba(255,210,77,.16),0 0 26px rgba(255,210,77,.3)}
   .mnode.secret.portal.open.sel{box-shadow:0 0 0 3px rgba(199,141,255,.16),0 0 26px rgba(199,141,255,.32)}
   /* the portal: the only violet thing on the chart, and it turns */
-  .mnode.portal{width:16%; border-color:#3b2b57; border-style:solid}
+  .mnode.portal{width:15%; border-color:#3b2b57; border-style:solid}
   .mnode.portal .id{color:#7a5fa8}
   .mnode.portal.open{border-color:#c78dff; background:rgba(38,22,58,.95);
     animation:mapPortal 1.9s ease-in-out infinite}
@@ -776,10 +794,12 @@
     </div>
     <div id="chart">
       <canvas id="mapArt"></canvas><svg id="mlines"></svg>
+      <!-- «WRITE:» the legend's wording -->
+      <div id="mapKey"><div><i></i>MAIN ROUTE</div><div><i class="side"></i><b>SIDE MISSION</b>&nbsp;·&nbsp;OPTIONAL</div></div>
       <i class="mcnr k1"></i><i class="mcnr k2"></i><i class="mcnr k3"></i><i class="mcnr k4"></i>
     </div>
     <div class="row" style="margin-top:0">
-      <button id="btnMapSecret" class="hot" style="display:none">SIDE BRANCH</button>
+      <button id="btnMapSecret" class="hot" style="display:none">SIDE MISSION</button>
       <button id="btnMapPortal" class="hot" style="display:none">ENTER THE QUANTUM PORTAL</button>
     </div>
   </div>
@@ -2183,9 +2203,12 @@ function buildPortalPick(){
 }
 
 function openLaunch(kind,i){
-  $('launchKind').textContent = kind ? 'LAUNCHING A SIDE BRANCH' : 'LAUNCHING';
+  $('launchKind').textContent = kind==='boss' ? 'LAUNCHING A SIDE BOSS' : kind ? 'LAUNCHING A SIDE MISSION' : 'LAUNCHING';
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
-  $('launchStats').innerHTML = kind ? branchOverview(kind,i) : sysOverview(i);
+  // «WRITE:» the optional line
+  $('launchStats').innerHTML = kind
+    ? '<div class="lopt">OPTIONAL \u00b7 NOT NEEDED TO REACH THE NEXT SYSTEM</div>'+branchOverview(kind,i)
+    : sysOverview(i);
   if(!portalOpen(portalPick)) portalPick=0;
   if(kind==='boss') buildPortalPick(); else $('launchPick').classList.remove('on');
   const txt = kind ? LAUNCH_TEXT[kind] : LAUNCH_TEXT.sys[i];
@@ -6801,7 +6824,7 @@ function missionEnd(win,why){
     // the detour failed; the route is untouched. You lose the payout and the
     // second attempt at this branch, and you carry on up the spine.
     player.hp=Math.max(player.hp, player.st.maxHp*.25);
-    toast='BRANCH LOST — '+why+'  ·  NO CREDITS'; toastT=3.6;
+    toast='SIDE MISSION LOST — '+why+'  ·  NO CREDITS'; toastT=3.6;
     branchSortie=false; openMap('menu');
     return;
   }
@@ -7593,7 +7616,7 @@ function hud(){
     const M=mission;
     ctx.fillStyle=M.B?M.B.col:'#ffd24d';
     ctx.fillText(M.k==='boss'?'QUANTUM PORTAL — CLASSIFIED'
-      :'SIDE BRANCH — '+branchName(M.k),W-24,52);
+      :'SIDE MISSION — '+branchName(M.k),W-24,52);
     // the one number each branch is decided by
     const left=s=>Math.max(0,Math.ceil(s))+'s';
     const line = M.k==='hold'     ? 'STATION '+Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max+'  ·  '+left(M.dur-M.t)
@@ -8048,7 +8071,8 @@ function buildMap(){
         : lit  ? branchSub(k)
         : run  ? 'OFFERED AT '+sysLabel(i)
         : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'   // «WRITE:» lock label
-        : 'LOCKED');
+        : 'LOCKED',
+        k==='boss' ? 'SIDE BOSS' : 'SIDE MISSION');       // «WRITE:» the tag in the corner
       if(offer) bn.onclick=()=>{
         if(k!=='boss'){ startMission(k); return; }
         openLaunch('boss',i);
@@ -8083,7 +8107,7 @@ function buildMap(){
   const sec=$('btnMapSecret'), off=secretOffered(sysIdx);
   sec.style.display=off?'':'none';
   if(off){
-    sec.textContent='SECRET MISSION — '+SECRET(sysIdx).n;
+    sec.textContent='SIDE MISSION — '+SECRET(sysIdx).n;
   }
   const por=$('btnMapPortal'), pOff=portalOffered();
   por.style.display=pOff?'':'none';

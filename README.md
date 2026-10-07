@@ -82,7 +82,7 @@ most of the tree.
 
 ## Side missions
 
-Most systems have a yellow side branch on the map. **A side branch only opens
+Most systems have a yellow **side mission** on the map, tagged `SIDE MISSION` and drawn smaller than the route, with a dashed line; the map's legend marks them optional. **A side mission only opens
 once the system it hangs off is held**, so on a new save Earth is the only
 thing that can be clicked.
 
