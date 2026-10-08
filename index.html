@@ -2113,9 +2113,10 @@ function branchOverview(k,i){
                     'A powerful Tracker variant that calls others to its aid.'],
            gauntlet:['Defeat three swarms of enemies back-to-back with a damaged ship. One hit kills you.',
                     'The full party of Saturn enemies. They can now destroy your ship with one hit.'],
-           // «WRITE:» reworded to name both echoes equally — Oscar, make it yours
+
            echo:    ['The Hive Mind and Iteration 2117 are back with a vengeance, together. Destroy them both again, this time on Luna.',
                     'Echoes of the Hive Mind and Iteration 2117, the previous enemy commanders of Venus and Jupiter.'],
+           eye:     ['Dodge storm fronts and stay in the eye to avoid instant ship destruction.', 'The storm fronts.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   return lpanel('ENEMY FORCES',
@@ -2150,6 +2151,7 @@ const LAUNCH_TEXT={
   bounty:  'Defeat the powerful Tracker variant.',
   gauntlet:'Clear three waves of tough enemies without getting hit once.',
   echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.',   // «WRITE:»
+  eye:     'Fly through a deadly storm and avoid treacherous winds.',
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function buildPortalPick(){
@@ -2504,7 +2506,10 @@ function takePup(k){
   if(k==='repair') player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.3);
   else buffs[k]=Math.max(buffs[k],P.time);
   toast=P.n; toastT=1.9;
-  burst(player.x,player.y,P.col,14,220);
+  burst(player.x,player.y,P.col,30,300);
+  flare(player.x,player.y,P.col,46,.3);
+  shock(player.x,player.y,P.col,16,90,.42,4);
+  shock(player.x,player.y,'#ffffff',10,58,.3,2.5);
 }
 let toast='', toastT=0, flash=0;
 
@@ -4731,12 +4736,41 @@ function bossAI(e,dt,dx,dy,d){
   }
 }
 
-/* ---- fx ---- */
+/* ---- fx ----
+   Sparks draw as streaks along their flight, added onto what is under them
+   rather than painted over it, so a crowd of them glows instead of going to
+   mush. They sit under the enemy fire and the enemies themselves: nothing in
+   here is ever allowed to hide a round. PARTS_MAX keeps a long fight from
+   piling up more than the frame can carry.                                  */
+const PARTS_MAX=2200;
 function burst(x,y,col,n,sp=200){
+  n=Math.min(n,PARTS_MAX-parts.length);
   for(let i=0;i<n;i++){
     const a=rand(0,TAU), s=rand(sp*.25,sp);
-    parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.7),t:0,col,r:rand(1.2,3.2)});
+    parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.7),t:0,col,r:rand(1.4,3.4)});
   }
+}
+// a soft glow that swells and goes, for the white-hot middle of something
+function flare(x,y,col,r,life){
+  if(parts.length<PARTS_MAX) parts.push({x,y,vx:0,vy:0,life,t:0,col,r,g:1});
+}
+// slow, long-lived sparks that drift off what is left of a kill
+function embers(x,y,col,n,sp){
+  n=Math.min(n,PARTS_MAX-parts.length);
+  for(let i=0;i<n;i++){
+    const a=rand(0,TAU), v=rand(sp*.2,sp);
+    parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.8,1.4),t:0,col,r:rand(1.6,2.6),slow:1});
+  }
+}
+/* An enemy going down: sparks, a ring the size of the thing, a hot core, and
+   embers after. Anything big enough to have had a hull throws pieces of it. */
+function killFx(e,col,n,sp){
+  burst(e.x,e.y,col,n,sp);
+  flare(e.x,e.y,'#ffffff',e.r*1.1,.16);
+  flare(e.x,e.y,col,e.r*1.8,.24);
+  shock(e.x,e.y,col,e.r*.5,e.r*2,.3,2.5);
+  embers(e.x,e.y,col,Math.round(n*.2),80);
+  if(e.r>=22) shred(e.x,e.y,col,Math.round(e.r/9),240,e.r*.32);
 }
 
 /* ---- the big fx ----
@@ -4791,7 +4825,15 @@ function timerStep(dt){
 function bossDeathFx(e){
   const x=e.x, y=e.y, col=e.col;
   spawnQ.length=0; ebullets.length=0;
-  sealing=true; after(3.1,()=>{ sealing=false; });
+  /* ...and it holds until the last of it has settled, not on a fixed clock —
+     the level-complete card used to land on top of the tail. Two seconds past
+     the old 3.1 at the most, whatever is still drifting. */
+  sealing=true;
+  let held=0;
+  const unseal=()=>{ held+=.1;
+    const busy=waves.length||shards.length||parts.some(p=>p.slow);
+    if(busy&&held<2) after(.1,unseal); else sealing=false; };
+  after(3.1,unseal);
   wallWant=0;                                 // whatever closed in, opens again
   SFX.bossDown();
   slow(1.5); shake=52; flash=1;
@@ -4800,24 +4842,33 @@ function bossDeathFx(e){
   shock(x,y,'#e6dcff',e.r*.4,e.r*5.5,.9,6);
   shred(x,y,col,26,430,17);
   burst(x,y,'#ffffff',70,560);
-  for(const o of enemies) burst(o.x,o.y,ecol(o.t),14,260);
-  // it comes apart in layers, and each layer is its own event
-  for(let i=0;i<7;i++) after(.16+i*.15,()=>{
-    const a=rand(0,TAU), d=rand(18,e.r*1.5);
+  flare(x,y,'#ffffff',e.r*2.4,.4); flare(x,y,col,e.r*4,.7);
+  for(const o of enemies) killFx(o,ecol(o.t),22,300);
+  // it comes apart in layers, and each layer is its own event. The shake and
+  // the flash ride the first seven, as they always have; the four after are light only
+  for(let i=0;i<11;i++) after(.12+i*.11,()=>{
+    const a=rand(0,TAU), d=rand(18,e.r*1.7);
     const px=x+Math.cos(a)*d, py=y+Math.sin(a)*d;
     burst(px,py,i%2?'#e6dcff':col,44,520);
-    shock(px,py,i%2?'#ffffff':col,6,rand(70,150),.42,4);
+    flare(px,py,i%2?'#ffffff':col,rand(50,90),.35);
+    shock(px,py,i%2?'#ffffff':col,6,rand(70,170),.42,4);
+    embers(px,py,col,14,160);
     shred(px,py,col,5,380,12);
-    shake=Math.max(shake,26); flash=Math.max(flash,.34);
+    if(i<7){ shake=Math.max(shake,26); flash=Math.max(flash,.34); }
   });
   // and then the shockwave that reaches the walls
   after(1.35,()=>{
     slow(.5); shake=Math.max(shake,44); flash=1;
     shock(x,y,'#ffffff',20,Math.max(W,H)*1.25,1.15,13);
     shock(x,y,col,10,Math.max(W,H)*.85,.95,8);
-    shred(x,y,col,20,600,22);
-    burst(x,y,col,90,700);
+    shock(x,y,'#e6dcff',6,Math.max(W,H)*.5,.8,6);
+    flare(x,y,'#ffffff',e.r*3,.5); flare(x,y,col,e.r*6,1);
+    shred(x,y,col,30,600,22);
+    burst(x,y,col,130,760);
+    embers(x,y,col,70,260);
   });
+  // what is left drifts down for a while after
+  after(1.9,()=>{ embers(x,y,col,50,220); embers(x,y,'#ffffff',20,180); });
 }
 
 /* The pilot dies once per campaign. The run does not end on the frame the hull
@@ -4839,6 +4890,31 @@ function deathFx(){
     shake=Math.max(shake,20);
   });
   after(1.15,()=>{ shock(P.x,P.y,'#ff4d5e',20,Math.max(W,H),1.1,10); flash=Math.max(flash,.6); shake=Math.max(shake,30); });
+}
+
+function partsDraw(){
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.lineCap='round';
+  for(const p of parts){
+    const k=1-p.t/p.life;
+    if(p.g){
+      // a glow: swells a touch, then goes
+      const r=p.r*(.7+.3*(1-k));
+      const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
+      g.addColorStop(0,p.col); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.globalAlpha=k*.75; ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.fill();
+      continue;
+    }
+    // a streak back along where it came from, as long as it is fast
+    const sp=Math.hypot(p.vx,p.vy), len=Math.min(22,sp*.03);
+    ctx.globalAlpha=k; ctx.strokeStyle=p.col; ctx.lineWidth=p.r;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y);
+    if(len>1) ctx.lineTo(p.x-p.vx/sp*len,p.y-p.vy/sp*len); else ctx.lineTo(p.x+.1,p.y);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function fxDraw(){
@@ -4959,6 +5035,10 @@ function update(dt){
         dmg:st.dmg*(buffs.power>0?1.8:1),pierce:st.pierce,hit:[],hot:buffs.power>0});
     }
     P.vx-=Math.cos(P.a)*26; P.vy-=Math.sin(P.a)*26;
+    { const mx=P.x+Math.cos(P.a)*28, my=P.y+Math.sin(P.a)*28, mc=buffs.power>0?'#ffd24d':'#9fd0ff';
+      flare(mx,my,'#ffffff',11,.1); flare(mx,my,mc,22,.13);
+      for(let q=0;q<4&&parts.length<PARTS_MAX;q++){ const a=P.a+rand(-.4,.4), v=rand(320,520);
+        parts.push({x:mx,y:my,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.1,.18),t:0,col:mc,r:2.2}); } }
     SFX.fire();
   }
 
@@ -5314,12 +5394,14 @@ function update(dt){
         e.hp-= b.dmg * (e.open>0?player.st.punish:1) * (nodesUp(e)?ARMOURED:1); b.hit.push(e);
         e.knit=0;                              // pressure held: it cannot knit
         SFX.hit();
-        burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?9:4, e.open>0?260:150);
+        burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?14:7, e.open>0?300:190);
+        flare(b.x,b.y, e.open>0?'#ffd24d':'#ffffff', e.open>0?14:9, .09);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
           if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier');
           if(e.val) drop(e);
-          burst(e.x,e.y,ecolOf(e),e.t==='boss'?90:e.t==='heavy'?34:18,e.t==='boss'?520:e.t==='heavy'?360:280);
+          if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
+          else killFx(e,ecolOf(e),e.t==='heavy'?40:22,e.t==='heavy'?370:300);
           enemies.splice(j,1);
           // a Titan with its twin still standing falls on its own
           if(e.t==='boss'&&e.twin&&enemies.includes(e.twin)){ duoFall(e); break; }
@@ -5404,7 +5486,7 @@ function update(dt){
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
       }
-      if(e.t==='dart'||e.t==='meteor'){ burst(e.x,e.y,ecol(e.t),16,280); enemies.splice(j,1); }
+      if(e.t==='dart'||e.t==='meteor'){ killFx(e,ecol(e.t),20,280); enemies.splice(j,1); }
     }
   }
 
@@ -5412,7 +5494,8 @@ function update(dt){
   for(let i=parts.length-1;i>=0;i--){
     const p=parts[i]; p.t+=dt;
     if(p.t>=p.life){parts.splice(i,1);continue;}
-    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.94; p.vy*=.94;
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    const f=p.slow?.985:.94; p.vx*=f; p.vy*=f;
   }
 
   /* --- the arena itself --- */
@@ -5857,38 +5940,130 @@ function scenePaint(name){
   return c;
 }
 
-function stormDraw(){
-  const F=world.front;
-  if(F){
-    const ang=Math.atan2(F.cy,F.cx), diag=Math.hypot(W,H);
-    if(F.t<STORM_WARN){
-      // the edge it is coming in from, marked with chevrons running its way
-      const k=F.t/STORM_WARN, pu=.5+.5*Math.sin(F.t*12);
-      const ext=Math.abs(W*F.cx)/2+Math.abs(H*F.cy)/2-24;
-      ctx.save(); ctx.translate(W/2-F.cx*ext,H/2-F.cy*ext); ctx.rotate(ang);
-      ctx.strokeStyle='rgba(223,244,255,'+(.3+.5*k*pu)+')'; ctx.lineWidth=3;
-      for(let y=-diag/2;y<diag/2;y+=70){
-        ctx.beginPath(); ctx.moveTo(-10,y-14); ctx.lineTo(8,y); ctx.lineTo(-10,y+14); ctx.stroke();
+/* ---- a front, drawn ----
+   In two layers. The floor — the warning, the band's body and its hail — goes
+   down under the enemies and their fire, so a front never hides a round. Only
+   its two edges go on top, because where the band starts and stops is exactly
+   where it hurts and that has to read over everything.
+   `warn` is how long its warning runs. A front with a `gap` has a hole in it
+   gw wide at `gap` across the band, bracketed in gold on the warning edge
+   and gold-ended in the band itself. No lane across the arena: finding it
+   is the job.
+   In the front's own frame +x is the way it is travelling and y runs along it. */
+const FRONT_ICE='200,228,255';
+function frontFrame(F,warn){
+  const ang=Math.atan2(F.cy,F.cx), diag=Math.hypot(W,H);
+  const hole=F.gap!==undefined, g0=hole?F.gap-F.gw/2:0, g1=hole?F.gap+F.gw/2:0;
+  const ext=Math.abs(W*F.cx)/2+Math.abs(H*F.cy)/2;
+  return {ang, diag, hole, g0, g1, ext, inHole:y=>hole&&y>g0&&y<g1,
+          spans: hole ? [[-diag,g0],[g1,diag]] : [[-diag,diag]], on:F.t>=warn};
+}
+function frontFloor(F,warn){
+  const R=frontFrame(F,warn), T=F.t;
+  ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(R.ang);
+  if(!R.on){
+    const k=T/warn, pu=.5+.5*Math.sin(T*12), e=-R.ext;
+    // the storm piling up against the edge it is coming in from, thicker by the moment
+    const depth=60+120*k;
+    const gr=ctx.createLinearGradient(e,0,e+depth,0);
+    gr.addColorStop(0,'rgba('+FRONT_ICE+','+(.38+.25*k)+')'); gr.addColorStop(1,'rgba('+FRONT_ICE+',0)');
+    ctx.fillStyle=gr;
+    for(const [a,b] of R.spans) ctx.fillRect(e,a,depth,b-a);
+    // three rows of chevrons marching in from it, well clear of the HUD at the edge
+    ctx.lineWidth=4; ctx.lineJoin='round';
+    for(let row=0;row<3;row++){
+      const x=e+70+row*55+((T*90)%55);
+      ctx.strokeStyle='rgba(235,248,255,'+((.35+.55*k*pu)*(1-row*.22))+')';
+      for(let y=-R.diag/2;y<R.diag/2;y+=64){
+        if(R.inHole(y)||R.inHole(y-16)||R.inHole(y+16)) continue;
+        ctx.beginPath(); ctx.moveTo(x-12,y-16); ctx.lineTo(x+8,y); ctx.lineTo(x-12,y+16); ctx.stroke();
       }
-      ctx.restore();
-    }else{
-      ctx.save(); ctx.translate(W/2+F.cx*F.s,H/2+F.cy*F.s); ctx.rotate(ang);
-      // a hard-edged band: where it starts and stops is exactly where it hurts
-      ctx.fillStyle='rgba(220,240,255,.12)'; ctx.fillRect(-STORM_HW,-diag/2,STORM_HW*2,diag);
-      ctx.strokeStyle='rgba(235,248,255,.6)'; ctx.lineWidth=2;
-      for(const o of [-STORM_HW,STORM_HW]){ ctx.beginPath(); ctx.moveTo(o,-diag/2); ctx.lineTo(o,diag/2); ctx.stroke(); }
-      // hail, streaking the way the front moves and a little across it
-      ctx.strokeStyle='rgba(235,248,255,.7)'; ctx.lineWidth=1.4;
-      for(let i=0;i<140;i++){
-        const h1=Math.sin(i*91.7)*43758.5, h2=Math.sin(i*17.3)*24634.6;
-        const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
-        const x=-STORM_HW+((u*STORM_HW*2+F.t*260)%(STORM_HW*2));
-        const y=-diag/2+((v*diag+F.t*90)%diag);
-        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-12,y-4); ctx.stroke();
-      }
-      ctx.restore();
     }
+    if(R.hole){
+      // the way through: two gold brackets either side of the hole, at the edge
+      ctx.strokeStyle='rgba(255,210,77,'+(.55+.45*pu)+')'; ctx.lineWidth=3.5;
+      ctx.shadowColor='#ffd24d'; ctx.shadowBlur=14;
+      const x=e+70;
+      for(const [y,d] of [[R.g0,1],[R.g1,-1]]){
+        ctx.beginPath(); ctx.moveTo(x-16,y+d*18); ctx.lineTo(x-16,y); ctx.lineTo(x+16,y); ctx.lineTo(x+16,y+d*18); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+    }
+    ctx.restore();
+    return;
   }
+  const hw=STORM_HW, Tt=T-warn;
+  ctx.translate(F.s,0);
+  // the body: thin at the back, a wall of ice at the front
+  const gr=ctx.createLinearGradient(-hw,0,hw,0);
+  gr.addColorStop(0,'rgba('+FRONT_ICE+',.06)');
+  gr.addColorStop(.6,'rgba('+FRONT_ICE+',.18)');
+  gr.addColorStop(1,'rgba('+FRONT_ICE+',.34)');
+  ctx.fillStyle=gr;
+  for(const [a,b] of R.spans) ctx.fillRect(-hw,a,hw*2,b-a);
+  // squalls rolling through it
+  for(let i=0;i<26;i++){
+    const h1=Math.sin(i*53.1)*9631.7, h2=Math.sin(i*29.9)*7341.3;
+    const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
+    const y=-R.diag/2+((v*R.diag+Tt*120)%R.diag);
+    if(R.inHole(y)) continue;
+    const x=-hw*.8+u*hw*1.6+Math.sin(Tt*3+i)*14, r=22+u*30;
+    ctx.fillStyle='rgba(235,246,255,.07)';
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+  }
+  // hail, driven hard the way the front moves
+  ctx.strokeStyle='rgba(240,250,255,.75)'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  for(let i=0;i<220;i++){
+    const h1=Math.sin(i*91.7)*43758.5, h2=Math.sin(i*17.3)*24634.6;
+    const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
+    const x=-hw+((u*hw*2+Tt*420)%(hw*2));
+    const y=-R.diag/2+((v*R.diag+Tt*110)%R.diag);
+    if(R.inHole(y)) continue;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-20,y-6); ctx.stroke();
+  }
+  ctx.restore();
+}
+// the edges, over everything: a jagged, glowing leading wall and a plain back edge
+function frontEdge(F,warn){
+  const R=frontFrame(F,warn); if(!R.on) return;
+  const hw=STORM_HW, Tt=F.t-warn;
+  ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(R.ang); ctx.translate(F.s,0);
+  ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(235,248,255,.95)'; ctx.lineWidth=3;
+  ctx.shadowColor='#bfe4ff'; ctx.shadowBlur=16;
+  for(const [a,b] of R.spans){
+    const y0=Math.max(a,-R.diag/2), y1=Math.min(b,R.diag/2);
+    ctx.beginPath();
+    for(let y=y0;y<=y1;y+=14){
+      const j=Math.sin(y*.11+Tt*9)*4+Math.sin(y*.037-Tt*5)*5;
+      y===y0?ctx.moveTo(hw+j,y):ctx.lineTo(hw+j,y);
+    }
+    ctx.lineTo(hw,y1); ctx.stroke();
+  }
+  ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(235,248,255,.45)'; ctx.lineWidth=1.5;
+  for(const [a,b] of R.spans){ ctx.beginPath(); ctx.moveTo(-hw,a); ctx.lineTo(-hw,b); ctx.stroke(); }
+  if(R.hole){
+    // the ends of the hole, gold, so the gap reads as a door and not a blank
+    ctx.strokeStyle='#ffd24d'; ctx.lineWidth=3.5; ctx.shadowColor='#ffd24d'; ctx.shadowBlur=12;
+    for(const y of [R.g0,R.g1]){ ctx.beginPath(); ctx.moveTo(-hw,y); ctx.lineTo(hw+6,y); ctx.stroke(); }
+    ctx.shadowBlur=0;
+  }
+  ctx.restore();
+}
+
+// under everything: the fronts' bodies and, in the mission, the storm round the eye
+function stormFloor(){
+  if(world.front) frontFloor(world.front,STORM_WARN);
+  if(mission&&mission.k==='eye'){
+    for(const F of mission.fronts) frontFloor(F,EYE_FWARN);
+    eyeHazeDraw();
+  }
+}
+
+function stormDraw(){
+  if(world.front) frontEdge(world.front,STORM_WARN);
+  if(mission&&mission.k==='eye') for(const F of mission.fronts) frontEdge(F,EYE_FWARN);
   // the whiteout: everything past a short ring round you goes white
   if(world.fog>.02&&player){
     const P=player, a=world.fog;
@@ -5902,6 +6077,8 @@ function stormDraw(){
       ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill(); ctx.stroke();
     }
   }
+  // the eye stays lit through it, same as the fire: it is the way out
+  if(mission&&mission.k==='eye') eyeMarkDraw();
 }
 
 // damage the pilot from the arena rather than from a bullet
@@ -5931,7 +6108,7 @@ function hazBossKill(e){
 // the arena killing an Iteration pays nothing and scores nothing: the fire is
 // a tool, not a second gun
 function hazKill(e,j,col){
-  burst(e.x,e.y,col,e.t==='heavy'?30:16,320);
+  killFx(e,col,e.t==='heavy'?36:20,320);
   SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier');
   enemies.splice(j,1);
 }
@@ -6093,7 +6270,10 @@ function worldStep(dt){
 
   /* ---- Neptune: the blizzard ---- */
   if(world.h==='storm'){
-    if(!world.front){
+    // the Eye of the Storm brings its own fronts, and the ordinary ones stay away
+    const eyeRun=mission&&mission.k==='eye';
+    if(eyeRun) world.front=null;
+    else if(!world.front){
       // it holds off while a Titan is standing
       if(!enemies.some(e=>e.B&&e.B.duoPart)) world.next-=dt;
       if(world.next<=0) world.front=placeFront();
@@ -6102,16 +6282,17 @@ function worldStep(dt){
       if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*dt;
       if(F.s>F.L){ world.front=null; world.next=rand(STORM_GAP[0],STORM_GAP[1])/HAZ_RATE(); }
     }
-    const inside=inFront(P);
+    const inside=inFront(P)||(eyeRun&&(eyeFrontHit(P)||outsideEye(P)));
     world.fog+=((inside?1:0)-world.fog)*Math.min(1,dt*3.5);
     if(inside){
       world.hail-=dt;
-      if(world.hail<=0){ world.hail=STORM_TICK; hazHurt(STORM_HIT,P.x,P.y,'#dff4ff',0); }
+      if(world.hail<=0){ world.hail=STORM_TICK; hazHurt(eyeRun?EYE_HIT:STORM_HIT,P.x,P.y,'#dff4ff',0); }
     }else world.hail=0;
-    // it hails on them too
+    // it hails on them too — in a front. The whiteout round the eye is their
+    // weather; they fly through it untouched, or they would never reach you
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
-      if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!inFront(e)) continue;
+      if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!(inFront(e)||(eyeRun&&eyeFrontHit(e)))) continue;
       e.hp-=STORM_HIT*(e.t==='boss'?3:2)*HAZ_ENEMY*dt;
       if(Math.random()<.15) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#dff4ff',r:2});
       if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#dff4ff'); }
@@ -6193,6 +6374,7 @@ function worldStep(dt){
    part that has to read over the top of a fight: fire, dust, raiders, beams. */
 function worldFloor(){
   if(!world) return;
+  if(world.h==='storm') stormFloor();
   if(world.h==='vents'){
     for(const v of world.vents){
       const ph=ventPhase(v), k=ph&&ph.warn!==undefined?ph.warn:0;
@@ -6579,6 +6761,8 @@ function finaleDraw(){
      gauntlet  (Saturn)  three Saturn waves back to back; one hit and it is over
      echo      (Luna)    the Hive Mind and 2117 again as a pair, faster,
                          with less rest
+     eye       (Neptune) crossing blizzard fronts with a hole in each, then
+                         the storm shuts but for one drifting calm eye
    Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
    the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
@@ -6587,7 +6771,7 @@ const SECRETS=[
   {k:'run',      n:'HAZARD RUN',       sub:'CHECKPOINT RACE'},
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
   {k:'echo',     n:'ECHO TRIAL',       sub:'HIVE MIND + 2117'},
-  {k:'none',     n:'',                 sub:''},
+  {k:'eye',      n:'THROUGH THE STORM', sub:'BLIZZARD SURVIVAL'},   
   {k:'none',     n:'',                 sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
@@ -6694,6 +6878,14 @@ function startMission(kind){
     wave=GAUNT_FROM-1; nextWave();
     banner='GAUNTLET — WAVE 1 / '+GAUNT_N; bannerT=2.4;
   }
+  else if(kind==='eye'){
+    // nothing in the air but the storm, start to finish
+    mission.dur=EYE_T; mission.fronts=[]; mission.fi=0; mission.li=0; mission.eye=null;
+    mission.q1=rand(0,TAU); mission.q2=rand(0,TAU);
+    // and the first hit is the last, the way the Gauntlet does it
+    mission.ohk=1; mission.mark=player.hp;
+    banner='EYE OF THE STORM'; bannerT=2.4;
+  }
   else if(kind==='echo'){
     const B=ECHO_TRIAL();
     mission.B=B;
@@ -6727,6 +6919,151 @@ function runGates(){
     out.push({x,y}); px=x; py=y;
   }
   return out;
+}
+
+/* EYE OF THE STORM — Neptune's blizzard, in two halves on one clock.
+   CROSSFRONTS: no enemies, just fronts, one at a time and then in pairs from
+   different edges. Each has a hole in it, marked in gold on the edge it comes
+   in from while it warns; be in the hole when it passes. Missing one is a hail
+   tick or two, not the mission.
+   THE EYE: the storm closes over the whole arena but one calm circle, which
+   drifts and slowly tightens. Outside it, hail and the whiteout; inside it,
+   clear air. Nothing else comes: the storm is the whole fight.
+   Fronts keep coming through the eye too, and the eye never stops: it runs a
+   fixed loop, so each front's hole can be put where the eye will be when the
+   front gets there.
+   One hit kills, from anything — hail included — so every front has to have
+   a way through that you can actually reach. A safe point wanders the arena
+   on a slow fixed path nobody sees, and each crossfront's hole is put exactly
+   where that point will be at the moment the front gets to it: follow the
+   holes and you are following the path, and the path is never blocked. A
+   front in the eye half puts its hole over the eye's middle instead, at the
+   moment it arrives.
+   Its fronts do not answer to the difficulty setting: the schedule below is
+   timed so the last crossfront is gone before the eye shuts.               */
+const EYE_T=45, EYE_CROSS=20;               // the whole clock, and when the eye opens
+const EYE_HIT=8;                            // a hail tick in this mission (STORM_HIT on the route)
+const EYE_FWARN=1.6, EYE_FV=380, EYE_GAP=170;   // a front's warning, speed, and the hole in it
+// when each crossfront comes, and how many at once
+const EYE_FRONTS=[[1,1],[3.4,1],[5.8,2],[8.4,2],[11,3],[14,2]];
+// fronts through the eye: when, and how many at once
+const EYE_LATE=[[23.4,1],[25.4,1],[27.4,2],[29.8,1],[31.8,2],[34.2,2],[36.6,1],[38.6,2],[41,2]];
+const EYE_WARN=2.6;                         // the eye is marked this long before the storm shuts
+const EYE_R0=140, EYE_R1=90;                // the eye's radius, opening and closing
+const EYE_WX=.16, EYE_WY=.24;               // how fast it runs its loop, across and down (~110px/s at most)
+const EYE_HAZE=.2;                          // how white the storm outside the eye is drawn
+
+// the safe point at time t: a slow loop round the middle, never faster than ~85px/s
+function eyePath(t){
+  const M=mission;
+  return {x:W/2+Math.sin(t*.17+M.q1)*W*.27, y:H/2+Math.sin(t*.23+M.q2)*H*.24};
+}
+/* A front from one of the eight edges, launched now, its hole over wherever
+   `at(t)` is when the band gets there. When that is depends on where it is,
+   so it is found by going round a few times; it settles at once.          */
+function eyeFront(dir,at){
+  const M=mission, a=dir*Math.PI/4, cx=Math.cos(a), cy=Math.sin(a);
+  const L=Math.abs(W*cx)/2+Math.abs(H*cy)/2+STORM_HW;
+  let Q=at(M.t+EYE_FWARN+L/EYE_FV);
+  for(let k=0;k<4;k++){
+    const al=(Q.x-W/2)*cx+(Q.y-H/2)*cy;
+    Q=at(M.t+EYE_FWARN+(al+L)/EYE_FV);
+  }
+  return {cx, cy, L, s:-L, t:0, gap:-(Q.x-W/2)*cy+(Q.y-H/2)*cx, gw:EYE_GAP};
+}
+// in the band of a mission front, and not in its hole
+function eyeFrontHit(o){
+  const M=mission; if(!M||!M.fronts) return false;
+  for(const F of M.fronts){
+    if(F.t<EYE_FWARN) continue;
+    const dx=o.x-W/2, dy=o.y-H/2;
+    if(Math.abs(dx*F.cx+dy*F.cy-F.s)>=STORM_HW) continue;
+    if(Math.abs(-dx*F.cy+dy*F.cx-F.gap)<F.gw/2) continue;
+    return true;
+  }
+  return false;
+}
+// the storm is shut, and this is out in it
+function outsideEye(o){
+  const E=mission&&mission.eye;
+  return !!E&&E.t>=EYE_WARN&&Math.hypot(o.x-E.x,o.y-E.y)>E.r;
+}
+function eyeTick(dt){
+  const M=mission, P=player;
+  // the crossfronts: launch on the list, sweep, and leave
+  while(M.fi<EYE_FRONTS.length&&M.t>=EYE_FRONTS[M.fi][0]){
+    const n=EYE_FRONTS[M.fi][1], d0=Math.floor(rand(0,8)), step=Math.random()<.5?2:3;
+    // a group comes in from edges a quarter or three eighths of a turn apart, so it crosses
+    for(let q=0;q<n;q++) M.fronts.push(eyeFront((d0+q*step)%8,eyePath));
+    M.fi++;
+  }
+  // through the eye: each hole over where the eye's middle will be when it arrives
+  while(M.eye&&M.li<EYE_LATE.length&&M.t>=EYE_LATE[M.li][0]){
+    const n=EYE_LATE[M.li][1], d0=Math.floor(rand(0,8)), step=Math.random()<.5?2:3;
+    for(let q=0;q<n;q++) M.fronts.push(eyeFront((d0+q*step)%8,eyeAt));
+    M.li++;
+  }
+  for(let i=M.fronts.length-1;i>=0;i--){
+    const F=M.fronts[i]; F.t+=dt;
+    if(F.t>=EYE_FWARN) F.s+=EYE_FV*dt;
+    if(F.s>F.L) M.fronts.splice(i,1);
+  }
+  // the eye opens where you are, so getting into it is never the hard part
+  // the eye opens where you are — its loop is phased to start on you — and
+  // from then on it never stops
+  if(!M.eye&&M.t>=EYE_CROSS){
+    const ax=Math.max(0,W/2-EYE_R0-30), ay=Math.max(0,H/2-EYE_R0-30);
+    const ph=(v,A)=>{ const s0=Math.asin(clamp(A?v/A:0,-1,1)); return Math.random()<.5?s0:Math.PI-s0; };
+    M.eye={ax, ay, t0:M.t, px:ph(P.x-W/2,ax), py:ph(P.y-H/2,ay), r:EYE_R0, t:0, x:0, y:0};
+    banner='THE STORM CLOSES IN'; bannerT=2.4;   
+  const E=M.eye; if(!E) return;
+  E.t+=dt;
+  const k=clamp((M.t-EYE_CROSS)/(EYE_T-EYE_CROSS),0,1);
+  E.r=EYE_R0+(EYE_R1-EYE_R0)*k;
+  const Q=eyeAt(M.t); E.x=Q.x; E.y=Q.y;
+}
+// where the eye's middle is at time t
+function eyeAt(t){
+  const E=mission.eye, u=t-E.t0;
+  return {x:W/2+E.ax*Math.sin(EYE_WX*u+E.px), y:H/2+E.ay*Math.sin(EYE_WY*u+E.py)};
+}
+
+// the storm round the eye: a white veil with the eye cut out of it, and snow
+function eyeHazeDraw(){
+  const M=mission, E=M.eye; if(!E) return;
+  const a=clamp(E.t/EYE_WARN,0,1);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,W,H); ctx.arc(E.x,E.y,E.r,0,TAU,true);
+  ctx.fillStyle='rgba(225,240,252,'+(EYE_HAZE*a)+')'; ctx.fill('evenodd');
+  ctx.clip('evenodd');
+  ctx.strokeStyle='rgba(235,248,255,'+(.55*a)+')'; ctx.lineWidth=1.4;
+  const T=M.t;
+  for(let i=0;i<220;i++){
+    const h1=Math.sin(i*91.7)*43758.5, h2=Math.sin(i*17.3)*24634.6;
+    const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
+    const x=(u*W+T*240)%W, y=(v*H+T*80)%H;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-12,y-4); ctx.stroke();
+  }
+  ctx.restore();
+}
+// the eye's edge, and a pointer to it whenever you are out of it — drawn over the whiteout
+function eyeMarkDraw(){
+  const M=mission, E=M.eye, P=player; if(!E) return;
+  const shut=E.t>=EYE_WARN, pu=.5+.5*Math.sin(M.t*(shut?3:10));
+  ctx.save();
+  ctx.strokeStyle='rgba(255,210,77,'+(shut?.55+.25*pu:.4+.6*pu)+')';
+  ctx.lineWidth=shut?2.5:3.5; ctx.shadowColor='#ffd24d'; ctx.shadowBlur=14;
+  if(!shut) ctx.setLineDash([14,10]);
+  ctx.beginPath(); ctx.arc(E.x,E.y,E.r,0,TAU); ctx.stroke();
+  ctx.setLineDash([]); ctx.shadowBlur=0;
+  const dx=E.x-P.x, dy=E.y-P.y, d=Math.hypot(dx,dy);
+  if(P.hp>0&&d>E.r-10){
+    const an=Math.atan2(dy,dx), o=40;
+    ctx.translate(P.x+Math.cos(an)*o,P.y+Math.sin(an)*o); ctx.rotate(an);
+    ctx.strokeStyle='rgba(255,210,77,'+(.6+.4*pu)+')'; ctx.lineWidth=2.6;
+    for(const s of [0,9]){ ctx.beginPath(); ctx.moveTo(-5+s,-7); ctx.lineTo(4+s,0); ctx.lineTo(-5+s,7); ctx.stroke(); }
+  }
+  ctx.restore();
 }
 
 /* ECHO TRIAL — a boss you have already put down, come back quicker: its whole
@@ -6810,6 +7147,12 @@ function missionTick(dt){
     return;
   }
 
+  if(M.k==='eye'){
+    eyeTick(dt);
+    if(M.t>=M.dur){ missionEnd(true); return; }
+    return;
+  }
+
   if(M.k==='bounty'){
     if(!enemies.some(e=>e.t==='quarry')){ missionEnd(true); return; }
     if(M.t>=M.dur){ missionEnd(false,'TARGET ESCAPED'); return; }
@@ -6856,6 +7199,7 @@ const SIDE_CLEAR_TEXT={
   bounty:  'Congratulations on tracking down the variant.',
   gauntlet:'Congratulations on wiping out the hordes without getting damaged.',
   echo:    'Congratulations on defeating the second alien swarm.',
+  eye:     'Congratulations on flying through the storm.',
   boss:    'Congratulations on defeating the strange enemy!',
 };
 function missionVictory(M){
@@ -6865,6 +7209,7 @@ function missionVictory(M){
                                    lrow('BEST', secs(save.runBest[String(M.sys)]), M.best?'good':'')
               : M.k==='bounty'   ? lrow('TIME TO KILL', secs(M.t),'good')
               : M.k==='gauntlet' ? lrow('WAVES CLEARED', GAUNT_N+' / '+GAUNT_N,'good')
+              : M.k==='eye'      ? lrow('SURVIVED', EYE_T+'s  ·  NO HITS','good')
               :                    lrow('TIME', secs(M.t),'good');
   $('doneKind').textContent = M.k==='boss' ? 'QUANTUM PORTAL' : 'SIDE MISSION COMPLETE';
   $('doneTitle').textContent = M.B ? M.B.n : branchName(M.k);
@@ -7185,11 +7530,7 @@ function draw(){
   if(state==='play'||state==='over'||state==='dying'){
     sceneDraw();
     // particles
-    for(const p of parts){
-      ctx.globalAlpha=1-p.t/p.life; ctx.fillStyle=p.col;
-      ctx.fillRect(p.x-p.r/2,p.y-p.r/2,p.r,p.r);
-    }
-    ctx.globalAlpha=1;
+    partsDraw();
     worldFloor();
     fxDraw();
 
@@ -7585,7 +7926,7 @@ function duoBar(any){
    goes red and pulses, and the last five each tick out loud. */
 function missionClock(){
   const M=mission; if(!M) return;
-  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold' ? M.dur : 0;
+  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold'||M.k==='eye' ? M.dur : 0;
   if(!lim) return;
   const left=Math.max(0,lim-M.t), k=left/lim, hot=left<10;
   const sec=Math.ceil(left);
@@ -7604,7 +7945,7 @@ function missionClock(){
   ctx.fillStyle='rgba('+col+','+(.85+.15*pu)+')';
   ctx.fillText(left.toFixed(1),W/2,y-12);
   ctx.font='10px Menlo,monospace'; ctx.fillStyle='rgba('+col+',.7)';
-  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':'TIME LEFT',W/2,y-48);
+  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':M.k==='eye'?'SURVIVE':'TIME LEFT',W/2,y-48);   // «WRITE:» SURVIVE
   ctx.restore();
 }
 
@@ -7632,9 +7973,10 @@ function hud(){
                : M.k==='run'      ? 'GATE '+Math.min(M.gi+1,M.gates.length)+' / '+M.gates.length+'  ·  '+M.t.toFixed(1)+'s / '+RUN_LIMIT+'s'
                : M.k==='bounty'   ? 'ESCAPES IN '+left(M.dur-M.t)
                : M.k==='gauntlet' ? 'WAVE '+M.w+' / '+GAUNT_N+'  ·  ONE HIT KILLS'
+               : M.k==='eye'      ? (M.eye?'STAY IN THE EYE':'FIND THE GAPS')+'  ·  ONE HIT KILLS'   // «WRITE:»
                : '';
     let y=70;
-    if(line){ ctx.fillStyle=M.k==='gauntlet'?'#ff6b8a':'#7d8bb0'; ctx.fillText(line,W-24,y); y+=18; }
+    if(line){ ctx.fillStyle=M.ohk?'#ff6b8a':'#7d8bb0'; ctx.fillText(line,W-24,y); y+=18; }
     if(M.k==='run'&&save.runBest&&save.runBest[String(M.sys)]){
       ctx.fillStyle='#7d8bb0'; ctx.fillText('BEST '+save.runBest[String(M.sys)].toFixed(1)+'s',W-24,y); y+=18; }
     ctx.fillStyle='#46e39b';
