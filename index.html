@@ -968,6 +968,8 @@ const NOWAVE={hp:1, dmg:1, rof:1, more:0, gap:1, live:10};
 const WV=()=> (!mission && wave<5 && SYS().wave) ? Object.assign({},NOWAVE,SYS().wave) : NOWAVE;
 /* The first system is a runway: waves 1-3 come in thinner, softer and slower so
    a first-time pilot can reach the Ruler. Later systems ramp at full weight. */
+const EMPTY_LEAD=.15;   // how close to the next arrival an empty arena skips to
+const ENTER_V=260;      // the extra speed a hostile glides in at until it is on screen
 const EASE=()=> sysIdx>0 ? 1 : (wave<=1?.62 : wave===2?.75 : wave===3?.85 : wave===4?.92 : 1);
 /* ---- rosters ----
    Each set of systems brings its own enemies. A roster names the three that
@@ -1281,8 +1283,6 @@ const MUS={
             ost:[0,0,1,0, 0,0,1,0], hook:'main', lead:'sawtooth', quiet:1},
     garage:{bpm:100, prog:[0,0,8,8, 5,5,3,3], qual:[0,0,1,1, 0,0,1,1],
             ost:[0,0,7,0, 3,0,7,0], hook:'garage', lead:'triangle', calm:1, sec:3},
-    intro: {bpm:126, prog:[0,0,1,1, 3,3,4,4], qual:[0,0,1,1, 0,0,1,1],
-            ost:[0,0,0,0, 1,1,1,1], hook:'watch', lead:'sawtooth', climb:1, sec:1},
     run:   {bpm:140, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
             ost:[0,0,1,0, 0,1,0,1], hook:'main', lead:'sawtooth'},
   },
@@ -1293,10 +1293,9 @@ const MUS={
   boot(){ this.next=SND.ctx.currentTime+.1; this.on=true; },
 
   /* Which piece the game wants right now. A boss brings its own; the Garage
-     and the cold open have their own; everything else is the campaign theme
+     has its own; everything else is the campaign theme
      at whatever weight the situation calls for. */
   want(){
-    if(state==='intro') return ['intro',this.PROGRAMS.intro,0,2];
     if($('garage').classList.contains('on')) return ['garage',this.PROGRAMS.garage,0,2];
     const inRun = state==='play';
     if(!inRun) return ['menu',this.PROGRAMS.menu,0,1];
@@ -1842,7 +1841,6 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
   if(e.code==='Space'){e.preventDefault();}
-  if(state==='intro'){ e.preventDefault(); cineEnd(); return; }   // any key skips the cold open
   if(e.code==='KeyP'&&state==='play') setPause(!paused);
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
@@ -1856,7 +1854,7 @@ function ptr(e){
   mouse.y=(e.clientY-r.top)*(H/r.height);
 }
 cv.addEventListener('mousemove',ptr);
-cv.addEventListener('mousedown',e=>{SND.boot();SND.resume();ptr(e);mouse.down=true;if(state==='intro')cineEnd();});
+cv.addEventListener('mousedown',e=>{SND.boot();SND.resume();ptr(e);mouse.down=true;});
 addEventListener('mouseup',()=>mouse.down=false);
 // any button anywhere clicks — one listener rather than forty
 addEventListener('mousedown',()=>{ SND.boot(); SND.resume(); },{capture:true});
@@ -1877,141 +1875,6 @@ function makeStars(){
   for(let i=0;i<170;i++) stars.push({x:rand(0,W),y:rand(0,H),z:rand(.25,1),s:rand(.4,1.6)});
 }
 makeStars();
-
-/* ══════════════════════ THE COLD OPEN ══════════════════════
-   Every run opens the same way: the defense net comes up, reads the pilot it
-   has been given, and hands them four systems. It is the one place the game
-   states the stake out loud — one hull, one run — so it plays before the
-   first wave. Any key skips it.                                       */
-let cine=null;
-const CINE_DUR=6.2;
-
-function cineStart(then){
-  const st=stats(), sh=SHIP();
-  cine={t:0, then, lines:[
-    [0.55,'> UPLINK  . . . . . . . . . .  ESTABLISHED'],
-    [1.05,'> DEFENSE NET  . . . . . . .  ONLINE'],
-    [1.55,'> PILOT RECORD  . . . . . .  '+(save.deepestSys>0?'ON FILE':'NONE')],
-    [2.05,'> HULL  . . . . . . . . . . .  '+sh.n],
-    [2.55,'> SKILLS UNLOCKED  . . . . . . . .  '+owned().length+' / '+SKILLS.length+''],
-    [3.05,'> INTEGRITY  . . . . . . . .  '+Math.round(st.maxHp)+' HP'],
-    [3.55,'> SYSTEMS INBOUND  . . . .  '+SYSTEMS.length],
-  ]};
-  hideAll(); state='intro';
-}
-function cineEnd(){
-  if(!cine) return;
-  const then=cine.then; cine=null; state='menu';
-  then();
-}
-function cineStep(dt){
-  cine.t+=dt;
-  if(cine.t>=CINE_DUR) cineEnd();
-}
-
-function cineDraw(){
-  const C=cine, t=C.t, w=W, h=H;   // the starfield is already down: draw over it
-
-  // --- the grid comes up first, from the horizon out ---
-  const gk=clamp(t/1.1,0,1);
-  ctx.strokeStyle='rgba(110,170,255,'+(.19*gk)+')'; ctx.lineWidth=1;
-  for(let x=0;x<=w;x+=50){ ctx.beginPath(); ctx.moveTo(x,h*.5-h*.5*gk); ctx.lineTo(x,h*.5+h*.5*gk); ctx.stroke(); }
-  for(let y=0;y<=h;y+=50){ const k=Math.abs(y-h*.5)/(h*.5);
-    if(k>gk) continue;
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-
-  // --- a scan bar sweeps down, twice ---
-  for(const off of [0,2.9]){
-    const st2=t-off;
-    if(st2>0&&st2<1.5){
-      const y=(st2/1.5)*h;
-      const g=ctx.createLinearGradient(0,y-70,0,y+18);
-      g.addColorStop(0,'rgba(77,157,255,0)'); g.addColorStop(1,'rgba(77,157,255,.30)');
-      ctx.fillStyle=g; ctx.fillRect(0,y-70,w,88);
-      ctx.fillStyle='rgba(190,220,255,.75)'; ctx.fillRect(0,y,w,1.4);
-    }
-  }
-
-  // --- the ship builds itself on the right ---
-  const bk=clamp((t-1.2)/1.6,0,1);
-  if(bk>0){
-    const cx=w*.72, cy=h*.5, R=76;
-    ctx.save(); ctx.translate(cx,cy);
-    // targeting rings closing in
-    for(let i=0;i<3;i++){
-      const rk=clamp((t-1.2-i*.22)/1.1,0,1);
-      if(rk<=0) continue;
-      const rr=R*(3.1-2.0*rk)+i*16;
-      ctx.beginPath(); ctx.arc(0,0,rr,0,TAU);
-      ctx.strokeStyle='rgba(77,157,255,'+(.5*rk*(1-i*.22))+')';
-      ctx.setLineDash([10,14]); ctx.lineDashOffset=-t*(40+i*30)*(i%2?-1:1);
-      ctx.lineWidth=1.4; ctx.stroke(); ctx.setLineDash([]);
-    }
-    // corner brackets
-    if(bk>.55){
-      const b=R*1.9, L=20;
-      ctx.strokeStyle='rgba(70,227,155,'+((bk-.55)/.45*.8)+')'; ctx.lineWidth=2;
-      for(const sx of [-1,1]) for(const sy of [-1,1]){
-        ctx.beginPath();
-        ctx.moveTo(sx*b-sx*L,sy*b); ctx.lineTo(sx*b,sy*b); ctx.lineTo(sx*b,sy*b-sy*L);
-        ctx.stroke();
-      }
-    }
-    // the hull itself: outline first, then it fills
-    ctx.rotate(-Math.PI/2 + Math.sin(t*.8)*.05);
-    ctx.setLineDash([200*bk,200]); ctx.lineDashOffset=0;
-    ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=18*bk;
-    shipPath(ctx,R,player?player.st.hull:SHIPS.indexOf(SHIP()));
-    if(bk>=1){ ctx.fillStyle='rgba(10,20,38,.9)'; ctx.fill(); }
-    ctx.strokeStyle='#dfe9ff'; ctx.lineWidth=2.4; ctx.stroke();
-    ctx.setLineDash([]); ctx.shadowBlur=0;
-    ctx.restore();
-  }
-
-  // --- the boot log types itself out on the left ---
-  ctx.textAlign='left'; ctx.font='13px Menlo,monospace';
-  let ly=h*.5-C.lines.length*11;
-  for(const [at,txt] of C.lines){
-    if(t<at){ ly+=22; continue; }
-    const k=clamp((t-at)/.26,0,1), n=Math.floor(txt.length*k);
-    ctx.fillStyle= n>=txt.length ? '#8ea0c8' : '#46e39b';
-    ctx.fillText(txt.slice(0,n),w*.09,ly);
-    if(n<txt.length&&Math.floor(t*14)%2)
-      ctx.fillRect(w*.09+ctx.measureText(txt.slice(0,n)).width+2,ly-9,7,11);
-    ly+=22;
-  }
-
-  // --- the title lands last, and it lands hard ---
-  if(t>4.95){
-    const k=clamp((t-4.95)/.4,0,1);
-    ctx.textAlign='center';
-    ctx.save();
-    ctx.globalAlpha=k;
-    ctx.font='600 15px Menlo,monospace'; ctx.fillStyle='#4d9dff';
-    ctx.fillText('M I N D F R A M E',w/2,h*.14);
-    const sc=1+(1-k)*.35;
-    ctx.translate(w/2,h*.86); ctx.scale(sc,sc);
-    ctx.font='600 26px Menlo,monospace';
-    ctx.shadowColor='#dfe9ff'; ctx.shadowBlur=26*k;
-    ctx.fillStyle='#dfe9ff';
-    ctx.fillText('DEFENSE OF EARTH',0,0);
-    ctx.shadowBlur=0;
-    ctx.restore();
-    ctx.globalAlpha=1;
-  }
-
-  // --- scanlines and a vignette over everything, so it reads as a screen ---
-  ctx.fillStyle='rgba(0,0,0,.09)';
-  for(let y=0;y<h;y+=3) ctx.fillRect(0,y,w,1);
-  const vg=ctx.createRadialGradient(w/2,h/2,h*.34,w/2,h/2,h*.86);
-  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.46)');
-  ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
-
-  ctx.textAlign='right'; ctx.font='11px Menlo,monospace';
-  ctx.fillStyle='rgba(125,139,176,'+(.45+.35*Math.sin(t*4))+')';
-  ctx.fillText('PRESS ANY KEY TO SKIP',w-26,h-24);
-  ctx.textAlign='left';
-}
 
 /* A run starts at the system you picked on the map and climbs from there. Every
    system you have already taken stays taken, so falling in 003 costs you 003 —
@@ -2041,10 +1904,10 @@ function newBranch(kind,i){
   hideAll(); startMission(kind);
 }
 
-function newRun(quick){
+function newRun(){
   if(!save.flown){ save.flown=true; persist(); }
   const i=mapPick;
-  relaunch=()=>{ mapPick=i; mapPickK=null; newRun(true); };
+  relaunch=()=>{ mapPick=i; mapPickK=null; newRun(); };
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
@@ -2055,8 +1918,8 @@ function newRun(quick){
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
-  // a relaunch skips the uplink readout: you have just seen it
-  if(quick){ hideAll(); beginSystem(); } else cineStart(beginSystem);
+  // straight into the fight: no readout in front of it, on any run
+  hideAll(); beginSystem();
 }
 
 // text -> paragraphs; [BRACKETED] lines render as terminal output
@@ -4357,6 +4220,448 @@ const SCENES={
     }},
 };
 
+/* ══════════════════════ PHASE STRIKES ══════════════════════
+   Every boss answers a phase change with its own signature attack. It lands
+   a beat after the cutscene lets go (STRIKE_GAP), and for as long as it runs
+   the boss is untouchable and does nothing else: the strike is the whole of
+   what it is doing. Each one is telegraphed, but quietly — a hairline, a dim
+   shape, a faint pull — so it is there to be read if you are looking, and it
+   hits hard if you are not. One per boss, the same at every phase change.
+   The climb into a boss's LAST tier gets the hard version (`s.hard`): more of
+   it, faster, and every hit worth STRIKE_HARD. A pair's one climb is its last.
+   A strike is {dur, init(s,e), step(s,e,dt), draw(s,e)}; `s.t` runs from
+   -STRIKE_GAP, and step only runs from 0. Draw runs throughout, so a
+   telegraph can start in the gap.                                         */
+const STRIKE_GAP=.45;
+const STRIKE_RIDE=1.1;
+const STRIKE_HARD=1.5;   // what a hit is worth on the last climb's strike
+const ARCH_SHAPES=11;                    // shapes in the Architect's blueprint, besides the one round you
+const CRACKS=11, CRACKS_FINAL=13, CRACK_HIT=22;   // fractures per wave, and how close counts   // extra wait for a twin that climbed inside the other's cutscene
+const STRIKE_DMG=30;     // a strike that connects, before BOSS_DMG, the boss's dmgX and the setting
+function strikeStart(e,wait){
+  const k=e.B.final?'final':e.k, S=STRIKES[k]; if(!S) return;
+  // the climb into the last tier gets the hard version of it
+  const hard = e.tier>=e.B.tiers.length-1;
+  e.strike={k, S, hard, t:-STRIKE_GAP-(wait||0)};
+  e.inv=Math.max(e.inv,.2);
+  S.init(e.strike,e);
+}
+function strikeStep(e,dt){
+  const s=e.strike; s.t+=dt;
+  e.inv=Math.max(e.inv,.15);              // untouchable for as long as it lasts
+  e.spin+=dt*1.1; e.pt+=dt; if(e.flare>0) e.flare-=dt;
+  if(s.t>=0) s.S.step(s,e,dt);
+  if(s.t>=(s.dur||s.S.dur)) e.strike=null;
+}
+function strikeHurt(e,dmg){
+  const P=player;
+  if(P.inv>0||buffs.shield>0||P.hp<=0) return;
+  P.hp-= dmg>=ONE_SHOT ? ONE_SHOT
+        : dmg*(e.strike&&e.strike.hard?STRIKE_HARD:1)*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
+  P.inv=.5; pilotHurt(); killer=unitName(e);
+  burst(P.x,P.y,e.col,16,280);
+}
+function strikesDraw(){
+  for(const e of enemies) if(e.strike&&e.strike.t>=-STRIKE_GAP){ ctx.save(); e.strike.S.draw(e.strike,e); ctx.restore(); }
+}
+// how far a point is from a segment
+function segDist(px,py,ax,ay,bx,by){
+  const sx=bx-ax, sy=by-ay, L=sx*sx+sy*sy||1;
+  const u=clamp(((px-ax)*sx+(py-ay)*sy)/L,0,1);
+  return Math.hypot(ax+sx*u-px, ay+sy*u-py);
+}
+// a jagged fracture out from (x,y) at angle a, branching, until it leaves the arena
+function crackPath(x,y,a,depth){
+  const pts=[[x,y]], kids=[];
+  for(let n=0;n<40;n++){
+    a+=rand(-.38,.38);
+    const L=rand(38,64); x+=Math.cos(a)*L; y+=Math.sin(a)*L;
+    pts.push([x,y]);
+    if(x<-20||x>W+20||y<-20||y>H+20) break;
+    if(depth<1&&n>1&&Math.random()<.16){
+      const k=crackPath(x,y,a+(Math.random()<.5?-1:1)*rand(.5,.9),depth+1);
+      k.pts.length=Math.min(k.pts.length,Math.floor(rand(3,7)));
+      kids.push(k);
+    }
+  }
+  return {pts, kids};
+}
+function crackSegs(c,out){
+  for(let i=1;i<c.pts.length;i++) out.push([c.pts[i-1][0],c.pts[i-1][1],c.pts[i][0],c.pts[i][1]]);
+  for(const k of c.kids) crackSegs(k,out);
+  return out;
+}
+// the segments drawn up to fraction q of their full length, in order
+function segsDraw(segs,q){
+  const n=segs.length*q;
+  ctx.beginPath();
+  for(let i=0;i<segs.length&&i<n;i++){
+    const [ax,ay,bx,by]=segs[i], f=Math.min(1,n-i);
+    ctx.moveTo(ax,ay); ctx.lineTo(ax+(bx-ax)*f, ay+(by-ay)*f);
+  }
+  ctx.stroke();
+}
+// cracks: hairlines crawl out, then they break open and burn for a moment
+function crackStrike(col,dmg,waves){
+  const TEL=1.35, BURN=.4;
+  return {
+    dur: waves[waves.length-1]+TEL+BURN+.2,
+    init(s,e){
+      const ws = s.hard ? waves.concat([waves[waves.length-1]+1.5]) : waves;
+      s.dur = ws[ws.length-1]+TEL+BURN+.2;
+      s.w=ws.map(at=>{
+        const segs=[], n=(dmg>=ONE_SHOT?CRACKS_FINAL:CRACKS)+(s.hard?4:0), a0=rand(0,TAU);
+        for(let i=0;i<n;i++) crackSegs(crackPath(e.x,e.y,a0+i*TAU/n+rand(-.2,.2),0),segs);
+        return {at, segs, hit:false};
+      });
+    },
+    step(s,e){
+      const P=player;
+      for(const w of s.w){
+        const k=s.t-w.at-TEL;
+        if(k<0||k>BURN) continue;
+        if(!w.hit){ w.hit=true; SFX.crack(); flash=Math.max(flash,.15); }
+        if(w.segs.some(g=>segDist(P.x,P.y,g[0],g[1],g[2],g[3])<CRACK_HIT)) strikeHurt(e,dmg);
+      }
+    },
+    draw(s,e){
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      for(const w of s.w){
+        const k=s.t-w.at;
+        if(k<-STRIKE_GAP||k>TEL+BURN) continue;
+        if(k<TEL){
+          // the telegraph: a hairline crawling out, faint
+          ctx.strokeStyle=col; ctx.globalAlpha=.28; ctx.lineWidth=1.2;
+          segsDraw(w.segs,clamp((k+STRIKE_GAP)/(TEL*.8),0,1));
+        }else{
+          const f=1-(k-TEL)/BURN;
+          ctx.globalAlpha=f; ctx.strokeStyle=col; ctx.lineWidth=12;
+          ctx.shadowColor=col; ctx.shadowBlur=24; segsDraw(w.segs,1);
+          ctx.shadowBlur=0; ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; segsDraw(w.segs,1);
+        }
+      }
+      ctx.globalAlpha=1;
+    },
+  };
+}
+// fronts thrown out of a Titan: bands that run out from where it stood
+function titanFronts(n0,spread0,gap,hw,hl,v,mul){
+  return {
+    dur: (n0-1)*gap+.7+Math.hypot(W,H)/v,
+    init(s,e){
+      const P=player, aim=Math.atan2(P.y-e.y,P.x-e.x);
+      const n=s.hard?n0*2-1:n0, spread=s.hard?Math.min(TAU*.8,spread0*2):spread0;
+      s.dur=(n-1)*gap+.7+Math.hypot(W,H)/v;
+      s.f=Array.from({length:n},(_,i)=>({
+        a: aim+(n>1?(i/(n-1)-.5)*spread:0)+rand(-.08,.08),
+        at:i*gap+.7, ox:0, oy:0, d:e.r, live:false }));
+    },
+    step(s,e,dt){
+      const P=player;
+      for(const F of s.f){
+        if(!F.live&&s.t>=F.at){ F.live=true; F.ox=e.x; F.oy=e.y; SFX.crack(); }
+        if(!F.live) continue;
+        F.d+=v*dt;
+        const cx=Math.cos(F.a), cy=Math.sin(F.a), dx=P.x-F.ox, dy=P.y-F.oy;
+        const al=dx*cx+dy*cy, ac=-dx*cy+dy*cx;
+        if(Math.abs(al-F.d)<hw+13&&Math.abs(ac)<hl) strikeHurt(e,STRIKE_DMG*mul);
+      }
+    },
+    draw(s,e){
+      for(const F of s.f){
+        if(!F.live){
+          // a dim chevron off the hull, pointing the way it will throw
+          const k=s.t-(F.at-.7); if(k<0) continue;
+          ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(F.a);
+          ctx.strokeStyle='rgba('+FRONT_ICE+','+(.18+.2*Math.min(1,k/.7))+')'; ctx.lineWidth=3;
+          for(const o of [e.r+18,e.r+36]){ ctx.beginPath(); ctx.moveTo(o-8,-12); ctx.lineTo(o+4,0); ctx.lineTo(o-8,12); ctx.stroke(); }
+          ctx.restore(); continue;
+        }
+        ctx.save(); ctx.translate(F.ox,F.oy); ctx.rotate(F.a); ctx.translate(F.d,0);
+        const gr=ctx.createLinearGradient(-hw,0,hw,0);
+        gr.addColorStop(0,'rgba('+FRONT_ICE+',.08)'); gr.addColorStop(1,'rgba('+FRONT_ICE+',.38)');
+        ctx.fillStyle=gr; ctx.fillRect(-hw,-hl,hw*2,hl*2);
+        ctx.strokeStyle='rgba(240,250,255,.7)'; ctx.lineWidth=1.6; ctx.lineCap='round';
+        const n=Math.round(hl/7);
+        for(let i=0;i<n;i++){
+          const h1=Math.sin(i*91.7)*43758.5, u=h1-Math.floor(h1);
+          const x=-hw+((u*hw*2+s.t*420)%(hw*2)), y=-hl+(i/n)*hl*2;
+          ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-14,y-4); ctx.stroke();
+        }
+        ctx.strokeStyle='rgba(235,248,255,.95)'; ctx.lineWidth=3; ctx.shadowColor='#bfe4ff'; ctx.shadowBlur=14;
+        ctx.beginPath(); ctx.moveTo(hw,-hl); ctx.lineTo(hw,hl); ctx.stroke();
+        ctx.restore();
+      }
+    },
+  };
+}
+
+const STRIKES={
+  /* 3296 — beams. Two volleys of lasers straight out of the hull, the second
+     turned half a gap, so the safe lanes of the first are the beams of the
+     next. A hairline shows each beam before it fires. */
+  primary:{
+    dur:2.9, N:8, TEL:1.2, FIRE:.45,
+    init(s,e){
+      s.N=s.hard?12:this.N;
+      const a=rand(0,TAU), h=Math.PI/s.N;
+      s.v=[{a, at:-.4},{a:a+h, at:1.0}];
+      if(s.hard){ s.v.push({a:a+h*.5, at:2.2}); s.dur=2.2+this.TEL+this.FIRE+.3; }
+    },
+    step(s,e){
+      const P=player, S=this;
+      for(const v of s.v){
+        const k=s.t-v.at-S.TEL; if(k<0||k>S.FIRE) continue;
+        if(!v.hit){ v.hit=true; SFX.tier(); }
+        const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy); if(d<e.r) continue;
+        for(let i=0;i<s.N;i++){
+          const a=v.a+i*TAU/s.N, off=Math.abs(-dx*Math.sin(a)+dy*Math.cos(a)), al=dx*Math.cos(a)+dy*Math.sin(a);
+          if(al>0&&off<9+13) strikeHurt(e,STRIKE_DMG);
+        }
+      }
+    },
+    draw(s,e){
+      const S=this, L=Math.hypot(W,H);
+      for(const v of s.v){
+        const k=s.t-v.at;
+        if(k<0||k>S.TEL+S.FIRE) continue;
+        for(let i=0;i<s.N;i++){
+          const a=v.a+i*TAU/s.N, cx=Math.cos(a), cy=Math.sin(a);
+          ctx.beginPath(); ctx.moveTo(e.x+cx*e.r,e.y+cy*e.r); ctx.lineTo(e.x+cx*L,e.y+cy*L);
+          if(k<S.TEL){ ctx.strokeStyle='rgba(255,77,94,.22)'; ctx.lineWidth=1.2; ctx.stroke(); }
+          else{
+            const f=1-(k-S.TEL)/S.FIRE;
+            ctx.globalAlpha=f; ctx.strokeStyle='#ff4d5e'; ctx.lineWidth=18; ctx.shadowColor='#ff4d5e'; ctx.shadowBlur=26; ctx.stroke();
+            ctx.shadowBlur=0; ctx.strokeStyle='#fff1f2'; ctx.lineWidth=5; ctx.stroke(); ctx.globalAlpha=1;
+          }
+        }
+      }
+    },
+  },
+
+  /* The Hive Mind — three rings of slow spores that lean toward you as they go.
+     They turn too slowly to follow a hard change of direction, so the answer
+     is to keep moving and cut across them. */
+  hive:{
+    dur:1.4,
+    init(s){ s.n=0; s.rings=s.hard?5:3; s.dur=s.rings*.5-.1; },
+    step(s,e){
+      while(s.n<s.rings&&s.t>=s.n*.5){
+        const N=s.hard?22:16, o=s.n*Math.PI/N+rand(0,.2);
+        for(let i=0;i<N;i++){ const a=o+i*TAU/N, sp=s.hard?150:135;
+          ebullets.push({x:e.x+Math.cos(a)*e.r,y:e.y+Math.sin(a)*e.r,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+            r:7,dmg:10*BOSS_DMG*(s.hard?STRIKE_HARD:1),col:'#46e39b',seek:s.hard?.85:.6,age:0,trail:'#46e39b',src:e}); }
+        burst(e.x,e.y,'#46e39b',24,300); SFX.tier(); s.n++;
+      }
+    },
+    draw(s,e){
+      // the hive drawing breath: faint rings closing on it
+      if(s.t>.2) return;
+      const k=clamp((s.t+STRIKE_GAP)/(STRIKE_GAP+.2),0,1);
+      ctx.strokeStyle='rgba(70,227,155,'+(.12+.2*k)+')'; ctx.lineWidth=2;
+      for(let i=0;i<3;i++){ const r=e.r*(1.3+(1-((k+i/3)%1))*2.2); ctx.beginPath(); ctx.arc(e.x,e.y,r,0,TAU); ctx.stroke(); }
+    },
+  },
+
+  /* 2117 — a laser through its own hull, both ends, sweeping. It only reaches
+     so far: a faint ring marks the reach. Get outside it, or run round with it. */
+  overseer:{
+    dur:4.6, LEN:430, TEL:.9, SPIN:1.25,
+    init(s,e){ s.a0=Math.atan2(player.y-e.y,player.x-e.x)+Math.PI/2; s.dir=Math.random()<.5?-1:1;
+      s.len=s.hard?560:this.LEN; s.spin=s.hard?1.6:this.SPIN; s.arms=s.hard?4:2; },
+    ang(s){ const k=Math.max(0,s.t-this.TEL); return s.a0+s.dir*s.spin*k*Math.min(1,k/.6+.3); },
+    armsOf(s){ const a=this.ang(s); return Array.from({length:s.arms},(_,i)=>a+i*TAU/s.arms); },
+    step(s,e){
+      if(s.t<this.TEL) return;
+      if(!s.on){ s.on=true; SFX.tier(); }
+      const P=player, dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy);
+      if(d<e.r||d>s.len+13) return;
+      for(const b of this.armsOf(s)){
+        if(Math.abs(-dx*Math.sin(b)+dy*Math.cos(b))<10+13 && dx*Math.cos(b)+dy*Math.sin(b)>0) strikeHurt(e,STRIKE_DMG);
+      }
+    },
+    draw(s,e){
+      const S=this;
+      ctx.strokeStyle='rgba(63,216,224,.16)'; ctx.lineWidth=1.5; ctx.setLineDash([6,10]);
+      ctx.beginPath(); ctx.arc(e.x,e.y,s.len,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+      for(const b of S.armsOf(s)){
+        const cx=Math.cos(b), cy=Math.sin(b);
+        ctx.beginPath(); ctx.moveTo(e.x+cx*e.r,e.y+cy*e.r); ctx.lineTo(e.x+cx*s.len,e.y+cy*s.len);
+        if(s.t<S.TEL){ ctx.strokeStyle='rgba(63,216,224,.24)'; ctx.lineWidth=1.2; ctx.stroke(); }
+        else{ ctx.strokeStyle='#3fd8e0'; ctx.lineWidth=20; ctx.shadowColor='#3fd8e0'; ctx.shadowBlur=26; ctx.stroke();
+          ctx.shadowBlur=0; ctx.strokeStyle='#eaffff'; ctx.lineWidth=5; ctx.stroke(); }
+      }
+    },
+  },
+
+  /* The Architect — a blueprint of interlocking shapes drafted across the
+     arena, faint, line by line. Then every line goes live at once. Be in a
+     gap, not on a line. One shape is always drafted round wherever you are. */
+  architect:{
+    dur:2.2, SET:1.45, BURN:.35,
+    init(s,e){
+      const segs=[], P=player, shapes=[];
+      const poly=(cx,cy,R,n,rot)=>{ for(let i=0;i<n;i++){ const a=rot+i*TAU/n, b=rot+(i+1)*TAU/n;
+        segs.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R,cx+Math.cos(b)*R,cy+Math.sin(b)*R]); } };
+      shapes.push([P.x,P.y]);
+      for(let i=0;i<ARCH_SHAPES+(s.hard?6:0);i++) shapes.push([rand(W*.1,W*.9),rand(H*.1,H*.9)]);
+      shapes.forEach(([x,y],i)=>{
+        const R=rand(140,320), kind=i%3;
+        if(kind===0) poly(x,y,R,4,rand(0,TAU));
+        else if(kind===1) poly(x,y,R,3,rand(0,TAU));
+        else poly(x,y,R,24,0);            // a circle, as the shapes are drawn: in straight runs
+      });
+      s.segs=segs;
+    },
+    step(s,e){
+      const k=s.t-this.SET; if(k<0||k>this.BURN) return;
+      if(!s.hit){ s.hit=true; SFX.tier(); }
+      const P=player;
+      if(s.segs.some(g=>segDist(P.x,P.y,g[0],g[1],g[2],g[3])<8+13)) strikeHurt(e,STRIKE_DMG);
+    },
+    draw(s,e){
+      const S=this, k=s.t-S.SET;
+      ctx.lineCap='round';
+      if(k<0){
+        ctx.strokeStyle='rgba(232,200,114,.24)'; ctx.lineWidth=1.2;
+        segsDraw(s.segs,clamp((s.t+STRIKE_GAP)/(S.SET+STRIKE_GAP-.2),0,1));
+      }else if(k<=S.BURN){
+        const f=1-k/S.BURN;
+        ctx.globalAlpha=f; ctx.strokeStyle='#e8c872'; ctx.lineWidth=12; ctx.shadowColor='#e8c872'; ctx.shadowBlur=22;
+        segsDraw(s.segs,1); ctx.shadowBlur=0; ctx.strokeStyle='#fff6d8'; ctx.lineWidth=3; segsDraw(s.segs,1);
+        ctx.globalAlpha=1;
+      }
+    },
+  },
+
+  /* The Crescent — orbs laid out as the moon in its phases: full, gibbous,
+     half, crescent. Each moon goes off in turn. Get out of the lit part. One
+     moon is always laid over you. */
+  crescent:{
+    dur:2.9, BLOW:1.5, STEP:.28, R:30,
+    init(s,e){
+      const P=player, moons=[], cs=[[P.x,P.y]];
+      const nM=s.hard?6:4;
+      for(let t=0;cs.length<nM&&t<300;t++){
+        const x=rand(W*.12,W*.88), y=rand(H*.15,H*.85);
+        if(cs.every(c=>Math.hypot(c[0]-x,c[1]-y)>(s.hard?220:260))) cs.push([x,y]);
+      }
+      const kinds=['full','gibbous','half','crescent'].sort(()=>Math.random()-.5);
+      cs.forEach(([cx,cy],i)=>{
+        const R=s.hard?125:100, a=rand(0,TAU), dx=Math.cos(a), dy=Math.sin(a), kind=kinds[i%4], orbs=[];
+        for(let y=-R;y<=R;y+=28) for(let x=-R;x<=R;x+=28){
+          if(x*x+y*y>R*R) continue;
+          const lit = kind==='full' ? true
+                    : kind==='half' ? x*dx+y*dy>0
+                    : kind==='gibbous' ? Math.hypot(x+dx*R*1.45,y+dy*R*1.45)>R
+                    : Math.hypot(x+dx*R*.55,y+dy*R*.55)>R*.92;
+          if(lit) orbs.push([cx+x,cy+y]);
+        }
+        moons.push({orbs, at:this.BLOW+i*(s.hard?.2:this.STEP), hit:false});
+      });
+      s.m=moons; s.dur=moons[moons.length-1].at+.6;
+    },
+    step(s,e){
+      const P=player, rr=this.R+13;
+      for(const M of s.m){
+        const k=s.t-M.at; if(k<0||k>.16) continue;
+        if(!M.hit){ M.hit=true; SFX.crack();
+          for(const [x,y] of M.orbs) if(Math.random()<.35) burst(x,y,'#d6d9e0',4,220); }
+        if(M.orbs.some(([x,y])=>(x-P.x)*(x-P.x)+(y-P.y)*(y-P.y)<rr*rr)) strikeHurt(e,STRIKE_DMG);
+      }
+    },
+    draw(s,e){
+      for(const M of s.m){
+        const k=s.t-M.at;
+        if(k>.4) continue;
+        if(k<0){
+          // dim orbs, brightening and pulsing faster as the fuse runs down
+          const q=clamp(1+k/(M.at+STRIKE_GAP),0,1), pu=.5+.5*Math.sin(s.t*(8+22*q));
+          ctx.fillStyle='rgba(214,217,224,'+(.18+.4*q*pu)+')';
+          for(const [x,y] of M.orbs){ ctx.beginPath(); ctx.arc(x,y,5,0,TAU); ctx.fill(); }
+        }else{
+          const f=1-k/.4;
+          ctx.fillStyle='rgba(255,255,255,'+(.55*f)+')';
+          for(const [x,y] of M.orbs){ ctx.beginPath(); ctx.arc(x,y,this.R*(.6+.4*(1-f)),0,TAU); ctx.fill(); }
+        }
+      }
+    },
+  },
+
+  // Triton — small, fast fronts, a fan of them; Proteus — a few huge slow ones
+  triton:  titanFronts(7,1.3,.2,20,150,640,.8),
+  proteus: titanFronts(3,1.0,.5,60,420,230,1.1),
+
+  // The Ruler — the arena cracks open from where it stands
+  ruler: crackStrike('#9d86e8',STRIKE_DMG,[0]),
+
+  /* 3295 — it blinks across the arena at you, and every place it stopped
+     leaves an afterimage. They go off in the order it left them. */
+  s3295:{
+    dur:3.1, N:6, BLINK:.24, BLOW:1.9, R:95,
+    init(s,e){ s.img=[]; s.n=0; s.N=s.hard?10:this.N; s.R=s.hard?115:this.R;
+      s.blink=s.hard?.19:this.BLINK; s.blow=s.N*s.blink+.5; s.dur=s.blow+s.N*.13+.5; },
+    step(s,e,dt){
+      const S=this, P=player;
+      if(s.n<s.N&&s.t>=s.n*s.blink){
+        s.img.push({x:e.x,y:e.y,at:s.blow+s.n*.13,hit:false});
+        const a=Math.atan2(P.y-e.y,P.x-e.x)+rand(-1,1), L=rand(150,250), m=e.r+20;
+        e.x=clamp(e.x+Math.cos(a)*L,m,W-m); e.y=clamp(e.y+Math.sin(a)*L,m,H-m);
+        burst(e.x,e.y,e.col,14,260); SFX.dash(); s.n++;
+      }
+      for(const I of s.img){
+        const k=s.t-I.at; if(k<0||k>.14) continue;
+        if(!I.hit){ I.hit=true; SFX.crack(); burst(I.x,I.y,e.col,30,420); shock(I.x,I.y,e.col,10,s.R,.3,4); }
+        if(Math.hypot(P.x-I.x,P.y-I.y)<s.R+13) strikeHurt(e,STRIKE_DMG);
+      }
+    },
+    draw(s,e){
+      const S=this;
+      for(const I of s.img){
+        const k=s.t-I.at; if(k>0) continue;
+        const near=k>-.4, pu=.5+.5*Math.sin(s.t*30);
+        ctx.save(); ctx.translate(I.x,I.y);
+        ctx.globalAlpha=near?.35+.4*pu:.3; ctx.strokeStyle=e.col; ctx.lineWidth=2;
+        unitPath(ctx,'b_s3295',e.r,0,0); ctx.stroke();
+        if(near){ ctx.globalAlpha=.25; ctx.beginPath(); ctx.arc(0,0,s.R,0,TAU); ctx.stroke(); }
+        ctx.restore();
+      }
+    },
+  },
+
+  /* The Archive — it drags you in. You can fly against it, slowly; reach its
+     core and the core takes a piece of you every half second. */
+  archive:{
+    dur:3.8, PULL:175, ON:.5, CORE:56,
+    init(s){ s.pull=s.hard?212:this.PULL; s.core=s.hard?80:this.CORE; s.dur=s.hard?5:this.dur; },
+    step(s,e,dt){
+      if(s.t<this.ON) return;
+      const P=player, dx=e.x-P.x, dy=e.y-P.y, d=Math.hypot(dx,dy)||1;
+      const k=Math.min(1,(s.t-this.ON)/.5);
+      // never past what this hull can fly against: barely, on the last climb
+      const pull=Math.min(s.pull,P.st.speed*.9)*k;
+      if(d>e.r*.5){ P.x+=dx/d*pull*dt; P.y+=dy/d*pull*dt; }
+      if(d<e.r+s.core) strikeHurt(e,STRIKE_DMG*1.2);
+      if(Math.random()<dt*40){ const a=rand(0,TAU), r=rand(e.r*2,Math.max(W,H)*.6);
+        parts.push({x:e.x+Math.cos(a)*r,y:e.y+Math.sin(a)*r,vx:-Math.cos(a)*r*1.6,vy:-Math.sin(a)*r*1.6,life:.5,t:0,col:'#c78dff',r:2}); }
+    },
+    draw(s,e){
+      const on=s.t>=this.ON, k=on?1:clamp((s.t+STRIKE_GAP)/(this.ON+STRIKE_GAP),0,1);
+      ctx.strokeStyle='rgba(199,141,255,'+(on?.32:.1+.12*k)+')'; ctx.lineWidth=2;
+      for(let i=0;i<4;i++){
+        const q=((s.t*(on?.9:.5)+i/4)%1), r=(e.r+s.core)+(1-q)*Math.max(W,H)*.55;
+        ctx.globalAlpha=q; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,TAU); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      if(on){ ctx.strokeStyle='rgba(199,141,255,.6)'; ctx.setLineDash([5,7]);
+        ctx.beginPath(); ctx.arc(e.x,e.y,e.r+s.core,0,TAU); ctx.stroke(); ctx.setLineDash([]); }
+    },
+  },
+
+  // the real last fight — red cracks, two waves, and any one of them is the end
+  final: crackStrike('#ff2233',ONE_SHOT,[0,1.6]),
+};
+
 function phaseStep(dt){
   const C=phaseCut, e=C.e;
   C.t+=dt; ebullets.length=0; bullets.length=0;
@@ -4473,6 +4778,9 @@ function bossAI(e,dt,dx,dy,d){
   if(tier!==e.tier){
     // only a climb gets the cutscene: the Archive dropping back to 0 has its own
     const cut = tier>e.tier && phaseStart(e,tier);
+    // every climb owes a strike. One that rode along in its twin's cutscene
+    // waits a beat longer, so a pair does not throw both at once
+    if(tier>e.tier) e.strikeDue = cut ? 1 : (phaseCut ? 2 : 1);
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
     e.nodes=null;
@@ -4963,6 +5271,12 @@ function fxDraw(){
 /* ================= update ================= */
 function update(dt){
   waveTimer+=dt; if(bannerT>0)bannerT-=dt;
+  /* No waiting in an empty arena. With nothing alive and more on the way, the
+     wave clock jumps to just before the next arrival — the same enemies in the
+     same order, never more at once, only the wait taken out. A branch keeps
+     its own clock: Hold the Station is timed against its schedule. */
+  if(!mission && !enemies.length && spawnQ.length && !entrance && !phaseCut)
+    waveTimer=Math.max(waveTimer, spawnQ[0].t-EMPTY_LEAD);
   shake=Math.max(0,shake-dt*34);
   if(flash>0) flash=Math.max(0,flash-dt*1.7);
   fxStep(dt); wallStep(dt); hurtStep(dt); iceStep(dt);
@@ -5340,7 +5654,9 @@ function update(dt){
          fires at all. Patching what bossAI just created is how that stays one
          rule instead of a special case threaded through every attack. */
       const n0=ebullets.length;
-      bossAI(e,dt,dx,dy,d);
+      // a climb owes a strike, paid the moment no cutscene is playing
+      if(e.strikeDue&&!phaseCut){ strikeStart(e,e.strikeDue===2?STRIKE_RIDE:0); e.strikeDue=0; }
+      if(e.strike) strikeStep(e,dt); else bossAI(e,dt,dx,dy,d);
       if(inMeltdown(e)) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg=ONE_SHOT;
       // a boss can hit harder than the shared numbers without editing every attack
       else if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
@@ -5358,6 +5674,15 @@ function update(dt){
     // is then held inside the walls for the rest of its life.
     if(e.on){ e.x=clamp(e.x,e.r+wallIn,W-e.r-wallIn); e.y=clamp(e.y,e.r+wallIn,H-e.r-wallIn); }
     else if(e.x>e.r&&e.x<W-e.r&&e.y>e.r&&e.y<H-e.r) e.on=true;
+    /* ...and until it has, it glides in. Spawning off the edge and walking the
+       last stretch at cruise was a second of empty screen per arrival. This
+       only ever moves it while it is still out of sight, so once you can see
+       it, it is exactly as far from you, and as slow, as it always was.
+       Bosses keep their own entrances. */
+    else if(e.t!=='boss'&&e.t!=='echo'){
+      const cx=W/2-e.x, cy=H/2-e.y, cd=Math.hypot(cx,cy)||1;
+      e.x+=cx/cd*ENTER_V*dt; e.y+=cy/cd*ENTER_V*dt;
+    }
   }
 
   /* --- bullets vs enemies --- */
@@ -5474,7 +5799,7 @@ function update(dt){
         let df=want-cur; while(df>Math.PI)df-=TAU; while(df<-Math.PI)df+=TAU;
         const na=cur+clamp(df,-b.seek*dt,b.seek*dt), sp=Math.hypot(b.vx,b.vy);
         b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp;
-        if(Math.random()<.5) parts.push({x:b.x,y:b.y,vx:0,vy:0,life:.3,t:0,col:'#ffb44d',r:1.8});
+        if(Math.random()<.5) parts.push({x:b.x,y:b.y,vx:0,vy:0,life:.3,t:0,col:b.trail||'#ffb44d',r:1.8});
       }
     }
     { const f=lowgOn()&&inLowG(b)?LOWG_SLOW:1; b.x+=b.vx*dt*f; b.y+=b.vy*dt*f; }
@@ -7290,7 +7615,6 @@ function draw(){
 
   for(const s of stars){ ctx.fillStyle='rgba(160,185,240,'+(s.z*.55)+')'; ctx.fillRect(s.x,s.y,s.s,s.s); }
 
-  if(state==='intro'){ cineDraw(); ctx.restore(); return; }
   if(state==='finale'){ finaleDraw(); ctx.restore(); return; }
 
   if(state==='play'||state==='over'||state==='dying'){
@@ -7591,6 +7915,7 @@ function draw(){
     if(entrance) entranceDraw();
     if(phaseCut) phaseDraw();
     worldDraw();
+    strikesDraw();
     if(mission) missionDraw();
 
     // player
@@ -7860,8 +8185,7 @@ function frame(now){
      dead while the page around it kept answering clicks. Now a throw is shown
      (frameFault) and the loop carries on. */
   try{
-  if(state==='intro'){ cineStep(raw); }
-  else if(state==='finale'){ finaleStep(raw); }
+  if(state==='finale'){ finaleStep(raw); }
   else if(state==='play'&&!paused&&raw){ sceneT+=raw; update(dt); }
   else if(state==='over'||state==='dying'){
     for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}}
