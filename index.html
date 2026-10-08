@@ -111,25 +111,6 @@
   .diff .why{display:block; margin-top:8px; color:#5d6c8f; letter-spacing:.1em;
     line-height:1.5; max-width:330px; text-transform:none; font-size:9.5px}
 
-  /* ══════════ title screen ══════════ */
-  #menu{background:rgba(5,6,13,.62); justify-content:center; padding:3% 4%}
-  #netbar{
-    position:absolute; top:18px; left:26px; right:26px; display:flex; z-index:6;
-    justify-content:space-between; font-size:9.5px; letter-spacing:.22em; color:#5d6c8f;
-    border-bottom:1px solid #1e2a45; padding-bottom:8px; pointer-events:none;
-  }
-  #netbar .lit{color:#46e39b}
-  #netbar .lit::before{content:'\25cf '; animation:blip 1.9s ease-in-out infinite}
-  @keyframes blip{ 0%,100%{opacity:1} 50%{opacity:.25} }
-  #menu h1{position:relative}
-  #menu h1::after{                       /* a bar sweeping the wordmark */
-    content:''; position:absolute; left:-4%; right:-4%; height:3px; top:52%;
-    background:linear-gradient(90deg,transparent,rgba(77,157,255,.85),transparent);
-    animation:titleSweep 4.4s ease-in-out infinite;
-  }
-  @keyframes titleSweep{ 0%,100%{opacity:0; transform:scaleX(.3)} 50%{opacity:1; transform:scaleX(1)} }
-  #menuChips{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:20px}
-
   .prose{max-width:74ch; text-align:left; overflow-y:auto; flex:1; min-height:0;
     padding:4px 18px 4px 0; margin-top:14px; color:#9aa8c8; line-height:1.95;
     font-size:clamp(10.5px,1.28vw,13.5px);}
@@ -220,9 +201,16 @@
   #linkApp{margin-top:clamp(18px,3vw,34px); font-size:clamp(10px,1.25vw,13px)}
   #menuTop{display:flex; flex-direction:column; align-items:center}
   #menu h1{
+    position:relative;
     font-size:clamp(34px,6.8vw,74px); letter-spacing:.2em; margin:0 0 0 .2em;
     color:#dff1ff; text-shadow:0 0 30px rgba(77,157,255,.5);
   }
+  #menu h1::after{                       /* a bar sweeping the wordmark */
+    content:''; position:absolute; left:-4%; right:-4%; height:3px; top:52%;
+    background:linear-gradient(90deg,transparent,rgba(77,157,255,.85),transparent);
+    animation:titleSweep 4.4s ease-in-out infinite;
+  }
+  @keyframes titleSweep{ 0%,100%{opacity:0; transform:scaleX(.3)} 50%{opacity:1; transform:scaleX(1)} }
   #menuRule{
     height:1px; width:min(62vw,460px); margin:14px auto 12px;
     background:linear-gradient(90deg,transparent,#4d9dff 18%,#46e39b 50%,#4d9dff 82%,transparent);
@@ -494,7 +482,7 @@
 
   /* ---- skill tree ---- */
   #skills{justify-content:flex-start; padding:3% 4%}
-  #treeHead{display:flex; align-items:baseline; gap:20px; margin-bottom:2px}
+  .treeHead{display:flex; align-items:baseline; gap:20px; margin-bottom:2px}
   #pts,#garagePts{color:#46e39b; font-size:calc(clamp(13px,1.8vw,17px) + 3px); letter-spacing:.15em}
   /* the two screens read at a size you can sit back from */
   #skills>p,#garage>p{font-size:calc(clamp(11px,1.35vw,14px) + 3px)}
@@ -763,12 +751,9 @@
     <a class="storylink" id="linkApp" href="https://github.com/oscaremoran/MindframeGame/raw/main/MindframeGame-app/Mindframe-mac.zip">DOWNLOAD THE MAC APP &rsaquo;</a>
   </div>
 
-  <!-- GARAGE — parked mid-build. The hulls, their stat multipliers and the
-       silhouettes are live in the script (LANCER is the default and is neutral);
-       this screen is not wired up yet. -->
   <div id="codex" class="overlay">
     <button id="btnCodexBack" class="ghost back">BACK — ESC</button>
-    <div id="treeHead">
+    <div class="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">BESTIARY</h1>
       <span id="codexSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
     </div>
@@ -781,7 +766,7 @@
 
   <div id="map" class="overlay">
     <button id="btnMapBack" class="ghost back">BACK — ESC</button>
-    <div id="treeHead">
+    <div class="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">SPACE MAP</h1>
       <span id="mapPts">0 CREDITS</span>
     </div>
@@ -815,7 +800,7 @@
 
   <div id="garage" class="overlay">
     <button id="btnGarageBack" class="ghost back">BACK</button>
-    <div id="treeHead">
+    <div class="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">GARAGE</h1>
       <span id="garagePts">0 CREDITS</span>
     </div>
@@ -849,6 +834,7 @@
     <div class="prose" id="doneText"></div>
     <div class="row" style="margin-top:20px">
       <button id="btnDoneGo">SPACE MAP</button>
+      <button id="btnDoneTree" class="hot">SKILL TREE</button>
     </div>
   </div>
 
@@ -885,7 +871,7 @@
 
   <div id="skills" class="overlay">
     <button id="btnTreeBack" class="ghost back">BACK</button>
-    <div id="treeHead">
+    <div class="treeHead">
       <h1 style="font-size:clamp(18px,3.2vw,34px)">SKILL TREE</h1>
       <span id="pts">0 CREDITS</span>
     </div>
@@ -1547,6 +1533,12 @@ if(!Array.isArray(save.trees)){
 save.owned=[];                      // the field stays, empty, so old code paths read nothing
 save.credits=save.credits||0;
 save.seen=save.seen||[];
+/* Whether this pilot has ever taken off. A save from before the flag that has
+   anything in it at all has. */
+if(typeof save.flown!=='boolean')
+  save.flown = !!(save.deepestSys>0 || save.credits>0 || save.seen.length ||
+                  (save.branches&&save.branches.length) ||
+                  (save.trees||[]).some(t=>t&&t.length));
 if(typeof save.vol!=='number') save.vol=.7;
 if(typeof save.sound!=='boolean') save.sound=true;
 // an older save predates the setting and is, by definition, playing the default
@@ -1712,7 +1704,7 @@ const SKILLS=[
   {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:64, req:'spd1',
    info:'Press SHIFT to dash.'},
   {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:40, req:'dash',
-   info:'You cannnot get hit while dashing.'},
+   info:'You cannot get hit while dashing.'},
   {id:'dash2', n:'INTERSTELLAR\nDRIVE', d:'dash travels \u00d73', cost:56, x:79, y:13, req:'shield',
    info:'Each dash goes three times as far.'},
 ];
@@ -1751,8 +1743,8 @@ const tierOf=id=>{
 /* ================= the garage =================
    Four hulls, pure stat trade-offs — no hidden rules, everything a pilot needs
    to know is on the card. `sys` is how many systems must be cleared before the
-   hull can be bought at all; `cost` is its weight, and SKILL_CR doubles it
-   into the credits actually charged.
+   hull can be bought at all; `cost` is the price in credits, charged and shown
+   exactly as written (it is skills that SKILL_CR doubles, not hulls).
    Multipliers are the truth and the letter grades are derived from them, so a
    card can never lie about a ship.                                          */
 const SHIPS=[
@@ -1887,7 +1879,7 @@ function makeStars(){
 makeStars();
 
 /* ══════════════════════ THE COLD OPEN ══════════════════════
-   Every run opens the same way: the defence net comes up, reads the pilot it
+   Every run opens the same way: the defense net comes up, reads the pilot it
    has been given, and hands them four systems. It is the one place the game
    states the stake out loud — one hull, one run — so it plays before the
    first wave. Any key skips it.                                       */
@@ -1898,10 +1890,10 @@ function cineStart(then){
   const st=stats(), sh=SHIP();
   cine={t:0, then, lines:[
     [0.55,'> UPLINK  . . . . . . . . . .  ESTABLISHED'],
-    [1.05,'> DEFENCE NET  . . . . . . .  ONLINE'],
+    [1.05,'> DEFENSE NET  . . . . . . .  ONLINE'],
     [1.55,'> PILOT RECORD  . . . . . .  '+(save.deepestSys>0?'ON FILE':'NONE')],
     [2.05,'> HULL  . . . . . . . . . . .  '+sh.n],
-    [2.55,'> SKILL NUMBER  . . . . . . . .  '+owned().length+' / '+SKILLS.length+' NODES'],
+    [2.55,'> SKILLS UNLOCKED  . . . . . . . .  '+owned().length+' / '+SKILLS.length+''],
     [3.05,'> INTEGRITY  . . . . . . . .  '+Math.round(st.maxHp)+' HP'],
     [3.55,'> SYSTEMS INBOUND  . . . .  '+SYSTEMS.length],
   ]};
@@ -2002,7 +1994,7 @@ function cineDraw(){
     ctx.font='600 26px Menlo,monospace';
     ctx.shadowColor='#dfe9ff'; ctx.shadowBlur=26*k;
     ctx.fillStyle='#dfe9ff';
-    ctx.fillText('DEFENCE OF EARTH',0,0);
+    ctx.fillText('DEFENSE OF EARTH',0,0);
     ctx.shadowBlur=0;
     ctx.restore();
     ctx.globalAlpha=1;
@@ -2035,9 +2027,10 @@ let branchSortie=false;
    into it: same system or same branch, from the top, at full hull. */
 let relaunch=null;
 function newBranch(kind,i){
+  if(!save.flown){ save.flown=true; persist(); }
   relaunch=()=>newBranch(kind,i);
   const st=stats();
-  player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
+  player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=i; paused=false;
@@ -2049,10 +2042,11 @@ function newBranch(kind,i){
 }
 
 function newRun(quick){
+  if(!save.flown){ save.flown=true; persist(); }
   const i=mapPick;
   relaunch=()=>{ mapPick=i; mapPickK=null; newRun(true); };
   const st=stats();
-  player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0};
+  player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
   score=0; shake=0; wave=0; sysIdx=mapPick; paused=false;
@@ -2088,8 +2082,22 @@ const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>
 
 /* What the place itself does to you, for the launch readout. The hazard is as
    much a part of choosing a node as the threat multiplier is. */
-const HAZ_NAME={none:'NONE', vents:'FIRE VENTS \u00b7 DUST', well:'GRAVITY WELLS', rings:'RING DEBRIS',
+const HAZ_NAME={none:'NONE', vents:'FIRE VENTS', well:'GRAVITY WELLS', rings:'RING DEBRIS',
                 lowg:'LOW GRAVITY', storm:'ICE STORMS', raiders:'LASER RAIDERS'};
+
+/* ---- the death recap ----
+   `killer` is the last thing that took hull off you, named the way the
+   bestiary names it, and the death screen says it. A Titan or any boss is
+   its own name; a round is its shooter's; the arena is its hazard.        */
+let killer='';
+// «WRITE:» what each hazard is called when it is the thing that got you
+const HAZ_KILL={vents:'FIRE VENT', rings:'RING DEBRIS', storm:'HAIL', raiders:'LASER RAIDER'};
+function unitName(e){
+  if(e.B) return e.B.n;
+  const r=CODEX.hostiles.rows.find(r=>r.u===e.t);
+  return r ? r.n : String(e.t).toUpperCase();
+}
+const recap=()=> killer ? 'KILLED BY <span class="key">'+killer+'</span><br><br>' : '';   // «WRITE:» KILLED BY
 
 function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
@@ -2119,7 +2127,7 @@ function branchOverview(k,i){
            eye:     ['Dodge storm fronts and stay in the eye to avoid instant ship destruction.', 'The storm fronts.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
-  return lpanel('ENEMY FORCES',
+  return lpanel('ENEMY FORCE DETAILS',
            lrow('THE RUN', M[0], '', 1)+
            lrow('OPPOSITION', M[1], k==='run'?'':'bad', 1)+
            (best?lrow('BEST TIME', best.toFixed(1)+'s','good'):'')+
@@ -2235,6 +2243,8 @@ function systemCleared(){
     lrow('BEST', save.best));
   const t=SYS_CLEAR_TEXT[i];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
+  doneTreeBtn();
+  if(finaleArmed) $('btnDoneTree').style.display='none';   // this card is about to be taken away
   state='done'; show('done');
   // ...and then it does not hold
   if(finaleArmed) after(1.0,startFinale);
@@ -2797,7 +2807,7 @@ function actHammer(e,dt,dx,dy,T){
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y) < rr*rr && P.inv<=0 && buffs.shield<=0){
       P.hp-=heavyDmg(e,55)*DIFF().dmgIn*P.st.armour;
-      P.inv=.5; pilotHurt();
+      P.inv=.5; pilotHurt(); killer=unitName(e);
       burst(P.x,P.y,'#ff2233',20,320);
     }
     shock(m.x,m.y,'#ff2233',m.r*.3,m.r*1.25,.45,8);
@@ -2949,7 +2959,7 @@ function actBeam(e,dt,dx,dy,T){
       const ox=P.x-m.x, oy=P.y-m.y, al=ox*cx+oy*cy, off=Math.abs(ox*cy-oy*cx);
       if(al>-20&&off<hw+12&&P.inv<=0&&buffs.shield<=0){
         P.hp-=BEAM_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
-        P.inv=.5; pilotHurt();
+        P.inv=.5; pilotHurt(); killer=unitName(e);
         // thrown out of the lane, to whichever side of it you were on
         const side=Math.sign(oy*cx-ox*cy)||1;
         P.vx+=-cy*side*260; P.vy+=cx*side*260;
@@ -3041,7 +3051,7 @@ function tetherStep(e){
   const u=clamp(((P.x-e.x)*sx+(P.y-e.y)*sy)/L2,0,1);
   const qx=e.x+sx*u-P.x, qy=e.y+sy*u-P.y;
   if(qx*qx+qy*qy<(TETHER_W+13)*(TETHER_W+13)){
-    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt();
+    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
     // thrown off the line, to whichever side of it you were on
     const L=Math.sqrt(L2), side=Math.sign(sx*(P.y-e.y)-sy*(P.x-e.x))||1;
     P.vx+=-sy/L*side*280; P.vy+=sx/L*side*280;
@@ -3105,7 +3115,7 @@ function actSlam(e,dt,dx,dy,T){
     m.hit=1;
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y)<rr*rr && P.inv<=0 && buffs.shield<=0){
-      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt();
+      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
       burst(P.x,P.y,'#9fd8ff',20,320);
     }
     shock(m.x,m.y,e.col,m.r*.3,m.r*1.3,.45,8); burst(m.x,m.y,'#dff4ff',30,380);
@@ -4503,11 +4513,16 @@ function bossAI(e,dt,dx,dy,d){
       SFX.tier();
     }
   }
-  // out of frame, it repairs itself the moment the pressure comes off
+  // out of frame, it repairs itself the moment the pressure comes off — but
+  // never back over the last tier's line. .15 IS that line (hpf<.15), and
+  // knitting all the way to it dropped the boss a tier: the Archive's recall
+  // clock started over, MELTDOWN switched off, and the cutscene played again
+  // the next time you pushed it under.
   if(T.last){
     e.knit=(e.knit||0)+dt;
-    if(e.knit>1.6 && e.hp<e.max*.15){
-      e.hp=Math.min(e.max*.15, e.hp+e.max*.028*dt);
+    const knitTo=e.max*.15-1;
+    if(e.knit>1.6 && e.hp<knitTo){
+      e.hp=Math.min(knitTo, e.hp+e.max*.028*dt);
       if(Math.random()<dt*13) burst(e.x+rand(-e.r,e.r),e.y+rand(-e.r,e.r),'#c9b8ff',3,120);
     }
   }
@@ -5166,7 +5181,7 @@ function update(dt){
           const ox=P.x-e.x, oy=P.y-e.y, al=clamp(ox*cx+oy*cy,e.r,GLAC_LEN);
           const qx=e.x+cx*al-P.x, qy=e.y+cy*al-P.y;
           if(qx*qx+qy*qy<(GLAC_W+13)*(GLAC_W+13)){
-            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt();
+            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
             // knocked off the arm, the way it is sweeping
             const sd=Math.sign(e.armV)||1; P.vx+=-cy*sd*240; P.vy+=cx*sd*240;
             burst(P.x,P.y,'#dff4ff',14,240);
@@ -5336,6 +5351,7 @@ function update(dt){
        while its middle was still outside the arena is taken back; its cooldown
        has already reset, so it simply fires once it is in. Bosses and their
        echoes are left alone — their fights are authored on their own terms. */
+    for(let q=n0;q<ebullets.length;q++) if(!ebullets[q].src) ebullets[q].src=e;
     if(e.t!=='boss'&&e.t!=='echo'&&ebullets.length>n0&&(e.x<0||e.x>W||e.y<0||e.y>H)) ebullets.length=n0;
     if(lowgOn()) lowgDrift(e,ox,oy,dt);
     // Nothing leaves the arena. An enemy is free until it has arrived, and
@@ -5410,7 +5426,7 @@ function update(dt){
             // comes next is not the victory screen, whatever the screen says
             if(e.B.k==='ruler'&&!e.B.final&&e.B.tiers[e.tier]&&e.B.tiers[e.tier].last)
               armFinale();
-            credit(CREDIT_BOSS);
+            if(!mission) credit(CREDIT_BOSS);   // a branch boss is paid by its branch, once
             bossDeathFx(e);
             enemies.length=0; break;
           }
@@ -5467,6 +5483,7 @@ function update(dt){
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
       P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12; pilotHurt();
+      killer=b.src?unitName(b.src):'ENEMY FIRE';     // «WRITE:» the fallback
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -5481,7 +5498,7 @@ function update(dt){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
               :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:10)
                *DIFF().dmgIn*P.st.armour*WV().dmg;
-        pilotHurt();
+        pilotHurt(); killer=unitName(e);
         P.inv=.5;
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
@@ -5521,7 +5538,7 @@ function update(dt){
 function sideFailText(M,why){
   $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';   // «WRITE:»
   $('overSub').textContent = (why||'SHIP DESTROYED')+' \u2014 '+(M.B?M.B.n:branchName(M.k));
-  $('overMeta').innerHTML = 'NO CREDITS EARNED &nbsp;\u00b7&nbsp; SCORE <span class="key">'+score+
+  $('overMeta').innerHTML = (why?'':recap())+'NO CREDITS EARNED &nbsp;\u00b7&nbsp; SCORE <span class="key">'+score+
     '</span> &nbsp;\u00b7&nbsp; BEST <span class="key">'+save.best+'</span>';
   $('btnRelaunch').style.display = relaunch ? '' : 'none';
 }
@@ -5538,7 +5555,7 @@ function endRun(win,why){
     ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
     : why ? why+' — '+SYS().name
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
-  document.getElementById('overMeta').innerHTML =
+  document.getElementById('overMeta').innerHTML = (win?'':recap())+
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
     (win?'':'<br><br>If your ship is destroyed, your progress in that system will be destroyed. '+
             'You can re-launch to the system to try again.');
@@ -5560,8 +5577,7 @@ function endRun(win,why){
    Four hazards, and each one asks a different question of the pilot:
 
      vents   (Venus)   Four fire vents on a fixed rotation, one erupting at a
-                       time, plus dust that drags on the hull and hides what is
-                       behind it. The rhythm never changes inside a wave, so it
+                       time. The rhythm never changes inside a wave, so it
                        is learnable — and the fire burns Iterations too, which
                        makes a vent something to bait them across.
      well    (Jupiter) One gravity well at a time, somewhere random, pulling
@@ -5604,7 +5620,6 @@ const HAZ_RATE=()=>{const k=DIFF().k; return k==='low'?.72:k==='high'?1.32:1;};
 const HAZ_ENEMY=5;
 const VENT_N=4, VENT_R=76, VENT_CYC=4.6, VENT_WARN=1.0, VENT_BURN=.72, VENT_DMG=15;
 const VENT_BOSS=14;   // a boss burns at this multiple of the tick a hostile takes
-const DUST_N=3, DUST_DRAG=.12, DUST_MOTES=80;
 const WELL_R=270, WELL_G=1050, WELL_LIFE=9, WELL_GAP=4.2, WELL_RAMP=.8;
 const RING_HW=54, RING_WARN=1.3, RING_V=1300, RING_TRAIN=950, RING_DMG=18, RING_BOSS=5;
 const RING_GAP=[3.2,4.8], RING_OFF=170;
@@ -5630,16 +5645,6 @@ function ventRing(){
     v.push({x,y,off:i/VENT_N*VENT_CYC});
   }
   return v;
-}
-function makeDust(){
-  const d={x:rand(0,W), y:rand(0,H), r:rand(74,112),
-           vx:rand(-30,30), vy:rand(-30,30), t:rand(0,TAU), m:[]};
-  // the grit itself, in the cloud's own space, so it drifts with it
-  for(let i=0;i<DUST_MOTES;i++){
-    const a=rand(0,TAU), rr=Math.sqrt(Math.random())*.95;
-    d.m.push({a, rr, sp:rand(.25,.9), s:rand(1.2,3)});
-  }
-  return d;
 }
 // a well never opens on top of the pilot — being grabbed with no warning is not
 // a hazard, it is a tax
@@ -5723,12 +5728,11 @@ function inFront(o,pad){
 // called when a system is entered: builds the arena, or leaves it empty
 function worldStart(){
   const h=SYS().haz;
-  world = h ? {h, t:0, vents:[], dust:[], well:null, gap:1.8, raid:[], next:rand(3,5),
+  world = h ? {h, t:0, vents:[], well:null, gap:1.8, raid:[], next:rand(3,5),
                lane:null, bits:[], pads:[], front:null, fog:0, hail:0} : null;
   if(!world) return;
   if(h==='lowg') for(let i=0;i<LOWG_N;i++) world.pads.push(makePad());
-  if(h==='vents'){ world.vents=ventRing();
-    for(let i=0;i<DUST_N;i++) world.dust.push(makeDust()); }
+  if(h==='vents') world.vents=ventRing();
 }
 // a new wave re-rolls the layout without changing the rules of it
 function worldWave(){
@@ -6087,6 +6091,7 @@ function hazHurt(dmg,x,y,col,kick){
   if(P.inv>0||buffs.shield>0) return false;
   P.hp-=dmg*HAZ_DMG()*P.st.armour;
   P.inv=.5; pilotHurt();
+  killer=HAZ_KILL[world&&world.h]||'THE ARENA';     // «WRITE:» the fallback
   burst(P.x,P.y,col,14,260);
   if(kick){ const a=Math.atan2(P.y-y,P.x-x);
     P.vx+=Math.cos(a)*kick; P.vy+=Math.sin(a)*kick; }
@@ -6101,7 +6106,7 @@ function hazBossKill(e){
   if(e.twin&&enemies.includes(e.twin)){ const j=enemies.indexOf(e); if(j>=0) enemies.splice(j,1);
     score+=e.val; duoFall(e); return; }
   score+=e.val; shake=Math.max(shake,26);
-  credit(CREDIT_BOSS);
+  if(!mission) credit(CREDIT_BOSS);           // a branch boss is paid by its branch, once
   bossDeathFx(e);
   enemies.length=0;
 }
@@ -6128,7 +6133,7 @@ function worldStep(dt){
   const P=player;
   world.t+=dt;
 
-  /* ---- Venus: vents and dust ---- */
+  /* ---- Venus: vents ---- */
   if(world.h==='vents'){
     for(const v of world.vents){
       const ph=ventPhase(v);
@@ -6150,228 +6155,12 @@ function worldStep(dt){
         }
       }
     }
-    // dust drifts, wraps, and thickens the air inside it
-    let inDust=false;
-    for(const d of world.dust){
-      d.x+=d.vx*dt; d.y+=d.vy*dt; d.t+=dt*.6;
-      if(d.x<-d.r) d.x=W+d.r; if(d.x>W+d.r) d.x=-d.r;
-      if(d.y<-d.r) d.y=H+d.r; if(d.y>H+d.r) d.y=-d.r;
-      if(dist2(d,P)<d.r*d.r) inDust=true;
-    }
-    if(inDust){
-      // it does not push you, it holds you: heavy drag and a hard cap on the
-      // speed you are allowed to carry inside it
-      const k=Math.pow(DUST_DRAG,dt); P.vx*=k; P.vy*=k;
-      const sp=Math.hypot(P.vx,P.vy), cap=P.st.speed*.42;
-      if(sp>cap){ P.vx=P.vx/sp*cap; P.vy=P.vy/sp*cap; }
-      if(Math.random()<.5) parts.push({x:P.x+rand(-14,14),y:P.y+rand(-14,14),
-        vx:rand(-20,20),vy:rand(-20,20),life:.45,t:0,col:'#8a6a4e',r:2});
-    }
-  }
-
-  /* ---- Jupiter: the well ---- */
-  if(world.h==='well'){
-    const g=WELL_G*(DIFF().k==='low'?.72:DIFF().k==='high'?1.25:1);
-    if(!world.well){
-      world.gap-=dt;
-      if(world.gap<=0) world.well=placeWell();
-    }else{
-      const w=world.well; w.t+=dt;
-      const life=WELL_LIFE/ (DIFF().k==='low'?1.25:1);
-      // fade in, hold, fade out — so nothing ever snaps on at full strength
-      const amp = w.t<WELL_RAMP ? w.t/WELL_RAMP
-                : w.t>life-WELL_RAMP ? Math.max(0,(life-w.t)/WELL_RAMP) : 1;
-      w.amp=amp;
-      const pull=(o,k)=>{
-        const dx=w.x-o.x, dy=w.y-o.y, d=Math.hypot(dx,dy)||1;
-        if(d>WELL_R) return;
-        const f=g*amp*(1-d/WELL_R)*k*dt;
-        o.vx+=dx/d*f; o.vy+=dy/d*f;
-      };
-      pull(P,1);
-      // fire bends rather than turns: enough arc to see and aim around, never
-      // enough to make shooting across a well pointless
-      for(const b of bullets)  pull(b,.3);
-      for(const b of ebullets) pull(b,.3);
-      for(const u of pickups)  pull(u,.8);
-      // hostiles are flown by position rather than by velocity, so they get
-      // walked in instead of accelerated
-      for(const e of enemies){
-        if(e.t==='boss') continue;
-        const dx=w.x-e.x, dy=w.y-e.y, d=Math.hypot(dx,dy)||1;
-        if(d>WELL_R) continue;
-        const f=110*amp*(1-d/WELL_R)*dt;
-        e.x+=dx/d*f; e.y+=dy/d*f;
-      }
-      if(Math.random()<.6){
-        const a=rand(0,TAU), rr=rand(WELL_R*.5,WELL_R);
-        parts.push({x:w.x+Math.cos(a)*rr,y:w.y+Math.sin(a)*rr,
-          vx:-Math.cos(a)*90,vy:-Math.sin(a)*90,life:.5,t:0,col:'#8fa8ff',r:2});
-      }
-      if(w.t>=life){ world.well=null; world.gap=WELL_GAP/HAZ_RATE(); }
-    }
-  }
-
-  /* ---- Luna: low gravity ---- */
-  if(world.h==='lowg'){
-    for(let i=world.pads.length-1;i>=0;i--){
-      const p=world.pads[i];
-      p.t+=dt;
-      p.amp=p.die ? p.amp-dt/LOWG_FADE : Math.min(1,p.amp+dt/LOWG_FADE);
-      if(p.die&&p.amp<=0){ world.pads.splice(i,1); continue; }
-      p.x+=p.vx*dt; p.y+=p.vy*dt;
-      if(p.x<p.R*.4||p.x>W-p.R*.4) p.vx*=-1;
-      if(p.y<p.R*.4||p.y>H-p.R*.4) p.vy*=-1;
-    }
-  }
-
-  /* ---- Saturn: the ring sweep ---- */
-  if(world.h==='rings'){
-    if(!world.lane){
-      world.next-=dt;
-      if(world.next<=0) world.lane=placeLane();
-    }else{
-      const L=world.lane; L.t+=dt;
-      const warn=RING_WARN/(DIFF().k==='low'?.8:1);
-      if(L.t>=warn){
-        // the front of the train, measured along the lane from its far end
-        const run=(L.t-warn)*RING_V, front=-L.half+run, tail=front-RING_TRAIN;
-        const inLane=(o,pad)=>{
-          const ox=o.x-L.x, oy=o.y-L.y;
-          const along=ox*L.cx+oy*L.cy, off=Math.abs(ox*L.cy-oy*L.cx);
-          return off<RING_HW+pad && along<front && along>tail;
-        };
-        // it throws you out sideways, off the line it runs down
-        if(inLane(P,11)){ const al=(P.x-L.x)*L.cx+(P.y-L.y)*L.cy;
-          hazHurt(RING_DMG,L.x+L.cx*al,L.y+L.cy*al,'#e8d9a8',260); }
-        for(let j=enemies.length-1;j>=0;j--){
-          const e=enemies[j];
-          if(e.inv>0||e.t==='echo'||!inLane(e,e.r*.6)) continue;
-          e.hp-=RING_DMG*(e.t==='boss'?RING_BOSS:3)*HAZ_ENEMY*dt;
-          if(Math.random()<.3) parts.push({x:e.x,y:e.y,vx:L.cx*200,vy:L.cy*200,life:.3,t:0,col:'#e8d9a8',r:2});
-          if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#e8d9a8'); }
-        }
-        // the debris itself: thrown in at the far end while the train is still coming
-        if(run<RING_TRAIN) L.acc=(L.acc||0)+150*dt;
-        while(L.acc>=1){
-          L.acc--;
-          const w=rand(-RING_HW,RING_HW)*.92;
-          world.bits.push({s:-L.half-rand(0,RING_V*dt), w, r:rand(2.5,7), rot:rand(0,TAU),
-            spin:rand(-8,8), v:RING_V*rand(.94,1.06), ice:Math.random()<.4});
-        }
-        if(tail>L.half){ world.lane=null; world.bits=[]; world.next=rand(RING_GAP[0],RING_GAP[1])/HAZ_RATE(); }
-      }
-      for(let i=world.bits.length-1;i>=0;i--){
-        const b=world.bits[i]; b.s+=b.v*dt; b.rot+=b.spin*dt;
-        if(b.s>L.half+40) world.bits.splice(i,1);
-      }
-    }
-  }
-
-  /* ---- Neptune: the blizzard ---- */
-  if(world.h==='storm'){
-    // the Eye of the Storm brings its own fronts, and the ordinary ones stay away
-    const eyeRun=mission&&mission.k==='eye';
-    if(eyeRun) world.front=null;
-    else if(!world.front){
-      // it holds off while a Titan is standing
-      if(!enemies.some(e=>e.B&&e.B.duoPart)) world.next-=dt;
-      if(world.next<=0) world.front=placeFront();
-    }else{
-      const F=world.front; F.t+=dt;
-      if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*dt;
-      if(F.s>F.L){ world.front=null; world.next=rand(STORM_GAP[0],STORM_GAP[1])/HAZ_RATE(); }
-    }
-    const inside=inFront(P)||(eyeRun&&(eyeFrontHit(P)||outsideEye(P)));
-    world.fog+=((inside?1:0)-world.fog)*Math.min(1,dt*3.5);
-    if(inside){
-      world.hail-=dt;
-      if(world.hail<=0){ world.hail=STORM_TICK; hazHurt(eyeRun?EYE_HIT:STORM_HIT,P.x,P.y,'#dff4ff',0); }
-    }else world.hail=0;
-    // it hails on them too — in a front. The whiteout round the eye is their
-    // weather; they fly through it untouched, or they would never reach you
-    for(let j=enemies.length-1;j>=0;j--){
-      const e=enemies[j];
-      if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!(inFront(e)||(eyeRun&&eyeFrontHit(e)))) continue;
-      e.hp-=STORM_HIT*(e.t==='boss'?3:2)*HAZ_ENEMY*dt;
-      if(Math.random()<.15) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#dff4ff',r:2});
-      if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#dff4ff'); }
-    }
-  }
-
-  /* ---- Icarus: raiders ---- */
-  if(world.h==='raiders'){
-    world.next-=dt;
-    if(world.next<=0 && world.raid.length<3){
-      world.next=rand(6,9.5)/HAZ_RATE();
-      const p=edgeSpawn();
-      // it takes station at arm's length: a beam fired from your own hull is not
-      // a shot you can be asked to read
-      let tx=W/2, ty=H/2;
-      for(let k=0;k<24;k++){
-        tx=rand(W*.16,W*.84); ty=rand(H*.16,H*.84);
-        if((tx-P.x)*(tx-P.x)+(ty-P.y)*(ty-P.y)>190*190) break;
-      }
-      world.raid.push({x:p.x,y:p.y,a:0,r:RAID_W,st:'in',t:0,tx,ty,
-        hp:RAID_HP*DIFF().ehp, max:RAID_HP*DIFF().ehp, ba:0, spin:0});
-    }
-    for(let i=world.raid.length-1;i>=0;i--){
-      const R=world.raid[i]; R.t+=dt; R.spin+=dt*3;
-      if(R.st==='in'){
-        const dx=R.tx-R.x, dy=R.ty-R.y, d=Math.hypot(dx,dy)||1;
-        R.a=Math.atan2(dy,dx);
-        R.x+=dx/d*290*dt; R.y+=dy/d*290*dt;
-        if(d<16){ R.st='aim'; R.t=0; R.ba=Math.atan2(P.y-R.y,P.x-R.x); }
-      }
-      else if(R.st==='aim'){
-        R.a=R.ba;                                  // the line is locked: dodge it
-        if(R.t>=RAID_AIM/HAZ_RATE()){
-          R.st='fire'; R.t=0; SFX.crack();
-          // hitscan down the painted line, once
-          const cx=Math.cos(R.ba), cy=Math.sin(R.ba);
-          const px=P.x-R.x, py=P.y-R.y, along=px*cx+py*cy;
-          const off=Math.abs(px*cy-py*cx);
-          if(along>0&&off<RAID_W+8) hazHurt(RAID_DMG,R.x,R.y,'#ff4d5e',0);
-          shake=Math.max(shake,9);
-        }
-      }
-      else if(R.st==='fire'){
-        R.a=R.ba;
-        if(R.t>=RAID_BEAM){ R.st='out'; R.t=0;
-          R.fa=Math.atan2(R.y-H/2,R.x-W/2); }
-      }
-      else{                                        // leaving, and unkillable once gone
-        R.x+=Math.cos(R.fa)*470*dt; R.y+=Math.sin(R.fa)*470*dt;
-        R.a=R.fa;
-        if(R.x<-80||R.x>W+80||R.y<-80||R.y>H+80){ world.raid.splice(i,1); continue; }
-      }
-      // your fire brings one down — for nothing but the quiet
-      for(let k=bullets.length-1;k>=0;k--){
-        const b=bullets[k], rr=R.r+b.r+3;
-        if(b.hit.includes(R)) continue;
-        if(dist2(b,R)<rr*rr){
-          R.hp-=b.dmg; b.hit.push(R); SFX.hit();
-          burst(b.x,b.y,'#c9d4ee',4,150);
-          if(b.hit.length>b.pierce) bullets.splice(k,1);
-          if(R.hp<=0){
-            burst(R.x,R.y,'#c9d4ee',22,320); SFX.kill(false);
-            world.raid.splice(i,1); break;
-          }
-        }
-      }
-      // it will clip you on the way in or the way out — but a raider holding
-      // station is a laser problem, not a wall, so parked it cannot touch you
-      if(world.raid[i]===R && (R.st==='in'||R.st==='out')){
-        const rr=R.r+13;
-        if(dist2(R,P)<rr*rr) hazHurt(9,R.x,R.y,'#c9d4ee',340);
-      }
-    }
   }
 }
 
 /* ---- the arena, drawn ----
    Floor first, under everything that flies: vent plates, the well. Then the
-   part that has to read over the top of a fight: fire, dust, raiders, beams. */
+   part that has to read over the top of a fight: fire, raiders, beams. */
 function worldFloor(){
   if(!world) return;
   if(world.h==='storm') stormFloor();
@@ -6508,30 +6297,6 @@ function worldDraw(){
       ctx.beginPath(); ctx.arc(0,0,9+3*Math.sin(world.t*30),0,TAU); ctx.fill();
       ctx.restore(); ctx.shadowBlur=0;
     }
-    // dust last: it is meant to get between you and the fight. Grit, though —
-    // a soft brown disc this size just reads as a planet parked in the arena.
-    for(const d of world.dust){
-      ctx.save(); ctx.translate(d.x,d.y);
-      const br=d.r*(1+.03*Math.sin(d.t));
-      const g=ctx.createRadialGradient(0,0,br*.1,0,0,br);
-      g.addColorStop(0,'rgba(150,118,84,.4)');
-      g.addColorStop(.7,'rgba(126,100,72,.26)');
-      g.addColorStop(1,'rgba(126,100,72,0)');
-      ctx.fillStyle=g;
-      ctx.beginPath(); ctx.arc(0,0,br,0,TAU); ctx.fill();
-      // a rim, so the edge of the slow is somewhere you can see rather than
-      // somewhere you discover by losing your speed in it
-      ctx.strokeStyle='rgba(206,172,128,.34)'; ctx.lineWidth=1.6;
-      ctx.setLineDash([7,9]); ctx.lineDashOffset=-d.t*14;
-      ctx.beginPath(); ctx.arc(0,0,br,0,TAU); ctx.stroke();
-      ctx.setLineDash([]);
-      for(const m of d.m){
-        const a=m.a+d.t*m.sp, rr=m.rr*br;
-        ctx.fillStyle='rgba(224,196,156,'+(.85*(1-m.rr*.55))+')';
-        ctx.fillRect(Math.cos(a)*rr,Math.sin(a)*rr,m.s,m.s);
-      }
-      ctx.restore();
-    }
   }
   if(world.h==='rings'&&world.lane){
     const L=world.lane;
@@ -6604,7 +6369,7 @@ let glitch=[];              // the fault lines, as they arrive
 let finaleArmed=false;      // the Ruler fell out of frame: this is coming
 let finaleDone=false;       // ...and it has already happened this run
 
-/* PROSE — what the defence net says while it is coming apart. Terse machine
+/* PROSE — what the defense net says while it is coming apart. Terse machine
    faults, not sentences. «WRITE:» yours if you want them in your own voice. */
 const GLITCH_LINES=[
   'ERROR..UNKNOWN LIFEFORM',
@@ -7198,7 +6963,7 @@ const SIDE_CLEAR_TEXT={
   run:     'Congratulations on completing the supply run.',
   bounty:  'Congratulations on tracking down the variant.',
   gauntlet:'Congratulations on wiping out the hordes without getting damaged.',
-  echo:    'Congratulations on defeating the second alien swarm.',
+  echo:    'Congratulations on defeating the returning enemies.',
   eye:     'Congratulations on flying through the storm.',
   boss:    'Congratulations on defeating the strange enemy!',
 };
@@ -7221,6 +6986,7 @@ function missionVictory(M){
     lrow('SCORE', score));
   const t=SIDE_CLEAR_TEXT[M.k];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
+  doneTreeBtn();
   state='done'; show('done');
 }
 
@@ -8884,7 +8650,7 @@ const CODEX={
   hostiles:{ label:'HOSTILES', sub:'what is out there', rows:[
     {c:'#4d9dff', n:'ITERATION', tag:'EARTH  ·  LINE UNIT', sys:0,
      u:'grunt', a:[32,78,9,.48,10], ctr:'Cut inside its turn and get in close.',
-     t:'Fires blue pulses. The basic enemy unit. It holds its distance, and orbits.'+
+     t:'Fires blue pulses. The basic enemy unit. It holds its distance, and orbits. '+
        'From Jupiter it shoots twice as fast.'},
     {c:'#46e39b', n:'WATCHER', tag:'EARTH  ·  RAM', sys:0,
      u:'dart', a:[14,122,9,0,9], ctr:'Kill it at range, it costs nothing there.',
@@ -8897,7 +8663,7 @@ const CODEX={
        'retreats, it leads its shots, and from Venus it sometimes braces and '+
        'opens with a five-shell spread instead of three.'},
     {c:'#ffb44d', n:'TRACKER', tag:'VENUS  ·  SEEKER', sys:1,
-     u:'tracker', a:[55,120,12,.32,10], ctr:'Outrun the seekers for a few secondss and they go straight. Then close.',
+     u:'tracker', a:[55,120,12,.32,10], ctr:'Outrun the seekers for a few seconds and they go straight. Then close.',
      t:'Hangs back and launches homing seekers. Outrun them — they burn out after '+
        'about four and a half seconds and fly straight afterwards. From Jupiter '+
        'it fires them two at a time.'},
@@ -8924,7 +8690,7 @@ const CODEX={
     {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:6,
      u:'splinter', a:[169,110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
-       'you. It holds a working distance and weaves while it reloads, so the orb '+
+       'you. Those shards continue to break until an unstoppable torrent of shards are coming. It holds a working distance and weaves while it reloads, so the orb '+
        'is the warning and the fan is the attack.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'EARTH  ·  WAVE 5', sys:0,
      u:'b_primary', a:[1284,62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
@@ -8955,18 +8721,18 @@ const CODEX={
      t:'The tanky Titan. Get in close and dodge its lightning attacks and AOE beams.'},
     {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:6, void:1,
      u:'b_ruler', a:[1553,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
-     t:'The enemy leader, and the creature the other three answered to. Extremely '+
+     t:'The enemy leader, and the creature that all the other bosses answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
     /* The two behind the Portal. `hide` keeps a row off the list entirely until
        that key has been surveyed, which happens the moment the fight starts —
        so neither is a padlock on the roster hinting at something you have not
        been told about yet. */
     {c:'#8dffc4', n:'ITERATION 3295', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'s3295',
-     u:'b_primary', a:[5320,145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
+     u:'b_s3295', a:[5320,145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
      t:'An Iteration that was never deployed. It fights at close range at speed, '+
        'and its lines run longer between openings than any campaign boss.'},
     {c:'#c78dff', n:'THE ARCHIVE', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'archive',
-     u:'b_ruler', a:[12075,64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
+     u:'b_archive', a:[12075,64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
      t:'Everything the Iterations ever recorded, kept in one frame. It is slow, it '+
        'is enormous, and it rewrites what it is doing as you fight it.'},
   ]},
@@ -9277,8 +9043,14 @@ function buildSound(){
   }
 }
 
+/* New pilots fly run after run and never find out credits buy skills. So the
+   SKILL TREE button lights up, the way the Garage does, whenever there is a
+   skill you can buy right now — on the title, and on the result card, where
+   it turns up as its own button beside SPACE MAP.                         */
+const skillReady=()=>SKILLS.some(canBuy);
 function refreshMenu(){
   const buyable=SHIPS.some((sh,i)=>shipBuy(i));
+  $('btnTreeMenu').className = skillReady()?'hot':'ghost';
   $('btnGarage').className = buyable?'hot':'ghost';
   $('btnGarage').textContent='GARAGE';
   buildSound(); buildDiff();
@@ -9368,6 +9140,7 @@ function loadCode(code){
   for(let i=1;i<SHIPS.length;i++) save.trees[i]=f.length>6+i?fromMask(f[6+i]):[];
   save.owned=[];
   save.unlocked=true;   // the tree is never locked; the flag is kept for old codes
+  save.flown=true;      // a code is a pilot who has flown
   /* Field 5 is the hulls and field 6 the credits. These used to be read only
      when a code ended exactly there, so every code made since the per-hull
      trees went in came back with the starter hull and no credits. */
@@ -9418,7 +9191,13 @@ $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
 
 $('btnStoryBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 
-$('btnStart').onclick=()=>openMap('menu');
+/* The very first LAUNCH skips the chart and the launching screen and puts you
+   in Earth: a new player has nothing to choose yet and should be flying, not
+   reading. Every LAUNCH after that opens the map as usual. */
+$('btnStart').onclick=()=>{
+  if(!save.flown){ mapPick=0; mapPickK=null; newRun(); return; }
+  openMap('menu');
+};
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
 // every flight off the map goes through the launching screen first
@@ -9428,15 +9207,23 @@ function mapLaunch(i,k){
   launchGo = k ? ()=>{ hideAll(); newBranch(k,i); } : ()=>{ hideAll(); newRun(); };
 }
 $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
-$('btnDoneGo').onclick=()=>{ hideAll(); openMap('menu'); };
+/* The card after the first Ruler is the lie the finale breaks a second later.
+   It has to still be on screen when it breaks, so nothing takes you off it. */
+$('btnDoneGo').onclick=()=>{ if(finaleArmed) return; hideAll(); openMap('menu'); };
 $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
 $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnRegPrev').onclick=()=>mapRegStep(-1);
 $('btnRegNext').onclick=()=>mapRegStep(1);
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 // the tree only opens from the home screen now, so it only ever goes back there
-$('btnTreeBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
-$('btnTreeMenu').onclick=()=>{buildTree();show('skills');};
+let treeFrom='menu';
+$('btnTreeBack').onclick=()=>{
+  if(treeFrom==='done'){ treeFrom='menu'; doneTreeBtn(); state='done'; show('done'); return; }
+  state='menu'; refreshMenu(); show('menu'); };
+$('btnTreeMenu').onclick=()=>{ treeFrom='menu'; buildTree(); show('skills'); };
+$('btnDoneTree').onclick=()=>{ treeFrom='done'; buildTree(); show('skills'); };
+// on the result card only while there is something to buy
+function doneTreeBtn(){ $('btnDoneTree').style.display = skillReady()?'':'none'; }
 
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
@@ -9453,7 +9240,13 @@ function onEscape(){
   if(o==='launch'){ $('btnLaunchBack').onclick(); return; }
   if(o==='skills'){ $('btnTreeBack').onclick(); return; }
   if(o==='menu') return;
-  if(o){ refreshMenu(); show('menu'); }
+  if(o==='done'&&finaleArmed) return;         // the finale is about to break this card
+  // screens with a BACK of their own go back the way it does — the Bestiary
+  // opened from pause returns to pause, one opened from the gear to the gear
+  const back={codex:'btnCodexBack',code:'btnCodeBack',story:'btnStoryBack',map:'btnMapBack'}[o];
+  if(back){ $(back).onclick(); return; }
+  // anything else lands on the title, and the game has to know it is there
+  if(o){ state='menu'; refreshMenu(); show('menu'); }
 }
 function onEnter(){
   const o=openOverlay();
