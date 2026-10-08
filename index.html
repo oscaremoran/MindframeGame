@@ -7008,14 +7008,14 @@ function eyeTick(dt){
     if(F.t>=EYE_FWARN) F.s+=EYE_FV*dt;
     if(F.s>F.L) M.fronts.splice(i,1);
   }
-  // the eye opens where you are, so getting into it is never the hard part
   // the eye opens where you are — its loop is phased to start on you — and
   // from then on it never stops
   if(!M.eye&&M.t>=EYE_CROSS){
     const ax=Math.max(0,W/2-EYE_R0-30), ay=Math.max(0,H/2-EYE_R0-30);
     const ph=(v,A)=>{ const s0=Math.asin(clamp(A?v/A:0,-1,1)); return Math.random()<.5?s0:Math.PI-s0; };
     M.eye={ax, ay, t0:M.t, px:ph(P.x-W/2,ax), py:ph(P.y-H/2,ay), r:EYE_R0, t:0, x:0, y:0};
-    banner='THE STORM CLOSES IN'; bannerT=2.4;   
+    banner='THE STORM CLOSES IN'; bannerT=2.4;     // «WRITE:»
+  }
   const E=M.eye; if(!E) return;
   E.t+=dt;
   const k=clamp((M.t-EYE_CROSS)/(EYE_T-EYE_CROSS),0,1);
