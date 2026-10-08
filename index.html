@@ -6483,6 +6483,205 @@ function worldStep(dt){
       }
     }
   }
+
+  /* ---- Jupiter: the well ---- */
+  if(world.h==='well'){
+    const g=WELL_G*(DIFF().k==='low'?.72:DIFF().k==='high'?1.25:1);
+    if(!world.well){
+      world.gap-=dt;
+      if(world.gap<=0) world.well=placeWell();
+    }else{
+      const w=world.well; w.t+=dt;
+      const life=WELL_LIFE/ (DIFF().k==='low'?1.25:1);
+      // fade in, hold, fade out — so nothing ever snaps on at full strength
+      const amp = w.t<WELL_RAMP ? w.t/WELL_RAMP
+                : w.t>life-WELL_RAMP ? Math.max(0,(life-w.t)/WELL_RAMP) : 1;
+      w.amp=amp;
+      const pull=(o,k)=>{
+        const dx=w.x-o.x, dy=w.y-o.y, d=Math.hypot(dx,dy)||1;
+        if(d>WELL_R) return;
+        const f=g*amp*(1-d/WELL_R)*k*dt;
+        o.vx+=dx/d*f; o.vy+=dy/d*f;
+      };
+      pull(P,1);
+      // fire bends rather than turns: enough arc to see and aim around, never
+      // enough to make shooting across a well pointless
+      for(const b of bullets)  pull(b,.3);
+      for(const b of ebullets) pull(b,.3);
+      for(const u of pickups)  pull(u,.8);
+      // hostiles are flown by position rather than by velocity, so they get
+      // walked in instead of accelerated
+      for(const e of enemies){
+        if(e.t==='boss') continue;
+        const dx=w.x-e.x, dy=w.y-e.y, d=Math.hypot(dx,dy)||1;
+        if(d>WELL_R) continue;
+        const f=110*amp*(1-d/WELL_R)*dt;
+        e.x+=dx/d*f; e.y+=dy/d*f;
+      }
+      if(Math.random()<.6){
+        const a=rand(0,TAU), rr=rand(WELL_R*.5,WELL_R);
+        parts.push({x:w.x+Math.cos(a)*rr,y:w.y+Math.sin(a)*rr,
+          vx:-Math.cos(a)*90,vy:-Math.sin(a)*90,life:.5,t:0,col:'#8fa8ff',r:2});
+      }
+      if(w.t>=life){ world.well=null; world.gap=WELL_GAP/HAZ_RATE(); }
+    }
+  }
+
+  /* ---- Luna: low gravity ---- */
+  if(world.h==='lowg'){
+    for(let i=world.pads.length-1;i>=0;i--){
+      const p=world.pads[i];
+      p.t+=dt;
+      p.amp=p.die ? p.amp-dt/LOWG_FADE : Math.min(1,p.amp+dt/LOWG_FADE);
+      if(p.die&&p.amp<=0){ world.pads.splice(i,1); continue; }
+      p.x+=p.vx*dt; p.y+=p.vy*dt;
+      if(p.x<p.R*.4||p.x>W-p.R*.4) p.vx*=-1;
+      if(p.y<p.R*.4||p.y>H-p.R*.4) p.vy*=-1;
+    }
+  }
+
+  /* ---- Saturn: the ring sweep ---- */
+  if(world.h==='rings'){
+    if(!world.lane){
+      world.next-=dt;
+      if(world.next<=0) world.lane=placeLane();
+    }else{
+      const L=world.lane; L.t+=dt;
+      const warn=RING_WARN/(DIFF().k==='low'?.8:1);
+      if(L.t>=warn){
+        // the front of the train, measured along the lane from its far end
+        const run=(L.t-warn)*RING_V, front=-L.half+run, tail=front-RING_TRAIN;
+        const inLane=(o,pad)=>{
+          const ox=o.x-L.x, oy=o.y-L.y;
+          const along=ox*L.cx+oy*L.cy, off=Math.abs(ox*L.cy-oy*L.cx);
+          return off<RING_HW+pad && along<front && along>tail;
+        };
+        // it throws you out sideways, off the line it runs down
+        if(inLane(P,11)){ const al=(P.x-L.x)*L.cx+(P.y-L.y)*L.cy;
+          hazHurt(RING_DMG,L.x+L.cx*al,L.y+L.cy*al,'#e8d9a8',260); }
+        for(let j=enemies.length-1;j>=0;j--){
+          const e=enemies[j];
+          if(e.inv>0||e.t==='echo'||!inLane(e,e.r*.6)) continue;
+          e.hp-=RING_DMG*(e.t==='boss'?RING_BOSS:3)*HAZ_ENEMY*dt;
+          if(Math.random()<.3) parts.push({x:e.x,y:e.y,vx:L.cx*200,vy:L.cy*200,life:.3,t:0,col:'#e8d9a8',r:2});
+          if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#e8d9a8'); }
+        }
+        // the debris itself: thrown in at the far end while the train is still coming
+        if(run<RING_TRAIN) L.acc=(L.acc||0)+150*dt;
+        while(L.acc>=1){
+          L.acc--;
+          const w=rand(-RING_HW,RING_HW)*.92;
+          world.bits.push({s:-L.half-rand(0,RING_V*dt), w, r:rand(2.5,7), rot:rand(0,TAU),
+            spin:rand(-8,8), v:RING_V*rand(.94,1.06), ice:Math.random()<.4});
+        }
+        if(tail>L.half){ world.lane=null; world.bits=[]; world.next=rand(RING_GAP[0],RING_GAP[1])/HAZ_RATE(); }
+      }
+      for(let i=world.bits.length-1;i>=0;i--){
+        const b=world.bits[i]; b.s+=b.v*dt; b.rot+=b.spin*dt;
+        if(b.s>L.half+40) world.bits.splice(i,1);
+      }
+    }
+  }
+
+  /* ---- Neptune: the blizzard ---- */
+  if(world.h==='storm'){
+    // the Eye of the Storm brings its own fronts, and the ordinary ones stay away
+    const eyeRun=mission&&mission.k==='eye';
+    if(eyeRun) world.front=null;
+    else if(!world.front){
+      // it holds off while a Titan is standing
+      if(!enemies.some(e=>e.B&&e.B.duoPart)) world.next-=dt;
+      if(world.next<=0) world.front=placeFront();
+    }else{
+      const F=world.front; F.t+=dt;
+      if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*dt;
+      if(F.s>F.L){ world.front=null; world.next=rand(STORM_GAP[0],STORM_GAP[1])/HAZ_RATE(); }
+    }
+    const inside=inFront(P)||(eyeRun&&(eyeFrontHit(P)||outsideEye(P)));
+    world.fog+=((inside?1:0)-world.fog)*Math.min(1,dt*3.5);
+    if(inside){
+      world.hail-=dt;
+      if(world.hail<=0){ world.hail=STORM_TICK; hazHurt(eyeRun?EYE_HIT:STORM_HIT,P.x,P.y,'#dff4ff',0); }
+    }else world.hail=0;
+    // it hails on them too — in a front. The whiteout round the eye is their
+    // weather; they fly through it untouched, or they would never reach you
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j];
+      if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!(inFront(e)||(eyeRun&&eyeFrontHit(e)))) continue;
+      e.hp-=STORM_HIT*(e.t==='boss'?3:2)*HAZ_ENEMY*dt;
+      if(Math.random()<.15) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#dff4ff',r:2});
+      if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#dff4ff'); }
+    }
+  }
+
+  /* ---- Icarus: raiders ---- */
+  if(world.h==='raiders'){
+    world.next-=dt;
+    if(world.next<=0 && world.raid.length<3){
+      world.next=rand(6,9.5)/HAZ_RATE();
+      const p=edgeSpawn();
+      // it takes station at arm's length: a beam fired from your own hull is not
+      // a shot you can be asked to read
+      let tx=W/2, ty=H/2;
+      for(let k=0;k<24;k++){
+        tx=rand(W*.16,W*.84); ty=rand(H*.16,H*.84);
+        if((tx-P.x)*(tx-P.x)+(ty-P.y)*(ty-P.y)>190*190) break;
+      }
+      world.raid.push({x:p.x,y:p.y,a:0,r:RAID_W,st:'in',t:0,tx,ty,
+        hp:RAID_HP*DIFF().ehp, max:RAID_HP*DIFF().ehp, ba:0, spin:0});
+    }
+    for(let i=world.raid.length-1;i>=0;i--){
+      const R=world.raid[i]; R.t+=dt; R.spin+=dt*3;
+      if(R.st==='in'){
+        const dx=R.tx-R.x, dy=R.ty-R.y, d=Math.hypot(dx,dy)||1;
+        R.a=Math.atan2(dy,dx);
+        R.x+=dx/d*290*dt; R.y+=dy/d*290*dt;
+        if(d<16){ R.st='aim'; R.t=0; R.ba=Math.atan2(P.y-R.y,P.x-R.x); }
+      }
+      else if(R.st==='aim'){
+        R.a=R.ba;                                  // the line is locked: dodge it
+        if(R.t>=RAID_AIM/HAZ_RATE()){
+          R.st='fire'; R.t=0; SFX.crack();
+          // hitscan down the painted line, once
+          const cx=Math.cos(R.ba), cy=Math.sin(R.ba);
+          const px=P.x-R.x, py=P.y-R.y, along=px*cx+py*cy;
+          const off=Math.abs(px*cy-py*cx);
+          if(along>0&&off<RAID_W+8) hazHurt(RAID_DMG,R.x,R.y,'#ff4d5e',0);
+          shake=Math.max(shake,9);
+        }
+      }
+      else if(R.st==='fire'){
+        R.a=R.ba;
+        if(R.t>=RAID_BEAM){ R.st='out'; R.t=0;
+          R.fa=Math.atan2(R.y-H/2,R.x-W/2); }
+      }
+      else{                                        // leaving, and unkillable once gone
+        R.x+=Math.cos(R.fa)*470*dt; R.y+=Math.sin(R.fa)*470*dt;
+        R.a=R.fa;
+        if(R.x<-80||R.x>W+80||R.y<-80||R.y>H+80){ world.raid.splice(i,1); continue; }
+      }
+      // your fire brings one down — for nothing but the quiet
+      for(let k=bullets.length-1;k>=0;k--){
+        const b=bullets[k], rr=R.r+b.r+3;
+        if(b.hit.includes(R)) continue;
+        if(dist2(b,R)<rr*rr){
+          R.hp-=b.dmg; b.hit.push(R); SFX.hit();
+          burst(b.x,b.y,'#c9d4ee',4,150);
+          if(b.hit.length>b.pierce) bullets.splice(k,1);
+          if(R.hp<=0){
+            burst(R.x,R.y,'#c9d4ee',22,320); SFX.kill(false);
+            world.raid.splice(i,1); break;
+          }
+        }
+      }
+      // it will clip you on the way in or the way out — but a raider holding
+      // station is a laser problem, not a wall, so parked it cannot touch you
+      if(world.raid[i]===R && (R.st==='in'||R.st==='out')){
+        const rr=R.r+13;
+        if(dist2(R,P)<rr*rr) hazHurt(9,R.x,R.y,'#c9d4ee',340);
+      }
+    }
+  }
 }
 
 /* ---- the arena, drawn ----
