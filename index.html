@@ -4335,9 +4335,10 @@ function crackStrike(col,dmg,waves){
           segsDraw(w.segs,clamp((k+STRIKE_GAP)/(TEL*.8),0,1));
         }else{
           const f=1-(k-TEL)/BURN;
-          ctx.globalAlpha=f; ctx.strokeStyle=col; ctx.lineWidth=12;
-          ctx.shadowColor=col; ctx.shadowBlur=24; segsDraw(w.segs,1);
-          ctx.shadowBlur=0; ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; segsDraw(w.segs,1);
+          ctx.globalAlpha=f*.25; ctx.strokeStyle=col; ctx.lineWidth=30; segsDraw(w.segs,1);
+          ctx.globalAlpha=f; ctx.lineWidth=12;
+          segsDraw(w.segs,1);
+          ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; segsDraw(w.segs,1);
         }
       }
       ctx.globalAlpha=1;
@@ -4388,8 +4389,7 @@ function titanFronts(n0,spread0,gap,hw,hl,v,mul){
           const x=-hw+((u*hw*2+s.t*420)%(hw*2)), y=-hl+(i/n)*hl*2;
           ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-14,y-4); ctx.stroke();
         }
-        ctx.strokeStyle='rgba(235,248,255,.95)'; ctx.lineWidth=3; ctx.shadowColor='#bfe4ff'; ctx.shadowBlur=14;
-        ctx.beginPath(); ctx.moveTo(hw,-hl); ctx.lineTo(hw,hl); ctx.stroke();
+        ctx.strokeStyle='rgba(235,248,255,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(hw,-hl); ctx.lineTo(hw,hl); ctx.stroke();
         ctx.restore();
       }
     },
@@ -4431,8 +4431,8 @@ const STRIKES={
           if(k<S.TEL){ ctx.strokeStyle='rgba(255,77,94,.22)'; ctx.lineWidth=1.2; ctx.stroke(); }
           else{
             const f=1-(k-S.TEL)/S.FIRE;
-            ctx.globalAlpha=f; ctx.strokeStyle='#ff4d5e'; ctx.lineWidth=18; ctx.shadowColor='#ff4d5e'; ctx.shadowBlur=26; ctx.stroke();
-            ctx.shadowBlur=0; ctx.strokeStyle='#fff1f2'; ctx.lineWidth=5; ctx.stroke(); ctx.globalAlpha=1;
+            ctx.globalAlpha=f*.25; ctx.strokeStyle='#ff4d5e'; ctx.lineWidth=42; ctx.stroke(); ctx.globalAlpha=f; ctx.lineWidth=18; ctx.stroke();
+            ctx.strokeStyle='#fff1f2'; ctx.lineWidth=5; ctx.stroke(); ctx.globalAlpha=1;
           }
         }
       }
@@ -4488,8 +4488,8 @@ const STRIKES={
         const cx=Math.cos(b), cy=Math.sin(b);
         ctx.beginPath(); ctx.moveTo(e.x+cx*e.r,e.y+cy*e.r); ctx.lineTo(e.x+cx*s.len,e.y+cy*s.len);
         if(s.t<S.TEL){ ctx.strokeStyle='rgba(63,216,224,.24)'; ctx.lineWidth=1.2; ctx.stroke(); }
-        else{ ctx.strokeStyle='#3fd8e0'; ctx.lineWidth=20; ctx.shadowColor='#3fd8e0'; ctx.shadowBlur=26; ctx.stroke();
-          ctx.shadowBlur=0; ctx.strokeStyle='#eaffff'; ctx.lineWidth=5; ctx.stroke(); }
+        else{ ctx.strokeStyle='rgba(63,216,224,.25)'; ctx.lineWidth=46; ctx.stroke(); ctx.strokeStyle='#3fd8e0'; ctx.lineWidth=20; ctx.stroke();
+          ctx.strokeStyle='#eaffff'; ctx.lineWidth=5; ctx.stroke(); }
       }
     },
   },
@@ -4527,8 +4527,7 @@ const STRIKES={
         segsDraw(s.segs,clamp((s.t+STRIKE_GAP)/(S.SET+STRIKE_GAP-.2),0,1));
       }else if(k<=S.BURN){
         const f=1-k/S.BURN;
-        ctx.globalAlpha=f; ctx.strokeStyle='#e8c872'; ctx.lineWidth=12; ctx.shadowColor='#e8c872'; ctx.shadowBlur=22;
-        segsDraw(s.segs,1); ctx.shadowBlur=0; ctx.strokeStyle='#fff6d8'; ctx.lineWidth=3; segsDraw(s.segs,1);
+        ctx.globalAlpha=f*.25; ctx.strokeStyle='#e8c872'; ctx.lineWidth=30; segsDraw(s.segs,1); ctx.globalAlpha=f; ctx.lineWidth=12; segsDraw(s.segs,1); ctx.strokeStyle='#fff6d8'; ctx.lineWidth=3; segsDraw(s.segs,1);
         ctx.globalAlpha=1;
       }
     },
@@ -5065,7 +5064,7 @@ function bossAI(e,dt,dx,dy,d){
    mush. They sit under the enemy fire and the enemies themselves: nothing in
    here is ever allowed to hide a round. PARTS_MAX keeps a long fight from
    piling up more than the frame can carry.                                  */
-const PARTS_MAX=2200;
+const PARTS_MAX=1200;
 function burst(x,y,col,n,sp=200){
   n=Math.min(n,PARTS_MAX-parts.length);
   for(let i=0;i<n;i++){
@@ -6333,25 +6332,27 @@ function frontFloor(F,warn){
   ctx.fillStyle=gr;
   for(const [a,b] of R.spans) ctx.fillRect(-hw,a,hw*2,b-a);
   // squalls rolling through it
+  ctx.fillStyle='rgba(235,246,255,.07)';
   for(let i=0;i<26;i++){
     const h1=Math.sin(i*53.1)*9631.7, h2=Math.sin(i*29.9)*7341.3;
     const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
     const y=-R.diag/2+((v*R.diag+Tt*120)%R.diag);
     if(R.inHole(y)) continue;
     const x=-hw*.8+u*hw*1.6+Math.sin(Tt*3+i)*14, r=22+u*30;
-    ctx.fillStyle='rgba(235,246,255,.07)';
     ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
   }
   // hail, driven hard the way the front moves
   ctx.strokeStyle='rgba(240,250,255,.75)'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  ctx.beginPath();                        // all of it in one stroke: one call, not 220
   for(let i=0;i<220;i++){
     const h1=Math.sin(i*91.7)*43758.5, h2=Math.sin(i*17.3)*24634.6;
     const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
     const x=-hw+((u*hw*2+Tt*420)%(hw*2));
     const y=-R.diag/2+((v*R.diag+Tt*110)%R.diag);
     if(R.inHole(y)) continue;
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-20,y-6); ctx.stroke();
+    ctx.moveTo(x,y); ctx.lineTo(x-20,y-6);
   }
+  ctx.stroke();
   ctx.restore();
 }
 // the edges, over everything: a jagged, glowing leading wall and a plain back edge
@@ -7329,12 +7330,14 @@ function eyeHazeDraw(){
   ctx.clip('evenodd');
   ctx.strokeStyle='rgba(235,248,255,'+(.55*a)+')'; ctx.lineWidth=1.4;
   const T=M.t;
+  ctx.beginPath();
   for(let i=0;i<220;i++){
     const h1=Math.sin(i*91.7)*43758.5, h2=Math.sin(i*17.3)*24634.6;
     const u=h1-Math.floor(h1), v=h2-Math.floor(h2);
     const x=(u*W+T*240)%W, y=(v*H+T*80)%H;
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-12,y-4); ctx.stroke();
+    ctx.moveTo(x,y); ctx.lineTo(x-12,y-4);
   }
+  ctx.stroke();
   ctx.restore();
 }
 // the eye's edge, and a pointer to it whenever you are out of it — drawn over the whiteout
