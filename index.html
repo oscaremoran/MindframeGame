@@ -5280,6 +5280,16 @@ function update(dt){
   shake=Math.max(0,shake-dt*34);
   if(flash>0) flash=Math.max(0,flash-dt*1.7);
   fxStep(dt); wallStep(dt); hurtStep(dt); iceStep(dt);
+  /* --- particles ---
+     Up here with the rest of the fx, ahead of the early returns below: a boss
+     entrance or a phase cutscene stops the fight, but it must not freeze the
+     sparks, flares and embers already in the air where they hang. */
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.t+=dt;
+    if(p.t>=p.life){parts.splice(i,1);continue;}
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    const f=p.slow?.985:.94; p.vx*=f; p.vy*=f;
+  }
 
   // stars drift
   for(const s of stars){ s.y+=s.z*14*dt; if(s.y>H){s.y=0;s.x=rand(0,W);} }
@@ -5830,14 +5840,6 @@ function update(dt){
       }
       if(e.t==='dart'||e.t==='meteor'){ killFx(e,ecol(e.t),20,280); enemies.splice(j,1); }
     }
-  }
-
-  /* --- particles --- */
-  for(let i=parts.length-1;i>=0;i--){
-    const p=parts[i]; p.t+=dt;
-    if(p.t>=p.life){parts.splice(i,1);continue;}
-    p.x+=p.vx*dt; p.y+=p.vy*dt;
-    const f=p.slow?.985:.94; p.vx*=f; p.vy*=f;
   }
 
   /* --- the arena itself --- */
