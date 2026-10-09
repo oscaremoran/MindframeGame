@@ -908,6 +908,7 @@
     <h2 id="overSub">WAVE 1</h2>
     <p id="overMeta"></p>
     <div class="row">
+      <button id="btnRetry">RETRY BOSS</button>
       <button id="btnRelaunch">RELAUNCH</button>
       <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
     </div>
@@ -1983,6 +1984,7 @@ function newRun(){
   mission=null; fxClear(); flash=0; worldClear();
   branchSortie=false; runCr=0;
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
+  bossTries=0;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   // straight into the fight: no readout in front of it, on any run
@@ -2055,7 +2057,7 @@ function branchOverview(k,i){
            echo:    ['The Hive Mind and Iteration 2117 are back with a vengeance, together. Destroy them both again, this time on Luna.',
                     'Echoes of the Hive Mind and Iteration 2117, the previous enemy commanders of Venus and Jupiter.'],
            eye:     ['Dodge storm fronts and stay in the eye to avoid instant ship destruction.', 'The storm fronts.'],
-           mirror:  ['Defeat swarms of Cloners, then avoid a monster from the depths.', '«WRITE:» what is against you'],
+           mirror:  ['Defeat swarms of Cloners, then avoid a monster from the depths.', 'Swarms of Cloners, and then a deadly monster from beneath the ice.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   return lpanel('ENEMY FORCE DETAILS',
@@ -2092,7 +2094,7 @@ const LAUNCH_TEXT={
   gauntlet:'Clear three waves of tough enemies without getting hit once.',
   echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.', 
   eye:     'Fly through a deadly storm and avoid treacherous winds.',
-  mirror:  '«WRITE:» Hall of Mirrors launch line',
+  mirror:  'Defeat clones of your ship, then survive under the ice.',
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function buildPortalPick(){
@@ -2837,7 +2839,6 @@ function levFall(e){
     shock(h.x,h.y,LEV_COL,h.r,h.r*2.6,.45,5); }
   const bodies=left.filter(sg=>sg.kind==='body').length;
   if(h&&(e.kind==='tail'||bodies===0)) levSpinStart(C,h);   // the phase change
-  // «WRITE:» what the banner says as each piece of it goes
   banner = e.kind==='tail' ? 'TAIL DOWN' : bodies ? 'SEGMENT DOWN · '+bodies+' LEFT' : 'THE HEAD IS OPEN';
   bannerT=2.4;
   return true;
@@ -6379,14 +6380,76 @@ function update(dt){
    screen, but in its own words: nothing about the system is lost, it just
    paid nothing. RELAUNCH flies the same mission again. */
 function sideFailText(M,why){
+  retryOk=false; retryButton();            // a side mission has no boss to go back to
   $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';
   $('overSub').textContent = (why||'SHIP DESTROYED')+' \u2014 '+(M.B?M.B.n:branchName(M.k));
   $('overMeta').innerHTML = (why?'':recap())+'NO CREDITS EARNED &nbsp;\u00b7&nbsp; SCORE <span class="key">'+score+
     '</span> &nbsp;\u00b7&nbsp; BEST <span class="key">'+save.best+'</span>';
   $('btnRelaunch').style.display = relaunch ? '' : 'none';
 }
+/* ---- the boss retry ----
+   Dying on a system's wave 5 offers a way straight back into the boss fight,
+   at full hull, for credits: RETRY_COST[n] for the n-th retry of this flight.
+   After the last one it is not offered; RELAUNCH starts the system over and
+   that resets the count. Not offered for side missions or the real last
+   fight behind the Ruler. */
+const RETRY_COST=[5,10,25];
+let bossTries=0;
+const retryCost=()=>RETRY_COST[bossTries];
+let retryOk=false;          // set at the moment of death: was it a boss a retry can go back to?
+function retryBoss(){
+  const c=retryCost(); if(c===undefined||save.credits<c) return;
+  save.credits-=c; bossTries++; persist();
+  const st=stats();
+  player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
+  bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
+  clearBuffs();
+  shake=0; paused=false; mission=null; fxClear(); flash=0;
+  MUS.crit=false;
+  if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
+  hideAll();
+  player.frz=player.thaw=0;
+  worldStart(); sceneStart();
+  toast=''; toastT=0;
+  wave=4; nextWave();
+  state='play';
+}
+function retryButton(){
+  const b=$('btnRetry'), c=retryCost();
+  if(!retryOk||c===undefined){ b.style.display='none'; return; }
+  b.style.display='';
+  const can=save.credits>=c;
+  b.textContent = can ? 'RETRY BOSS? COSTS '+c+' CR' : 'RETRY BOSS? OBTAIN'+c+' CR';
+  b.disabled=!can; b.style.opacity=can?'':'.4';
+}
+
+/* ---- what the death screen says about the death ----
+   Two lines, both about this death. How much hull the boss had left, if it
+   was a boss fight. And one piece of advice about whatever got you: a hostile
+   or boss gives its bestiary counter tip, the arena gives DEATH_TIP. */
+
+const DEATH_TIP={'FIRE VENT':'Try figuring out the pattern, then staying away.', 'RING DEBRIS':'Try looking for the golden lines, then avoiding them.',
+  'HAIL':'Try getting the BLINK DASH skill and dashing through the fronts.', 'LASER RAIDER':'You can kill them before they shoot.',
+  'THE ARENA':'ERROR', 'ENEMY FIRE':'ERROR'};
+function deathTip(){
+  if(!killer) return '';
+  const r=CODEX.hostiles.rows.find(x=>x.n===killer);
+  return (r&&r.ctr) || DEATH_TIP[killer] || '';
+}
+// the boss's hull left, every part of it counted: both Titans, all six of the Leviathan
+function bossLeft(){
+  const b=enemies.find(e=>e.t==='boss');
+  if(!b) return null;
+  const parts = b.chain ? b.chain.segs : b.pair ? b.pair : [b];
+  let hp=0, max=0;
+  for(const q of parts){ max+=q.max; if(enemies.includes(q)) hp+=Math.max(0,q.hp); }
+  return {n:b.bn||b.B.n, pc:max?Math.max(1,Math.round(hp/max*100)):0};
+}
+
 function endRun(win,why){
   const M=mission;
+  const left=win||M?null:bossLeft();
+  retryOk=!win&&!M&&wave>=5&&!!left&&!finaleArmed&&!finale;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
@@ -6398,11 +6461,15 @@ function endRun(win,why){
     ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
     : why ? why+' — '+SYS().name
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
+  const tip=win?'':deathTip();
   document.getElementById('overMeta').innerHTML = (win?'':recap())+
+    (left?'<span class="key">'+left.n+'</span> — '+left.pc+'% BOSS HP LEFT<br><br>':'')+ 
+    (tip?tip+'<br><br>':'')+
     'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
     (win?'':'<br><br>If your ship is destroyed, your progress in that system will be destroyed. '+
             'You can re-launch to the system to try again.');
   $('btnRelaunch').style.display = (win||!relaunch) ? 'none' : '';
+  retryButton();
   if(M&&!win){ branchSortie=false; sideFailText(M,why); }
   if(win){ state='over'; show('over'); return; }
   // a death is a scene, not a screen transition. Let it finish first.
@@ -7891,7 +7958,7 @@ const SECRETS=[
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
   {k:'echo',     n:'ECHO TRIAL',       sub:'HIVE MIND + 2117'},
   {k:'eye',      n:'THROUGH THE STORM', sub:'BLIZZARD SURVIVAL'},   
-  {k:'mirror',   n:'HALL OF MIRRORS',  sub:'CLONERS · THEN THE DARK'},   // «WRITE:» name and sub
+  {k:'mirror',   n:'CONQUERING THE DEPTHS',  sub:'CLONES AND A MONSTER'},
   {k:'none',     n:'',                 sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
@@ -8038,7 +8105,7 @@ function mirrorWave(M){
   M.w++;
   if(M.w<=MIRROR_N.length){
     for(let q=0;q<MIRROR_N[M.w-1];q++) spawnQ.push({t:waveTimer+.6+q*.7, type:'cloner'});
-    banner='WAVE '+M.w+' / 3'; bannerT=2.4;          // «WRITE:»
+    banner='WAVE '+M.w+' / 3'; bannerT=2.4;
     return;
   }
   // the lights go out
@@ -8050,7 +8117,7 @@ function mirrorWave(M){
   segs.forEach(b=>{ b.bn=B.n; b.ward=1; b.flare=0; enemies.push(b); });
   const h=segs[0]; h.x=rand(W*.2,W*.8); h.y=-50; h.hd=Math.PI/2; h.lcd=3;
   levLay(C);
-  banner='UNDER THE ICE'; bannerT=2.6;                // «WRITE:»
+  banner='UNDER THE ICE'; bannerT=2.6;
 }
 
 /* HAZARD RUN — a chain of gates through the arena, taken in order. A gate is
@@ -8381,7 +8448,7 @@ const SIDE_CLEAR_TEXT={
   gauntlet:'Congratulations on wiping out the hordes without getting damaged.',
   echo:    'Congratulations on defeating the returning enemies.',
   eye:     'Congratulations on flying through the storm.',
-  mirror:  '«WRITE:» Hall of Mirrors clear line',
+  mirror:  'Congratulations on defeating the clones and avoiding the monstrosity.',
   boss:    'Congratulations on defeating the strange enemy!',
 };
 function missionVictory(M){
@@ -10755,6 +10822,7 @@ $('btnStart').onclick=()=>{
 };
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
+$('btnRetry').onclick=()=>{ if(retryOk&&retryCost()!==undefined&&save.credits>=retryCost()){ retryOk=false; retryBoss(); } else SFX.deny(); };
 // every flight off the map goes through the launching screen first
 function mapLaunch(i,k){
   mapPick=i; mapPickK=k||null;
