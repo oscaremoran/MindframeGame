@@ -2283,6 +2283,9 @@ function edgeSpawn(clear){
    its shape relative to itself — a Watcher is still the thing that dies to a
    glance and a Primary is still the wall.                                  */
 const EHP=1.3;
+// each hostile's hull before any of that scaling; the Bestiary reads it too
+const EHULL={grunt:32, dart:14, heavy:140, tracker:55, overseer:110, orbiter:150,
+  splinter:130, glacier:340, phantom:58, meteor:30, lander:240};
 
 /* ---- the ORBITER's circle ----
    It wants a seat on a ring this far out from its target and keeps sliding
@@ -2332,26 +2335,26 @@ function spawn(type,at,def){
   // one number for every cooldown below: a rest window, so the setting divides it
   const cd=ez*D.erof*V.rof;
   if(type==='grunt') enemies.push({t:'grunt',x:p.x,y:p.y,vx:0,vy:0,r:17,
-      hp:32*sc,max:32*sc,spd:78*vm,cool:rand(1.2,3)/cd,a:0,val:60,rof:1/cd,
+      hp:EHULL.grunt*sc,max:EHULL.grunt*sc,spd:78*vm,cool:rand(1.2,3)/cd,a:0,val:60,rof:1/cd,
       dir:Math.random()<.5?-1:1,turn:rand(1,3),burst:0});
   if(type==='dart') enemies.push({t:'dart',x:p.x,y:p.y,vx:0,vy:0,r:12,
-      hp:14*sc,max:14*sc,spd:(122+wave*7)*vm,a:0,val:35,wob:rand(0,TAU)});
+      hp:EHULL.dart*sc,max:EHULL.dart*sc,spd:(122+wave*7)*vm,a:0,val:35,wob:rand(0,TAU)});
   if(type==='heavy') enemies.push({t:'heavy',x:p.x,y:p.y,vx:0,vy:0,r:27,
-      hp:140*sc,max:140*sc,spd:44*vm,cool:rand(2,3.4)/cd,a:0,val:220,spin:0,rof:1/cd});
+      hp:EHULL.heavy*sc,max:EHULL.heavy*sc,spd:44*vm,cool:rand(2,3.4)/cd,a:0,val:220,spin:0,rof:1/cd});
   // TRACKER — keeps far, launches slow homing seekers
   if(type==='tracker') enemies.push({t:'tracker',x:p.x,y:p.y,vx:0,vy:0,r:15,
-      hp:55*sc,max:55*sc,spd:120*vm,cool:rand(1.6,3)/cd,a:0,val:110,spin:0,rof:1/cd});
+      hp:EHULL.tracker*sc,max:EHULL.tracker*sc,spd:120*vm,cool:rand(1.6,3)/cd,a:0,val:110,spin:0,rof:1/cd});
   // OVERSEER — rotating shield arc blocks shots from whatever side it faces
   if(type==='overseer') enemies.push({t:'overseer',x:p.x,y:p.y,vx:0,vy:0,r:22,
-      hp:110*sc,max:110*sc,spd:62*vm,cool:rand(2,3.4)/cd,a:0,val:200,rof:1/cd,
+      hp:EHULL.overseer*sc,max:EHULL.overseer*sc,spd:62*vm,cool:rand(2,3.4)/cd,a:0,val:200,rof:1/cd,
       sh:1.15,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
   // ORBITER — circles the pilot at a fixed radius and fires inward
   if(type==='orbiter') enemies.push({t:'orbiter',x:p.x,y:p.y,vx:0,vy:0,r:18,
-      hp:150*sc,max:150*sc,spd:215*vm,cool:rand(.9,1.6)/cd,a:0,val:220,rof:1/cd,
+      hp:EHULL.orbiter*sc,max:EHULL.orbiter*sc,spd:215*vm,cool:rand(.9,1.6)/cd,a:0,val:220,rof:1/cd,
       spin:0,dir:Math.random()<.5?-1:1,orb:rand(ORB_R*.9,ORB_R*1.1)});
   // SPLINTER — lobs orbs that break into a fan of shards in mid-air
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:21,
-      hp:130*sc,max:130*sc,spd:110*vm,cool:rand(1.4,2.6)/cd,a:0,val:190,
+      hp:EHULL.splinter*sc,max:EHULL.splinter*sc,spd:110*vm,cool:rand(1.4,2.6)/cd,a:0,val:190,
       rof:1/cd,spin:0,wob:rand(0,TAU)});
   // QUARRY — the Bounty's elite Tracker: kites, floods seekers, calls for help
   if(type==='quarry') enemies.push({t:'quarry',x:p.x,y:p.y,vx:0,vy:0,r:24,
@@ -2359,19 +2362,19 @@ function spawn(type,at,def){
       rof:1/cd,dashCd:1.5,help:QUARRY_HELP*.6,dir:Math.random()<.5?-1:1});
   // GLACIER — tanky, slow, sweeping frost arms
   if(type==='glacier') enemies.push({t:'glacier',x:p.x,y:p.y,vx:0,vy:0,r:28,
-      hp:340*sc,max:340*sc,spd:40*vm,a:0,val:260,rof:1/cd,
+      hp:EHULL.glacier*sc,max:EHULL.glacier*sc,spd:40*vm,a:0,val:260,rof:1/cd,
       arm:rand(0,TAU),armV:(Math.random()<.5?-1:1)*GLAC_SPIN,live:1,pt:rand(0,1.5)});
   // PHANTOM — Luna's line unit: a burst, a fade, a new seat
   if(type==='phantom') enemies.push({t:'phantom',x:p.x,y:p.y,vx:0,vy:0,r:16,
-      hp:58*sc,max:58*sc,spd:110*vm,cool:rand(1.0,2.0)/cd,a:0,val:70,rof:1/cd,
+      hp:EHULL.phantom*sc,max:EHULL.phantom*sc,spd:110*vm,cool:rand(1.0,2.0)/cd,a:0,val:70,rof:1/cd,
       dir:Math.random()<.5?-1:1,ph:'on',pt:0,vis:1,shots:0});
   // METEOR — Luna's rammer: marks a line and rockets down it
   if(type==='meteor') enemies.push({t:'meteor',x:p.x,y:p.y,vx:0,vy:0,r:13,
-      hp:30*sc,max:30*sc,spd:130*vm,dash:MET_V*vm,a:0,val:40,spin:0,
+      hp:EHULL.meteor*sc,max:EHULL.meteor*sc,spd:130*vm,dash:MET_V*vm,a:0,val:40,spin:0,
       ph:'in',pt:0,rof:1/cd});
   // LANDER — Luna's heavy: shells, and a ring of drones it keeps topped up
   if(type==='lander') enemies.push({t:'lander',x:p.x,y:p.y,vx:0,vy:0,r:26,
-      hp:240*sc,max:240*sc,spd:46*vm,cool:rand(1.6,2.6)/cd,a:0,val:230,spin:0,
+      hp:EHULL.lander*sc,max:EHULL.lander*sc,spd:46*vm,cool:rand(1.6,2.6)/cd,a:0,val:230,spin:0,
       rof:1/cd,dep:.5/cd});
   if(type==='boss'){
     // whichever one this system answers to, unless a mission named one
@@ -9388,49 +9391,52 @@ function resetWipeLink(){
 const cxHull=(B,sys)=>Math.round(B.hp*SYSTEMS[sys].hp*BOSS_BUFF);
 const cxBoss=k=>BOSSES.find(b=>b.k===k)||SECRET_BOSSES.find(b=>b.k===k);
 const cxSys=k=>BOSSES.findIndex(b=>b.k===k);
+// a hostile's the same way: at full weight in the system that brings it in, on
+// CADET, with that system's wave dial (Earth's softer opening waves left out)
+const cxEnemy=(t,sys)=>Math.round(EHULL[t]*EHP*SYSTEMS[sys].hp*((SYSTEMS[sys].wave||{}).hp||1));
 const CODEX={
   hostiles:{ label:'HOSTILES', sub:'what is out there', rows:[
     {c:'#4d9dff', n:'ITERATION', tag:'EARTH  ·  LINE UNIT', sys:0,
-     u:'grunt', a:[32,78,9,.48,10], ctr:'Cut inside its turn and get in close.',
+     u:'grunt', a:[cxEnemy('grunt',0),78,9,.48,10], ctr:'Cut inside its turn and get in close.',
      t:'Fires blue pulses. The basic enemy unit. It holds its distance, and orbits. '+
        'From Jupiter it shoots twice as fast.'},
     {c:'#46e39b', n:'WATCHER', tag:'EARTH  ·  RAM', sys:0,
-     u:'dart', a:[14,122,9,0,9], ctr:'Kill it at range, it costs nothing there.',
+     u:'dart', a:[cxEnemy('dart',0),122,9,0,9], ctr:'Kill it at range, it costs nothing there.',
      t:'Fast but weak. Tries to ram you. '+
        'Inside close range it accelerates. It '+
        'dies on impact but it takes your ship with it.'},
     {c:'#ff4d5e', n:'PRIMARY', tag:'EARTH  ·  HEAVY', sys:0,
-     u:'heavy', a:[140,44,17,.37,20], ctr:'Slowest thing in the roster. Never fight it standing still.',
+     u:'heavy', a:[cxEnemy('heavy',0),44,17,.37,20], ctr:'Slowest thing in the roster. Never fight it standing still.',
      t:"The enemy's elite. Strong tanks that will fire large bombs at you. It never "+
        'retreats, it leads its shots, and from Venus it sometimes braces and '+
        'opens with a five-shell spread instead of three.'},
     {c:'#ffb44d', n:'TRACKER', tag:'VENUS  ·  SEEKER', sys:1,
-     u:'tracker', a:[55,120,12,.32,10], ctr:'Outrun the seekers for a few seconds and they go straight. Then close.',
+     u:'tracker', a:[cxEnemy('tracker',1),120,12,.32,10], ctr:'Outrun the seekers for a few seconds and they go straight. Then close.',
      t:'Hangs back and launches homing seekers. Outrun them — they burn out after '+
        'about four and a half seconds and fly straight afterwards. From Jupiter '+
        'it fires them two at a time.'},
     {c:'#3fd8e0', n:'OVERSEER', tag:'JUPITER  ·  SHIELDED', sys:2,
-     u:'overseer', a:[110,62,9,.38,13], ctr:'The arc chases your gun. Keep moving around it, do not stop.',
+     u:'overseer', a:[cxEnemy('overseer',2),62,9,.38,13], ctr:'The arc chases your gun. Keep moving around it, do not stop.',
      t:'Carries a spinning shield arc. Shoot it from behind. The arc now drifts '+
        'toward whichever side you are shooting from, so flanking it is something '+
        'you keep doing, not something you do once.'},
     {c:'#e8c872', n:'ORBITER', tag:'SATURN  ·  RING', sys:3,
-     u:'orbiter', a:[150,215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
+     u:'orbiter', a:[cxEnemy('orbiter',3),215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
      t:'A new Iteration type that will circle you and fire inwards.'},
     {c:'#a9b8ff', n:'PHANTOM', tag:'LUNA  ·  LINE UNIT', sys:4,
-     u:'phantom', a:[58,110,12,.8,10], ctr:'Nail it when it is far away and before it shoots.',
+     u:'phantom', a:[cxEnemy('phantom',4),110,12,.8,10], ctr:'Nail it when it is far away and before it shoots.',
      t:'Fires, then teleports and fades away. It is unhittable while it is gone. Shoot it when it is not teleporting.'},
     {c:'#ff9a5c', n:'METEOR', tag:'LUNA  ·  RAM', sys:4,
-     u:'meteor', a:[30,680,0,0,18], ctr:'Get out of the cluster of them, then shoot a barrage of spreaded rounds at them.',
+     u:'meteor', a:[cxEnemy('meteor',4),680,0,0,18], ctr:'Get out of the cluster of them, then shoot a barrage of spreaded rounds at them.',
      t:'A fast unit that launches at you over and over again. It telegraphs its attack with  a glowing line.'},
     {c:'#c9ccd4', n:'LANDER', tag:'LUNA  ·  HEAVY', sys:4,
-     u:'lander', a:[240,46,17,.42,24], ctr:'Focus a barrage of spread rounds on it before its drones begin to fire.',
+     u:'lander', a:[cxEnemy('lander',4),46,17,.42,24], ctr:'Focus a barrage of spread rounds on it before its drones begin to fire.',
      t:'A tough unit that will fire at you in bursts while spawning little drones that orbit it.'},
     {c:'#9fe8ff', n:'GLACIER', tag:'NEPTUNE  ·  AOE', sys:5,
-     u:'glacier', a:[340,40,20,0,24], ctr:'Fire spread rounds from distance.',
+     u:'glacier', a:[cxEnemy('glacier',5),40,20,0,24], ctr:'Fire spread rounds from distance.',
      t:'A tanky enemy that fires icy beams and spread patterns.'},
     {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:6,
-     u:'splinter', a:[169,110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
+     u:'splinter', a:[cxEnemy('splinter',6),110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
        'you. Those shards continue to break until an unstoppable torrent of shards are coming. It holds a working distance and weaves while it reloads, so the orb '+
        'is the warning and the fan is the attack.'},
