@@ -2130,6 +2130,7 @@ function beginSystem(){
   toast=''; toastT=0;
   wave=0; nextWave();
   state='play';
+  launchStart();
 }
 
 /* Clearing a system hands you the map, with the node you just took now green. */
@@ -5284,6 +5285,7 @@ function fxDraw(){
 
 /* ================= update ================= */
 function update(dt){
+  if(launchCut){ launchStep(dt); return; }   // nothing moves until the ship is out
   waveTimer+=dt; if(bannerT>0)bannerT-=dt;
   /* No waiting in an empty arena. With nothing alive and more on the way, the
      wave clock jumps to just before the next arrival — the same enemies in the
@@ -6111,6 +6113,191 @@ function sceneDraw(){
   ctx.globalAlpha=clamp(sceneT/.4,0,1);
   ctx.drawImage(art,-W*.06+Math.sin(sceneT*.045)*W*.04,(1-k)*H*.5);
   ctx.globalAlpha=1;
+}
+
+/* ══════════════════════ THE LAUNCH ══════════════════════
+   Every flight starts in the hangar, and it is the same five seconds every
+   time: nothing in the arena moves until the ship is out. Top-down, nose up,
+   the way the fight is seen.
+     0.0  the bay: the hull on its rail, clamps on, beacons turning
+     1.0  the strips light from the ship to the doors; the engine spools;
+          the clamps let go, one pair at a time
+     2.2  the blast doors split, and there is space behind them
+     3.0  the catapult fires: the hangar streams past, the doors go by in a flash
+     3.8  out in the arena: the ship brakes into its seat and the fight begins
+   The ship is drawn with shipPath, so it is your hull that launches. It starts
+   close (CUT_ZOOM) and the camera pulls back to the fight's scale as it fires. */
+const CUT_T=5, CUT_SPOOL=1.0, CUT_DOOR=2.2, CUT_FIRE=3.0, CUT_OUT=3.8;
+const CUT_CLAMPS=[1.35,1.7,2.05], CUT_ZOOM=1.9, CUT_ACC=6000;
+let launchCut=null;
+const cutGeo=()=>({cx:W/2, cw:Math.min(W*.36,420), y0:H*.7, door:H*.14});
+function launchStart(){
+  launchCut={t:0, tx:player.x, ty:player.y, sc:0, v:0, cl:0, door:0, fired:0, passed:0, out:0};
+  player.vx=player.vy=0; player.a=-Math.PI/2;
+  SND.tone('sine',52,52,.4,2.6,.16);                       // the bay's hum
+}
+// where the ship is and how big, at this point in the launch
+function cutShip(L){
+  const G=cutGeo(), k=eOut(clamp((L.t-CUT_FIRE)/.5,0,1));
+  return {x:G.cx, y:G.y0-(G.y0-H*.5)*k, s:CUT_ZOOM+(1-CUT_ZOOM)*k};
+}
+function launchStep(dt){
+  const L=launchCut, G=cutGeo(), t0=L.t; L.t+=dt; const t=L.t;
+  shake=Math.max(0,shake-dt*34);
+  if(flash>0) flash=Math.max(0,flash-dt*1.7);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.t+=dt;
+    if(p.t>=p.life){parts.splice(i,1);continue;}
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.94; p.vy*=.94;
+  }
+  const S=cutShip(L);
+  // the clamps, a pair at a time
+  while(L.cl<CUT_CLAMPS.length && t>=CUT_CLAMPS[L.cl]){
+    const yy=S.y+(L.cl-1)*26*S.s;
+    burst(G.cx-24*S.s,yy,'#ffd24d',10,240); burst(G.cx+24*S.s,yy,'#ffd24d',10,240);
+    shake=Math.max(shake,4+3*L.cl);
+    SND.noise(.09,2600,900,.24,3); SND.tone('square',320,140,.002,.08,.08);
+    L.cl++;
+  }
+  // the engine spools: sparks off the tail, thicker as it builds
+  if(t0<CUT_SPOOL && t>=CUT_SPOOL) SND.tone('sawtooth',70,460,.5,2.1,.07);
+  if(t>=CUT_SPOOL && !L.fired){
+    const k=clamp((t-CUT_SPOOL)/(CUT_FIRE-CUT_SPOOL),0,1);
+    if(Math.random()<k*1.4) parts.push({x:G.cx+rand(-6,6)*S.s, y:S.y+16*S.s, vx:rand(-90,90), vy:rand(160,420),
+      life:rand(.2,.45), t:0, col:Math.random()<.5?'#ffb44d':'#ffd24d', r:rand(1.2,2.6)});
+    shake=Math.max(shake,k*1.6);
+  }
+  if(t0<CUT_DOOR && t>=CUT_DOOR){ SND.noise(.75,500,180,.2,1); shake=Math.max(shake,6); }
+  // fire
+  if(!L.fired && t>=CUT_FIRE){
+    L.fired=1; shake=Math.max(shake,14);
+    SND.tone('sine',96,30,.01,1.3,.34); SND.noise(.5,1800,160,.34,.8); SFX.dash();
+  }
+  if(L.fired){ L.v+=CUT_ACC*dt; L.sc+=L.v*dt; }
+  for(const st of stars){ st.y+=(st.z*14+L.v*st.z*.5)*dt; if(st.y>H){st.y-=H; st.x=rand(0,W);} }
+  // the doors go by
+  if(!L.passed && G.door+L.sc>=S.y){
+    L.passed=1; flash=Math.max(flash,.9); shake=Math.max(shake,18);
+    SND.noise(.6,1500,90,.36,.8); SND.tone('sine',70,24,.01,1.1,.3);
+  }
+  // out: the arena's own scenery comes up under it
+  if(!L.out && t>=CUT_OUT){ L.out=1; sceneStart(); }
+  if(L.out){
+    const k=eOut(clamp((t-CUT_OUT)/(CUT_T-CUT_OUT),0,1));
+    player.x=G.cx+(L.tx-G.cx)*k; player.y=H*.5+(L.ty-H*.5)*k;
+    player.vx=0; player.vy=-260*(1-k); player.a=-Math.PI/2;
+  }
+  if(t>=CUT_T){
+    player.x=L.tx; player.y=L.ty; player.vx=player.vy=0; player.inv=Math.max(player.inv,.6);
+    launchCut=null;
+  }
+}
+function launchDraw(){
+  const L=launchCut, t=L.t, G=cutGeo(), S=cutShip(L), cx=G.cx, cw=G.cw, half=cw/2;
+  const dy=G.door+L.sc;                                    // the doorway, on screen
+  // past the doors: streaking stars and a glow of whatever is out there
+  if(L.v>0){
+    ctx.strokeStyle='rgba(160,185,240,.5)'; ctx.lineWidth=1.4;
+    ctx.beginPath();
+    for(const st of stars){ const len=Math.min(260,L.v*.05)*st.z; ctx.moveTo(st.x,st.y); ctx.lineTo(st.x,st.y-len); }
+    ctx.stroke();
+  }
+  const od=eOut(clamp((t-CUT_DOOR)/.7,0,1));
+  if(od>0 && dy>0){
+    const gr=ctx.createRadialGradient(cx,dy,0,cx,dy,cw*1.2);
+    gr.addColorStop(0,'rgba(77,157,255,'+(.22*od)+')'); gr.addColorStop(1,'rgba(77,157,255,0)');
+    ctx.fillStyle=gr; ctx.fillRect(cx-cw*1.2,dy-cw*1.2,cw*2.4,cw*1.2);
+  }
+  if(dy<H){
+    const top=Math.max(0,dy), wy=y=>y+L.sc;                // world y to screen
+    // the structure either side of the bay, ribbed
+    ctx.fillStyle='#070a14'; ctx.fillRect(0,top,W,H-top);
+    ctx.fillStyle='#0b1120';
+    for(let y=G.door+40;wy(y)<H+40;y+=120){ const sy=wy(y); if(sy<top-40) continue;
+      ctx.fillRect(0,sy,cx-half-30,18); ctx.fillRect(cx+half+30,sy,W,18); }
+    // the floor, plated, with the rail up the middle
+    ctx.fillStyle='#0c1222'; ctx.fillRect(cx-half,top,cw,H-top);
+    ctx.strokeStyle='#151d33'; ctx.lineWidth=1; ctx.beginPath();
+    for(let y=G.door;wy(y)<H;y+=48){ const sy=wy(y); if(sy<top) continue; ctx.moveTo(cx-half,sy); ctx.lineTo(cx+half,sy); }
+    ctx.moveTo(cx-half*.5,top); ctx.lineTo(cx-half*.5,H); ctx.moveTo(cx+half*.5,top); ctx.lineTo(cx+half*.5,H);
+    ctx.stroke();
+    ctx.strokeStyle='#2c3a5c'; ctx.lineWidth=3; ctx.beginPath();
+    ctx.moveTo(cx-16,top); ctx.lineTo(cx-16,H); ctx.moveTo(cx+16,top); ctx.lineTo(cx+16,H); ctx.stroke();
+    ctx.strokeStyle='rgba(255,180,77,.32)'; ctx.lineWidth=2; ctx.beginPath();
+    for(let y=G.door+20;wy(y)<H;y+=64){ const sy=wy(y); if(sy<top) continue;
+      ctx.moveTo(cx-9,sy+8); ctx.lineTo(cx,sy); ctx.lineTo(cx+9,sy+8); }
+    ctx.stroke();
+    // the walls, and the light strips along them: dark, then chasing to the doors
+    ctx.fillStyle='#10182b'; ctx.fillRect(cx-half-26,top,26,H-top); ctx.fillRect(cx+half,top,26,H-top);
+    ctx.strokeStyle='#33456d'; ctx.lineWidth=1.5; ctx.beginPath();
+    ctx.moveTo(cx-half,top); ctx.lineTo(cx-half,H); ctx.moveTo(cx+half,top); ctx.lineTo(cx+half,H); ctx.stroke();
+    const streak=Math.min(140,L.v*.03);
+    for(let y=G.door+30;wy(y)<H+20;y+=56){
+      const sy=wy(y); if(sy<top-8) continue;
+      const on=t>=CUT_SPOOL+(G.y0-y)/700;
+      ctx.fillStyle=on?'#9fd0ff':'#1a2236';
+      if(on){ ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=12; }
+      ctx.fillRect(cx-half-17,sy-4-streak,8,8+streak); ctx.fillRect(cx+half+9,sy-4-streak,8,8+streak);
+      ctx.shadowBlur=0;
+    }
+    // beacons, turning amber until the catapult goes
+    if(!L.passed) for(const by of [G.door+40, G.y0-120]){
+      const sy=wy(by); if(sy<top||sy>H) continue;
+      for(const bx of [cx-half-13, cx+half+13]){
+        const a=t*5.5+(bx<cx?0:Math.PI);
+        ctx.fillStyle='rgba(255,180,77,.16)'; ctx.beginPath(); ctx.moveTo(bx,sy);
+        ctx.arc(bx,sy,140,a-.32,a+.32); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#ffb44d'; ctx.beginPath(); ctx.arc(bx,sy,5,0,TAU); ctx.fill();
+      }
+    }
+    // the blast doors: the frame, and two halves sliding into the walls
+    if(dy>-30){
+      ctx.fillStyle='#22304d'; ctx.fillRect(0,dy-16,cx-half,32); ctx.fillRect(cx+half,dy-16,W,32);
+      const dw=half*(1-od);
+      if(dw>0.5){
+        for(const [x0,sgn] of [[cx-half,1],[cx+half,-1]]){
+          const x1=x0+sgn*dw;
+          ctx.fillStyle='#1d2740'; ctx.fillRect(Math.min(x0,x1),dy-12,dw,24);
+          ctx.save(); ctx.beginPath(); ctx.rect(Math.min(x0,x1),dy-12,dw,24); ctx.clip();
+          ctx.strokeStyle='rgba(255,180,77,.55)'; ctx.lineWidth=6; ctx.beginPath();
+          for(let x=Math.min(x0,x1)-30;x<Math.max(x0,x1)+30;x+=22){ ctx.moveTo(x,dy+14); ctx.lineTo(x+24,dy-14); }
+          ctx.stroke(); ctx.restore();
+        }
+      }
+      if(t>=CUT_DOOR-.4 && !L.passed && Math.floor(t*6)%2){
+        ctx.fillStyle='#ff4d5e'; ctx.fillRect(cx-half-24,dy-5,10,10); ctx.fillRect(cx+half+14,dy-5,10,10);
+      }
+    }
+    // the clamps: a pair of arms per seat, sliding back into the walls once let go
+    for(let c=0;c<CUT_CLAMPS.length;c++){
+      const yy=S.y+(c-1)*26*S.s; if(L.fired) break;
+      const rel=clamp((t-CUT_CLAMPS[c])/.25,0,1), reach=(half-22*S.s)*(1-eOut(rel));
+      ctx.fillStyle='#33456d'; ctx.strokeStyle='#6b7ca3'; ctx.lineWidth=1.2;
+      for(const sgn of [-1,1]){
+        const xw=cx+sgn*half, xe=xw-sgn*Math.max(6,reach);
+        ctx.fillRect(Math.min(xw,xe),yy-6,Math.abs(xe-xw),12); ctx.strokeRect(Math.min(xw,xe),yy-6,Math.abs(xe-xw),12);
+      }
+    }
+  }
+  // the engine, under the ship
+  const spool=L.fired?1:clamp((t-CUT_SPOOL)/(CUT_FIRE-CUT_SPOOL),0,1);
+  if(spool>0){
+    const ey=S.y+14*S.s, er=(8+(L.fired?70:34)*spool)*S.s*.6;
+    const gr=ctx.createRadialGradient(S.x,ey,0,S.x,ey,er);
+    gr.addColorStop(0,'rgba(255,255,255,.9)'); gr.addColorStop(.3,'rgba(255,180,77,.7)'); gr.addColorStop(1,'rgba(255,120,40,0)');
+    ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.fillStyle=gr;
+    ctx.beginPath(); ctx.arc(S.x,ey,er,0,TAU); ctx.fill();
+    if(L.fired){ ctx.fillStyle='rgba(255,200,120,.5)'; ctx.beginPath();
+      ctx.moveTo(S.x-7*S.s,ey); ctx.lineTo(S.x,ey+(60+rand(0,30))*S.s); ctx.lineTo(S.x+7*S.s,ey); ctx.fill(); }
+    ctx.restore();
+  }
+  partsDraw();
+  // the hull itself
+  ctx.save(); ctx.translate(S.x,S.y); ctx.rotate(-Math.PI/2); ctx.scale(S.s,S.s);
+  ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=16;
+  ctx.fillStyle='#0a1426'; ctx.strokeStyle='#dfe9ff'; ctx.lineWidth=2.2/S.s*1.4;
+  shipPath(ctx,15,player.st.hull); ctx.fill(); ctx.stroke();
+  ctx.restore(); ctx.shadowBlur=0;
 }
 
 // a soft elliptical smear of one colour, for cloud, haze, land and storms
@@ -7137,6 +7324,7 @@ function startMission(kind){
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
   waveTimer=0; paused=false; toast=''; toastT=0; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
+  launchStart();
   /* The Portal is somewhere else entirely and brings no weather with it. Every
      other branch is flown in the system it hangs off, hazard and all. */
   if(kind==='boss') worldClear(); else worldStart();
@@ -7836,6 +8024,11 @@ function draw(){
 
   if(state==='finale'){ finaleDraw(); ctx.restore(); return; }
 
+  if(state==='play'&&launchCut&&launchCut.t<CUT_OUT){
+    launchDraw(); ctx.restore();
+    if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
+    return;
+  }
   if(state==='play'||state==='over'||state==='dying'){
     sceneDraw();
     // particles
@@ -8162,7 +8355,7 @@ function draw(){
 
   if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
   if(state==='play') hurtDraw();
-  if(state==='play'||state==='over'||state==='dying') hud();
+  if((state==='play'||state==='over'||state==='dying')&&!launchCut) hud();
 }
 
 /* The Titans' bar: one bar, Triton's half on the left and Proteus's on the
@@ -8459,7 +8652,7 @@ function setPause(on){
 // leaving a run early still banks what you earned — the run is what ends
 function quitRun(){
   paused=false;
-  mission=null; fxClear(); flash=0; shake=0;
+  mission=null; fxClear(); flash=0; shake=0; launchCut=null;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   save.deepestSys=Math.max(save.deepestSys,sysIdx);
