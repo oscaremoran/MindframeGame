@@ -807,7 +807,6 @@
     </div>
     <div id="chart">
       <canvas id="mapArt"></canvas><svg id="mlines"></svg>
-      <!-- «WRITE:» the legend's wording -->
       <div id="mapKey"><div><i></i>MAIN ROUTE</div><div><i class="side"></i><b>SIDE MISSION</b>&nbsp;·&nbsp;OPTIONAL</div></div>
       <i class="mcnr k1"></i><i class="mcnr k2"></i><i class="mcnr k3"></i><i class="mcnr k4"></i>
     </div>
@@ -890,7 +889,7 @@
     <input id="codeOut" readonly>
     <div class="row" style="margin-top:12px"><button id="btnCopy">COPY</button></div>
     <p style="margin-top:24px">Load a code</p>
-    <input id="codeIn" placeholder="MF4-...">
+    <input id="codeIn" placeholder="MF5-...">
     <div class="row" style="margin-top:12px">
       <button id="btnLoadCode">LOAD</button>
     </div>
@@ -964,8 +963,8 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  `haz` names the hazard that belongs to the place itself, and unlike ║
    ║  `adds` it does NOT travel: each system has its own and nothing      ║
    ║  else. 'vents' (Venus), 'well' (Jupiter), 'rings' (Saturn),          ║
-   ║  'lowg' (Luna), 'storm' (Neptune), 'raiders' (Icarus), or null for  ║
-   ║  an arena that is only ever a fight.                                 ║
+   ║  'lowg' (Luna), 'storm' (Neptune), 'geysers' (Europa), 'raiders'    ║
+   ║  (Icarus), or null for an arena that is only ever a fight.           ║
    ║  See THE ARENAS below. Every row also needs a place in REGIONS.      ║
    ║                                                                      ║
    ║  Add a sixth system by copying a block — waves, scaling, scoring     ║
@@ -986,7 +985,10 @@ const SYSTEMS=[
   { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier',
     wave:{hp:1.5, dmg:1.5, rof:1.2, more:3, gap:.75, live:13} },
 
-  { id:'007', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter' },
+  { id:'007', name:'EUROPA', hp:2.25, spd:1.3, extra:3, haz:'geysers', roster:'sol2', adds:'cloner',
+    wave:{hp:2.1, dmg:1.7, rof:1.45, more:4, gap:.6, live:15} },
+
+  { id:'008', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter' },
 ];
 
 /* ---- regions ----
@@ -998,7 +1000,7 @@ const SYSTEMS=[
    system to a region by adding its row to SYSTEMS and its name here. */
 const REGIONS=[
   { n:'SOLAR SYSTEM 1', sys:['EARTH','VENUS','JUPITER','SATURN'] },
-  { n:'SOLAR SYSTEM 2', sys:['LUNA','NEPTUNE'], ph:['EUROPA','SOL'] },
+  { n:'SOLAR SYSTEM 2', sys:['LUNA','NEPTUNE','EUROPA'], ph:['SOL'] },
   { n:'ICARUS',         sys:['ICARUS'] },
 ];
 /* ═══════════════ end of the text block — code below ═══════════════ */
@@ -1596,6 +1598,8 @@ if(!save.route){ save.deepestSys=Math.min(save.deepestSys||0,3); save.route=2; }
 if(save.route<3){ save.deepestSys=Math.min(save.deepestSys||0,4); save.route=3; }
 // ...and Neptune after it: system 6 used to be Icarus, and lands on Neptune now
 if(save.route<4){ save.deepestSys=Math.min(save.deepestSys||0,5); save.route=4; }
+// ...and Europa after Neptune: system 7 used to be Icarus, and lands on Europa now
+if(save.route<5){ save.deepestSys=Math.min(save.deepestSys||0,6); save.route=5; }
 /* Hazard Run and Hold the Station swapped systems: Run is Earth's branch now
    and Hold is Venus's. What a save banked, and its best Run time, move with
    the mission rather than staying with the system. */
@@ -2008,21 +2012,21 @@ const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>
 /* What the place itself does to you, for the launch readout. The hazard is as
    much a part of choosing a node as the threat multiplier is. */
 const HAZ_NAME={none:'NONE', vents:'FIRE VENTS', well:'GRAVITY WELLS', rings:'RING DEBRIS',
-                lowg:'LOW GRAVITY', storm:'ICE STORMS', raiders:'LASER RAIDERS'};
+                lowg:'LOW GRAVITY', storm:'ICE STORMS', raiders:'LASER RAIDERS', geysers:'ICE GEYSERS'};
 
 /* ---- the death recap ----
    `killer` is the last thing that took hull off you, named the way the
    bestiary names it, and the death screen says it. A Titan or any boss is
    its own name; a round is its shooter's; the arena is its hazard.        */
 let killer='';
-// «WRITE:» what each hazard is called when it is the thing that got you
-const HAZ_KILL={vents:'FIRE VENT', rings:'RING DEBRIS', storm:'HAIL', raiders:'LASER RAIDER'};
+
+const HAZ_KILL={vents:'FIRE VENT', rings:'RING DEBRIS', storm:'STORM FRONT', raiders:'LASER RAIDER'};
 function unitName(e){
   if(e.B) return e.B.n;
   const r=CODEX.hostiles.rows.find(r=>r.u===e.t);
   return r ? r.n : String(e.t).toUpperCase();
 }
-const recap=()=> killer ? 'KILLED BY <span class="key">'+killer+'</span><br><br>' : '';   // «WRITE:» KILLED BY
+const recap=()=> killer ? 'BROUGHT DOWN BY <span class="key">'+killer+'</span><br><br>' : '';
 
 function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
@@ -2069,7 +2073,7 @@ function branchOverview(k,i){
    a system starts the campaign flow, a branch spins up a single sortie. */
 let launchGo=null;
 /* PROSE — the line that sits under the readout on the launching screen.
-   One per system, one per branch. Yours to write; the markers render in-game
+   One per system, one per branch. Yours to ; the markers render in-game
    so a blank one is obvious. */
 const LAUNCH_TEXT={
   sys:['Defend Earth from the Iterations besieging it.',
@@ -2078,12 +2082,13 @@ const LAUNCH_TEXT={
        'Launch towards a seemingly unprotected Iteration shipment.',
        'Destroy a heavily defended base on the moon.',
        'Launch to an obscure Iteration stronghold that houses the enemy powerhouse.',
+       'Launch to a strengthened moon of Jupiter that houses unspeakable monsters.',
        'Charge the Icarus in a final battle.'],
   hold:    'Hold the space station.',
   run:     'Fly through the gates while avoiding hazards.',
   bounty:  'Defeat the powerful Tracker variant.',
   gauntlet:'Clear three waves of tough enemies without getting hit once.',
-  echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.',   // «WRITE:»
+  echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.', 
   eye:     'Fly through a deadly storm and avoid treacherous winds.',
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
@@ -2108,7 +2113,6 @@ function buildPortalPick(){
 function openLaunch(kind,i){
   $('launchKind').textContent = kind==='boss' ? 'LAUNCHING A SIDE BOSS' : kind ? 'LAUNCHING A SIDE MISSION' : 'LAUNCHING';
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
-  // «WRITE:» the optional line
   $('launchStats').innerHTML = kind
     ? '<div class="lopt">OPTIONAL \u00b7 NOT NEEDED TO REACH THE NEXT SYSTEM</div>'+branchOverview(kind,i)
     : sysOverview(i);
@@ -2124,6 +2128,7 @@ function beginSystem(){
   player.st=stats();
   if(sysIdx>0) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.4);
   player.hp=Math.min(player.hp,player.st.maxHp);
+  player.frz=player.thaw=0;
   bullets=[];ebullets=[];enemies=[];
   clearBuffs();
   worldStart(); sceneStart();
@@ -2143,6 +2148,7 @@ const SYS_CLEAR_TEXT=[
   'The strange creation Iteration has been destroyed! Congratulations. Prepare and continue.',
   'The Crescent has been destroyed! Congratulations. Prepare and continue.',
   'The Titans have been destroyed! Congratulations. Prepare and continue.',
+  'The Leviathan has been brought down! Congratulations. Prepare and continue.',
   'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
@@ -2198,11 +2204,12 @@ function nextWave(){
     if(unlockedType('orbiter'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*8+4.6,'orbiter');
     if(unlockedType('splinter')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*8+6.5,'splinter');
     if(unlockedType('glacier')&&wave>=2)  for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5,'glacier');
+    if(unlockedType('cloner')) for(let i=0;i<(wave>=3?2:1);i++) if(Math.random()<CLONE_ODDS) push(rand(4,12),'cloner');
   }else{
     clearBuffs();                // a boss is fought on your own tree, not on what waves 1-4 dropped
     push(1.2,'boss');
-    // the Titans come alone: the fight is the two of them and nothing else
-    if(!BOSS(sysIdx).duo){
+    // the Titans come alone, and so does the Leviathan
+    if(!BOSS(sysIdx).duo&&!BOSS(sysIdx).chain){
     for(let i=0;i<(sysIdx?5:3)+S.extra;i++) push(8+i*(sysIdx?6.5:8),R.ram);
     for(let i=0;i<(sysIdx?4:2)+S.extra;i++) push(11+i*(sysIdx?7:9),R.line);
     for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,R.heavy);
@@ -2240,7 +2247,7 @@ function leadAngle(e,speed,amount){
 const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
             tracker:'#ffb44d',overseer:'#3fd8e0',orbiter:'#e8c872',splinter:'#d9c6ff',
             phantom:'#a9b8ff',meteor:'#ff9a5c',lander:'#c9ccd4',drone:'#8fe3ff',quarry:'#ffd24d',
-            glacier:'#9fe8ff'};
+            glacier:'#9fe8ff', cloner:'#4f8dff'};
 const ecol=t=>ECOL[t]||'#4d9dff';
 const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
@@ -2261,7 +2268,7 @@ const SPAWN_REACT=.3;
 // fastest approach in px/s before the system and setting scale it, and body radius
 const SPAWN_RUSH={grunt:[78,17], heavy:[44,27], tracker:[120,15], overseer:[62,22],
   orbiter:[215,18], splinter:[127,21], quarry:[190,24], glacier:[40,28],
-  phantom:[110,16], meteor:[130,13], lander:[46,26]};
+  phantom:[110,16], meteor:[130,13], lander:[46,26], cloner:[160,18]};
 function spawnClear(type,vm){
   const R = type==='dart' ? [(122+wave*7)*1.35,12] : SPAWN_RUSH[type];
   return R ? R[0]*vm*SPAWN_REACT + R[1] + 13 : 0;
@@ -2285,7 +2292,7 @@ function edgeSpawn(clear){
 const EHP=1.3;
 // each hostile's hull before any of that scaling; the Bestiary reads it too
 const EHULL={grunt:32, dart:14, heavy:140, tracker:55, overseer:110, orbiter:150,
-  splinter:130, glacier:340, phantom:58, meteor:30, lander:240};
+  splinter:130, glacier:340, phantom:58, meteor:30, lander:240, cloner:300};
 
 /* ---- the ORBITER's circle ----
    It wants a seat on a ring this far out from its target and keeps sliding
@@ -2310,7 +2317,14 @@ const QUARRY_HP=420, QUARRY_HELP=8, QUARRY_KICK=620;
    dark for GLAC_OFF (the last GLAC_WARM of which they show faintly, coming
    back), and sometimes turn the other way when they come back. */
 const GLAC_ARMS=4, GLAC_LEN=190, GLAC_W=9, GLAC_SPIN=1.05, GLAC_ON=3.4, GLAC_OFF=1.0, GLAC_WARM=.5, GLAC_DMG=20;
-const PH_IN=.4, PH_OUT=.3, PH_GONE=[.7,1.1], PH_BURST=4, PH_GAP=.11;
+/* CLONER — Europa's addition, and a rare one: a small blue Ruler that flies
+   your mirror image, reflected through the middle of the arena. You go left,
+   it goes right. It can outrun you by CLONE_CATCH so it never falls behind
+   the reflection for long, and it shoots on its own clock. CLONE_ODDS is the
+   chance each wave from 1 to 4 brings one, rolled again from wave 3 for a
+   second. */
+const CLONE_V=260, CLONE_CATCH=1.5, CLONE_ODDS=.75, CLONE_SHOT=380, CLONE_DMG=24, CLONE_CD=.8;
+const PH_IN=.4, PH_OUT=.3, PH_GONE=[.7,1.1], PH_BURST=3, PH_GAP=.13, PH_DMG=10, PH_WAIT=[.5,.9];
 const MET_AIM=.5, MET_V=680, MET_RUN=.95, MET_COAST=.6;
 const LAND_DRONES=4, LAND_DEPLOY=1.5, DRONE_ORB=54;
 
@@ -2376,9 +2390,19 @@ function spawn(type,at,def){
   if(type==='lander') enemies.push({t:'lander',x:p.x,y:p.y,vx:0,vy:0,r:26,
       hp:EHULL.lander*sc,max:EHULL.lander*sc,spd:46*vm,cool:rand(1.6,2.6)/cd,a:0,val:230,spin:0,
       rof:1/cd,dep:.5/cd});
+  // CLONER — Europa's rare one: your reflection, with its own gun
+  if(type==='cloner') enemies.push({t:'cloner',x:p.x,y:p.y,vx:0,vy:0,r:18,
+      hp:EHULL.cloner*sc,max:EHULL.cloner*sc,spd:CLONE_V*vm,cool:rand(1.2,2)/cd,a:0,val:180,rof:1/cd,
+      spin:0,morph:rand(0,9)});
   if(type==='boss'){
     // whichever one this system answers to, unless a mission named one
     const B0=def||BOSS(sysIdx);
+    if(B0.chain){
+      const segs=makeLeviathan(B0,S,D,vm);
+      segs.forEach(b=>{ b.bn=B0.n; b.hidden=true; enemies.push(b); });
+      bossEntrance(segs[0]); levLay(segs[0].chain);
+      return;
+    }
     if(B0.duo){
       // two bosses, one entrance: the first one stages it for both
       const parts=B0.duo.map(Bp=>makeBoss(Bp,S,D,vm));
@@ -2425,9 +2449,9 @@ clearBuffs();
 function drop(e){
   const odds = e.t==='boss'?1 : e.t==='heavy'?.5 : e.t==='overseer'?.42
              : e.t==='splinter'?.32 : e.t==='orbiter'?.3 : e.t==='tracker'?.3
-             : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0 : e.t==='quarry'?1 : e.t==='glacier'?.45
+             : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0 : e.t==='quarry'?1 : e.t==='glacier'?.45 : e.t==='cloner'?.4
              : e.t==='grunt'?.15 : .07;
-  const n = e.t==='boss'?3 : Math.random()<odds?1:0;
+  const n = e.t==='boss'?(e.chain&&e.kind!=='head'?1:3) : Math.random()<odds?1:0;
   for(let i=0;i<n;i++){
     // repairs only turn up when they would actually mean something
     const pool = player.hp<player.st.maxHp*.8
@@ -2500,6 +2524,307 @@ const TRI_DASH=950, TRI_TEL=.45, TRIDENT_TEL=.7, SLAM_TEL=.95, SLAM_R=120;
 // what each Titan throws the moment the pair climbs, both at once
 const TITAN_COMBO={triton:'trident', proteus:'slam'};
 const ICE_HW=11, ICE_LEN=560, ICE_GAP=200, ICE_GROW=.5, ICE_LIFE=5.5, TETHER_W=8, TETHER_DMG=14;
+
+/* ════════════════ THE LEVIATHAN — Europa ════════════════
+   One boss in six pieces, each its own enemy with its own hull, strung out
+   along the path the head swims. Only one stage of the order is open at a
+   time: the TAIL first, then the four BODY segments in any order, then the
+   HEAD. A segment that is not open yet is warded, and rounds bounce off it.
+
+   Every segment fights from the start, but weakly. Each one that falls makes
+   the rest stronger (`pow`, 0 to 5), so the head alone at the end fights at
+   about a Titan's weight. Each attack's numbers are [weakest, strongest].
+     tail    a laser: paints a line off its end, then fires a beam down it
+     body 1  homing missiles
+     body 2  a big bomb lobbed onto where you are, blowing on a marked circle
+     body 3  a shotgun blast, with a short glow first
+     body 4  homing missiles
+     head    rears back with its jaws open, its line shown, then lunges down
+             it. Caught, you are eaten: the ship is gone, whatever its hull.
+   It comes alone, and the head will not start a lunge at a frozen ship.
+   LEV_HP is each segment's hull before system and difficulty scaling. */
+const LEV_ORDER=['head','b1','b2','b3','b4','tail'];   // nose to tail
+const LEV_ATK={head:'eat', b1:'missile', b2:'bomb', b3:'shotgun', b4:'missile', tail:'laser'};
+const LEV_HP={tail:650, body:850, head:3600};
+const LEV_R={tail:22, body:30, head:40}, LEV_GAP=.85;   // spacing, in the pair's radii
+const LEV_VPOW=.12;                    // how much faster each fallen segment makes it swim
+const LEV_LASER_CD=[3.2,1.3], LEV_LASER_TEL=[.85,.45], LEV_LASER_DMG=[15,31], LEV_LASER_W=14, LEV_BEAM=.22;
+const LEV_MIS_CD=[3,1.3], LEV_MIS_N=[2,4], LEV_MIS_DMG=[12,19], LEV_MIS_V=205;
+const LEV_BOMB_CD=[3.6,1.7], LEV_BOMB_T=1.0, LEV_BOMB_R=[95,135], LEV_BOMB_DMG=[19,38];
+const LEV_SHOT_CD=[2.7,1.2], LEV_SHOT_N=[7,11], LEV_SHOT_DMG=[8,13], LEV_SHOT_V=390, LEV_SHOT_TEL=.3;
+const LEV_EAT_CD=[6.5,2.2], LEV_EAT_TEL=[1.1,.6], LEV_EAT_V=1050, LEV_EAT_RUN=.55, LEV_EAT_REST=.55;
+const LEV_COL='#7fd8ff';
+const levK=e=>e.chain.pow/5;
+const levL=(e,r)=>r[0]+(r[1]-r[0])*levK(e);
+const levHead=()=>enemies.find(e=>e.chain&&e.kind==='head');
+// the head is winding up or mid-lunge: the arena holds off its own tricks
+const levBusy=()=>{ const h=levHead(); return !!h&&(h.st==='aim'||h.st==='lunge'); };
+
+function makeLeviathan(B,S,D,vm){
+  const chain={pow:0, trail:[], fx:[], segs:[]};
+  for(const sg of LEV_ORDER){
+    const kind=sg==='head'?'head':sg==='tail'?'tail':'body';
+    const b=makeBoss(B,S,D,vm), hp=LEV_HP[kind]*S.hp*D.ehp*BOSS_BUFF;
+    Object.assign(b,{seg:sg, kind, chain, r:LEV_R[kind], hp, max:hp, ward:sg==='tail'?0:1,
+      lcd:sg==='head'?3.5:rand(1,2.2), st:'swim', t0:0, jaw:0, hd:Math.PI/2, ha:Math.PI/2, dir:1, wt:0});
+    chain.segs.push(b);
+  }
+  return chain.segs;
+}
+// lay the body out straight up behind the head, so it uncoils on arrival
+function levLay(C){
+  const h=C.segs[0];
+  C.trail=[];
+  for(let i=0;i<120;i++) C.trail.push({x:h.x, y:h.y-i*4});
+  levTrail(C,h);
+}
+
+// a direct hit from the boss's own fire: a beam, a bomb
+function levHurt(e,dmg,x,y){
+  const P=player;
+  if(P.inv>0||buffs.shield>0) return;
+  P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=e.bn;
+  burst(P.x,P.y,'#ff4d5e',12,240);
+  const a=Math.atan2(P.y-y,P.x-x); P.vx+=Math.cos(a)*220; P.vy+=Math.sin(a)*220;
+}
+
+/* The body follows the head's path, not the head: every living segment sits a
+   fixed distance further back along the trail than the one in front of it, so
+   it swims like one animal and closes up when a piece of it is gone. */
+function levTrail(C,h){
+  const T=C.trail;
+  if(!T.length||Math.hypot(T[0].x-h.x,T[0].y-h.y)>3) T.unshift({x:h.x,y:h.y});
+  if(T.length>700) T.length=700;
+  const live=C.segs.filter(sg=>enemies.includes(sg));
+  let x=h.x, y=h.y, dist=0, target=0, j=0;
+  for(let n=1;n<live.length;n++){
+    const sg=live[n], ax=x, ay=y;
+    target+=(live[n-1].r+sg.r)*LEV_GAP;
+    while(j<T.length){
+      const q=T[j], L=Math.hypot(q.x-x,q.y-y);
+      if(L>0&&dist+L>=target){ const f=(target-dist)/L; x+=(q.x-x)*f; y+=(q.y-y)*f; dist=target; break; }
+      dist+=L; x=q.x; y=q.y; j++;
+    }
+    sg.x=x; sg.y=y;
+    if(Math.hypot(ax-x,ay-y)>.5) sg.ha=Math.atan2(ay-y,ax-x);
+  }
+}
+
+// the head: it swims, it weaves, and now and then it goes for you
+function levSwim(e,dt){
+  const C=e.chain, P=player;
+  const v=e.spd*(1+LEV_VPOW*C.pow);
+  const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
+  e.t0+=dt; e.wt+=dt;
+  if(e.st==='swim'){
+    e.jaw=Math.max(0,e.jaw-dt*3);
+    // circles at a working range, weaving; off the walls it heads for the middle
+    let want=Math.atan2(dy,dx)+(d<260?1.9:d<420?1.1:.35)*e.dir+Math.sin(e.wt*2.2)*.5;
+    const m=e.r+70;
+    if(e.x<m||e.x>W-m||e.y<m||e.y>H-m) want=Math.atan2(H/2-e.y,W/2-e.x);
+    e.hd+=clamp(angDiff(want,e.hd),-2.4*dt,2.4*dt);
+    e.x+=Math.cos(e.hd)*v*dt; e.y+=Math.sin(e.hd)*v*dt;
+    if(Math.random()<dt*.15) e.dir*=-1;
+    e.lcd-=dt;
+    if(e.lcd<=0&&d<560&&!(P.frz>0)){
+      e.st='aim'; e.t0=0; e.la=Math.atan2(dy,dx); e.tel=levL(e,LEV_EAT_TEL); SFX.crack();
+    }
+  }else if(e.st==='aim'){
+    // rears back along the line it is about to take, jaws opening
+    e.jaw=Math.min(1,e.t0/e.tel); e.hd=e.la;
+    e.x-=Math.cos(e.la)*45*dt; e.y-=Math.sin(e.la)*45*dt;
+    if(e.t0>=e.tel){ e.st='lunge'; e.t0=0; SFX.dash(); shake=Math.max(shake,8); }
+  }else if(e.st==='lunge'){
+    e.jaw=1; e.hd=e.la;
+    e.x+=Math.cos(e.la)*LEV_EAT_V*dt; e.y+=Math.sin(e.la)*LEV_EAT_V*dt;
+    const rr=e.r+13;
+    if(P.hp>0&&P.inv<=0&&buffs.shield<=0&&dist2(e,P)<rr*rr){
+      // eaten
+      P.hp=0; killer=e.bn; pilotHurt();
+      burst(P.x,P.y,'#ff4d5e',40,360); burst(P.x,P.y,LEV_COL,30,300);
+      shake=Math.max(shake,30); flash=Math.max(flash,.5);
+    }
+    const m=e.r+wallIn;
+    if(e.t0>=LEV_EAT_RUN||e.x<m||e.x>W-m||e.y<m||e.y>H-m){
+      e.st='rest'; e.t0=0; SFX.crack(); burst(e.x+Math.cos(e.la)*e.r,e.y+Math.sin(e.la)*e.r,LEV_COL,16,240);
+    }
+  }else{
+    // the snap shut, and a moment drifting before it swims again
+    e.jaw=Math.max(0,e.jaw-dt*5);
+    e.x+=Math.cos(e.hd)*v*.35*dt; e.y+=Math.sin(e.hd)*v*.35*dt;
+    if(e.t0>=LEV_EAT_REST){ e.st='swim'; e.t0=0; e.lcd=levL(e,LEV_EAT_CD); }
+  }
+  e.x=clamp(e.x,e.r+wallIn,W-e.r-wallIn); e.y=clamp(e.y,e.r+wallIn,H-e.r-wallIn);
+  e.a=e.hd; e.ha=e.hd; e.morph=e.jaw;
+  levTrail(C,e);
+  levFxStep(C,dt);
+}
+
+// what the rest of the body throws: one attack each, on its own clock
+function levFire(e,dt){
+  const C=e.chain, P=player;
+  e.a=e.ha; e.t0+=dt;
+  const atk=LEV_ATK[e.seg];
+  if(e.st==='swim'){
+    e.lcd-=dt;
+    if(e.lcd>0) return;
+    if(atk==='laser'){ e.st='aim'; e.t0=0; e.tel=levL(e,LEV_LASER_TEL); e.la=Math.atan2(P.y-e.y,P.x-e.x); }
+    else if(atk==='shotgun'){ e.st='aim'; e.t0=0; e.tel=LEV_SHOT_TEL; }
+    else if(atk==='missile'){
+      const n=Math.round(levL(e,LEV_MIS_N)), base=Math.atan2(P.y-e.y,P.x-e.x);
+      for(let i=0;i<n;i++){ const a=base+(i-(n-1)/2)*.45;
+        ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*LEV_MIS_V,vy:Math.sin(a)*LEV_MIS_V,
+          r:6.5,dmg:levL(e,LEV_MIS_DMG),col:'#bff0ff',seek:2,age:0,trail:LEV_COL}); }
+      burst(e.x,e.y,LEV_COL,8,180);
+      e.lcd=levL(e,LEV_MIS_CD);
+    }
+    else if(atk==='bomb'){
+      C.fx.push({k:'bomb', src:e, x0:e.x, y0:e.y, tx:P.x, ty:P.y, t:0,
+        R:levL(e,LEV_BOMB_R), dmg:levL(e,LEV_BOMB_DMG)});
+      burst(e.x,e.y,LEV_COL,10,200);
+      e.lcd=levL(e,LEV_BOMB_CD);
+    }
+    return;
+  }
+  // aiming: the laser's line is locked; the shotgun glows, then lets go
+  if(e.t0<e.tel) return;
+  if(atk==='laser'){
+    const cx=Math.cos(e.la), cy=Math.sin(e.la), px=P.x-e.x, py=P.y-e.y;
+    const along=px*cx+py*cy, off=Math.abs(px*cy-py*cx);
+    if(along>0&&off<LEV_LASER_W+12) levHurt(e,levL(e,LEV_LASER_DMG),e.x,e.y);
+    C.fx.push({k:'beam', x:e.x, y:e.y, a:e.la, t:0});
+    SFX.crack(); shake=Math.max(shake,7);
+    e.lcd=levL(e,LEV_LASER_CD);
+  }else{
+    const n=Math.round(levL(e,LEV_SHOT_N)), base=leadAngle(e,LEV_SHOT_V,.6);
+    for(let i=0;i<n;i++){ const a=base+(i-(n-1)/2)*.13, sp=LEV_SHOT_V*rand(.9,1.1);
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:5,dmg:levL(e,LEV_SHOT_DMG),col:LEV_COL}); }
+    burst(e.x,e.y,LEV_COL,14,260); SFX.fire();
+    e.lcd=levL(e,LEV_SHOT_CD);
+  }
+  e.st='swim'; e.t0=0;
+}
+
+function levStep(e,dt){
+  e.pt+=dt; if(e.flare>0) e.flare-=dt;
+  if(e.kind==='head') levSwim(e,dt); else levFire(e,dt);
+}
+
+// bombs in the air and beams still burning; run off the head, which is last to go
+function levFxStep(C,dt){
+  for(let i=C.fx.length-1;i>=0;i--){
+    const f=C.fx[i]; f.t+=dt;
+    if(f.k==='beam'){ if(f.t>=LEV_BEAM) C.fx.splice(i,1); continue; }
+    if(f.t>=LEV_BOMB_T){
+      const P=player, rr=f.R+13;
+      if(dist2({x:f.tx,y:f.ty},P)<rr*rr) levHurt(f.src,f.dmg,f.tx,f.ty);
+      shock(f.tx,f.ty,LEV_COL,10,f.R,.4,6); burst(f.tx,f.ty,LEV_COL,40,380); burst(f.tx,f.ty,'#ffffff',16,260);
+      shake=Math.max(shake,14); SFX.crack();
+      C.fx.splice(i,1);
+    }
+  }
+}
+
+/* A segment going down. Returns false for the last one: that is the boss
+   falling, and the ordinary boss death takes it from there. */
+function levFall(e){
+  const C=e.chain, left=C.segs.filter(sg=>sg!==e&&enemies.includes(sg));
+  if(!left.length) return false;
+  C.pow++;
+  burst(e.x,e.y,LEV_COL,60,440); shock(e.x,e.y,LEV_COL,e.r,e.r*4,.6,8);
+  shake=Math.max(shake,20); flash=Math.max(flash,.3); SFX.bossDown();
+  if(e.kind==='tail') for(const sg of left) if(sg.kind==='body') sg.ward=0;
+  if(!left.some(sg=>sg.kind==='body')) for(const sg of left) sg.ward=0;
+  for(const sg of left){ sg.flare=1.6; burst(sg.x,sg.y,LEV_COL,10,200); }
+  const bodies=left.filter(sg=>sg.kind==='body').length;
+  banner = e.kind==='tail' ? 'TAIL DOWN' : bodies ? 'SEGMENT DOWN · '+bodies+' LEFT' : 'THE HEAD IS OPEN';
+  bannerT=2.4;
+  return true;
+}
+
+// under the fight: the spine joining it up, and every warning it gives
+function levDraw(){
+  const h=levHead(); if(!h||h.hidden) return;
+  const C=h.chain, live=C.segs.filter(sg=>enemies.includes(sg)), P=player;
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(127,216,255,.55)'; ctx.lineWidth=2; ctx.shadowColor=LEV_COL; ctx.shadowBlur=12;
+  ctx.beginPath(); live.forEach((sg,i)=>i?ctx.lineTo(sg.x,sg.y):ctx.moveTo(sg.x,sg.y)); ctx.stroke();
+  ctx.shadowBlur=0;
+  for(const e of live){
+    if(e.st!=='aim') continue;
+    const k=clamp(e.t0/e.tel,0,1);
+    if(LEV_ATK[e.seg]==='laser'){
+      ctx.strokeStyle='rgba(127,216,255,'+(.15+.6*k)+')'; ctx.lineWidth=2+LEV_LASER_W*k;
+      ctx.shadowColor=LEV_COL; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(e.la)*1500,e.y+Math.sin(e.la)*1500); ctx.stroke();
+      ctx.shadowBlur=0;
+    }else if(LEV_ATK[e.seg]==='shotgun'){
+      ctx.strokeStyle='rgba(200,240,255,'+(.3+.6*k)+')'; ctx.lineWidth=2; ctx.shadowColor=LEV_COL; ctx.shadowBlur=14;
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(2.4-1.2*k),0,TAU); ctx.stroke(); ctx.shadowBlur=0;
+    }else if(e.kind==='head'){
+      // the line it will lunge down, red: this is the one that kills
+      const L=LEV_EAT_V*LEV_EAT_RUN, cx=Math.cos(e.la), cy=Math.sin(e.la), hw=e.r+13;
+      ctx.strokeStyle='rgba(255,77,94,'+(.3+.65*k)+')'; ctx.lineWidth=1.5+1.5*k;
+      ctx.shadowColor='#ff2233'; ctx.shadowBlur=16;
+      for(const o of [-hw,hw]){ ctx.beginPath(); ctx.moveTo(e.x-cy*o,e.y+cx*o);
+        ctx.lineTo(e.x-cy*o+cx*L,e.y+cx*o+cy*L); ctx.stroke(); }
+      ctx.setLineDash([10,10]); ctx.lineDashOffset=-e.t0*120; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+cx*L,e.y+cy*L); ctx.stroke();
+      ctx.setLineDash([]); ctx.shadowBlur=0;
+    }
+  }
+  for(const f of C.fx){
+    if(f.k==='beam'){
+      const a=1-f.t/LEV_BEAM;
+      const x2=f.x+Math.cos(f.a)*1500, y2=f.y+Math.sin(f.a)*1500;
+      ctx.strokeStyle='rgba(127,216,255,'+(.45*a)+')'; ctx.lineWidth=LEV_LASER_W*1.6;
+      ctx.shadowColor=LEV_COL; ctx.shadowBlur=28;
+      ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.strokeStyle='rgba(240,252,255,'+a+')'; ctx.lineWidth=3; ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(x2,y2); ctx.stroke();
+    }else{
+      const k=f.t/LEV_BOMB_T;
+      // where it lands, filling in as it falls
+      ctx.strokeStyle='rgba(127,216,255,'+(.35+.6*k)+')'; ctx.lineWidth=2;
+      ctx.shadowColor=LEV_COL; ctx.shadowBlur=14;
+      ctx.beginPath(); ctx.arc(f.tx,f.ty,f.R,0,TAU); ctx.stroke();
+      ctx.setLineDash([6,8]); ctx.lineDashOffset=-f.t*60; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(f.tx,f.ty,f.R*(1.9-.9*k),0,TAU); ctx.stroke(); ctx.setLineDash([]);
+      // the bomb itself, coming in
+      const x=f.x0+(f.tx-f.x0)*k, y=f.y0+(f.ty-f.y0)*k;
+      ctx.fillStyle='#000'; ctx.strokeStyle=LEV_COL; ctx.lineWidth=2; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.arc(x,y,11,0,TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#eafaff'; ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.arc(x,y,3.5,0,TAU); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+// over the fight: every segment's own hull
+function levBars(){
+  const h=levHead(); if(!h||h.hidden) return;
+  for(const e of h.chain.segs){
+    if(!enemies.includes(e)) continue;
+    hpbar(e.x,e.y+e.r+12,Math.max(36,e.r*1.6),e.hp/e.max,e.ward?'#5d6a85':LEV_COL);
+  }
+}
+// the boss bar, in six cells: tail on the left, head on the right
+function levBar(C){
+  const w=520, x=(W-w)/2, y=H-42, gap=6, order=['tail','b4','b3','b2','b1','head'];
+  const cw=(w-gap*5)/6;
+  order.forEach((sg,i)=>{
+    const e=C.segs.find(q=>q.seg===sg), cx=x+i*(cw+gap), alive=enemies.includes(e);
+    ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(cx,y,cw,13);
+    if(alive){
+      ctx.fillStyle=e.ward?'#3a4258':LEV_COL; ctx.fillRect(cx,y,cw*clamp(e.hp/e.max,0,1),13);
+      if(e.ward) barState(e,cx,y,cw,13);
+    }
+    ctx.strokeStyle=alive?LEV_COL:'rgba(127,216,255,.25)'; ctx.lineWidth=1;
+    ctx.strokeRect(cx+.5,y+.5,cw,13);
+  });
+  ctx.textAlign='center'; ctx.font='11px Menlo,monospace'; ctx.fillStyle=LEV_COL;
+  ctx.fillText(C.segs[0].bn,W/2,y-8);
+}
 
 const BOSSES=[
   /* The first boss anyone meets, so it sits a shade under the rest of the
@@ -2577,6 +2902,14 @@ const BOSSES=[
   // THE TITANS: never spawned as itself — spawn() puts its two parts down
   { k:'titans', n:'THE TITANS', col:'#2fa8ff', duo:[TRITON,PROTEUS], r:60, hp:3000, val:0,
     spd:0, want:0, strafe:0, mus:TITAN_MUS, tiers:[{n:''}] },
+
+  /* THE LEVIATHAN — Europa. Six segments, each its own hull: see the block
+     above the table. `chain` is what makes spawn() build it that way; `hp` is
+     the six hulls added up, for the bestiary; `val` is paid per segment. */
+  { k:'leviathan', n:'THE LEVIATHAN', col:'#7fd8ff', r:40, chain:1, val:400,
+    hp:LEV_HP.tail+4*LEV_HP.body+LEV_HP.head,
+    spd:195, want:0, strafe:0, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+    tiers:[{n:''}]},
 
   /* The last thing in the campaign, and it is meant to feel like it. Heavier
      than anything else on the roster, it closes distance rather than holding a
@@ -3680,6 +4013,7 @@ function entranceStep(dt){
     entrance=null;
     b.hidden=false; b.flare=2.2; b.cool=1.6;
     if(b.twin){ b.twin.hidden=false; b.twin.flare=2.2; b.twin.cool=2.6; }
+    if(b.chain) for(const sg of b.chain.segs){ sg.hidden=false; sg.flare=2.2; }
     banner=b.bn; bannerT=2.4;
   }
 }
@@ -3943,8 +4277,8 @@ function absorbStart(dead,o){
   phaseCut={kind:'absorb', t:0, e:o, col:o.col, dcol:dead.col, wt:waveTimer, hit:false,
     dur:ABSORB_DUR, hitT:ABSORB_HIT,
     dx:dead.x, dy:dead.y, dk:dead.k, dr:dead.r, h0:o.hp,
-    name: o.B.n+' ABSORBS '+dead.B.n,          // «WRITE:» the card for this moment
-    tag: 'FULL POWER',                          // «WRITE:»
+    name: o.B.n+' ABSORBS '+dead.B.n,
+    tag: 'FULL POWER',                   
     motes:Array.from({length:46},()=>({ox:rand(-1,1)*dead.r, oy:rand(-1,1)*dead.r,
       lag:rand(.45,1.5), dur:rand(.45,.7), bend:rand(-1,1)*220, r:rand(2,4.5)}))};
   // called from inside the bullet loop on the killing shot: see phaseStart
@@ -5333,7 +5667,14 @@ function update(dt){
      speed along the line it took, and drag only gets it back afterwards.
      Thrown, drag ate the speed in a tenth of a second whatever the length,
      which is why INTERSTELLAR DRIVE's longer dash went no further. */
-  if(P.dashT>0){ P.vx=P.dx*st.speed*3.1; P.vy=P.dy*st.speed*3.1; }
+  /* Iced over by a geyser: no thrust and next to no drag, so the ship drifts
+     on what it was already doing. The dash that was running stops with it. */
+  if(P.frz>0){
+    P.frz-=dt; P.dashT=0;
+    const drag=Math.pow(st.dragBase,dt*GEY_DRAG); P.vx*=drag; P.vy*=drag;
+    if(P.frz<=0){ P.frz=0; P.thaw=GEY_SAFE; burst(P.x,P.y,'#dff4ff',26,300); SFX.crack(); }
+  }
+  else if(P.dashT>0){ P.vx=P.dx*st.speed*3.1; P.vy=P.dy*st.speed*3.1; }
   else{
     P.vx+=ax*st.accel*(lg?LOWG_GRIP:1)*dt; P.vy+=ay*st.accel*(lg?LOWG_GRIP:1)*dt;
     const drag=Math.pow(st.dragBase,dt*(lg?LOWG_DRAG:1)); P.vx*=drag; P.vy*=drag;
@@ -5342,12 +5683,13 @@ function update(dt){
   if(sp>cap){P.vx=P.vx/sp*cap;P.vy=P.vy/sp*cap;}
   P.x=clamp(P.x+P.vx*dt,18+wallIn,W-18-wallIn);
   P.y=clamp(P.y+P.vy*dt,18+wallIn,H-18-wallIn);
-  P.a=Math.atan2(mouse.y-P.y,mouse.x-P.x);
+  if(!(P.frz>0)) P.a=Math.atan2(mouse.y-P.y,mouse.x-P.x);
+  if(P.thaw>0) P.thaw=Math.max(0,P.thaw-dt);
 
   // dash
   P.dashCd=Math.max(0,P.dashCd-dt); P.dashT=Math.max(0,P.dashT-dt);
   P.inv=Math.max(0,P.inv-dt);
-  if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)){
+  if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)&&!(P.frz>0)){
     P.dashCd=st.dashCd; P.dashT=st.dashLen; P.dx=ax; P.dy=ay;
     P.vx=ax*st.speed*3.1; P.vy=ay*st.speed*3.1;
     if(st.iframe)P.inv=Math.max(.4,st.dashLen+.05);
@@ -5383,7 +5725,7 @@ function update(dt){
 
   /* --- fire --- */
   P.cool-=dt;
-  if(mouse.down&&P.cool<=0){
+  if(mouse.down&&P.cool<=0&&!(P.frz>0)){
     P.cool=st.delay*(buffs.rapid>0?.55:1);
     const n=Math.max(st.shots,buffs.scatter>0?3:1), spread=.15;
     for(let i=0;i<n;i++){
@@ -5404,6 +5746,14 @@ function update(dt){
   // Holding the station, everything hunts the station, not you.
   const T = mission&&mission.ward ? mission.ward : P;
   for(const e of enemies){
+    // iced over by a geyser: it drifts off the kick and does nothing else
+    if(e.frz>0){
+      e.frz-=dt; e.x+=e.fvx*dt; e.y+=e.fvy*dt;
+      const k=Math.pow(.4,dt); e.fvx*=k; e.fvy*=k;
+      e.x=clamp(e.x,e.r+wallIn,W-e.r-wallIn); e.y=clamp(e.y,e.r+wallIn,H-e.r-wallIn);
+      if(e.frz<=0) burst(e.x,e.y,'#dff4ff',14,220);
+      continue;
+    }
     const dx=T.x-e.x, dy=T.y-e.y, d=Math.hypot(dx,dy)||1, ox=e.x, oy=e.y;
     const n0=ebullets.length;                 // to take back a shot fired from off screen
     e.a=Math.atan2(dy,dx);
@@ -5533,6 +5883,20 @@ function update(dt){
         }
       }
     }
+    else if(e.t==='cloner'){
+      // it flies to where your reflection is, and keeps up with you once it is there
+      e.morph+=dt; e.spin+=dt*.5;
+      const mx=W-P.x, my=H-P.y, rx=mx-e.x, ry=my-e.y, rd=Math.hypot(rx,ry);
+      const v=Math.max(e.spd,Math.hypot(P.vx,P.vy)*CLONE_CATCH);
+      if(rd>.5){ const step=Math.min(rd,v*dt); e.x+=rx/rd*step; e.y+=ry/rd*step; }
+      e.cool-=dt;
+      if(e.cool<=0&&e.on&&d<760){
+        e.cool=CLONE_CD*(e.rof||1);
+        const a=leadAngle(e,CLONE_SHOT,.9);
+        ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*CLONE_SHOT,vy:Math.sin(a)*CLONE_SHOT,r:5.5,
+          dmg:CLONE_DMG*EASE(),col:'#4f8dff'});
+      }
+    }
     else if(e.t==='quarry'){
       const hurt=e.hp<e.max*.5;
       e.spin+=dt*3;
@@ -5592,7 +5956,7 @@ function update(dt){
           if(e.sh2<=0){
             e.sh2=PH_GAP; e.shots++;
             const a=leadAngle(e,300,.85);
-            ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:5,dmg:12*EASE(),col:'#a9b8ff'});
+            ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:5,dmg:PH_DMG*EASE(),col:'#a9b8ff'});
             if(e.shots>=PH_BURST){ e.shots=0; e.ph='out'; e.pt=0; }
           }
         }
@@ -5606,7 +5970,7 @@ function update(dt){
           e.x=clamp(T.x+Math.cos(a)*R,40+wallIn,W-40-wallIn);
           e.y=clamp(T.y+Math.sin(a)*R,40+wallIn,H-40-wallIn);
           e.ph='in'; e.pt=0; e.gone=0; e.dir*=-1;
-          e.cool=(PH_IN+rand(.3,.7))*(e.rof||1);
+          e.cool=(PH_IN+rand(PH_WAIT[0],PH_WAIT[1]))*(e.rof||1);
         }
       }
     }
@@ -5685,7 +6049,8 @@ function update(dt){
       const n0=ebullets.length;
       // a climb owes a strike, paid the moment no cutscene is playing
       if(e.strikeDue&&!phaseCut){ strikeStart(e,e.strikeDue===2?STRIKE_RIDE:0); e.strikeDue=0; }
-      if(e.strike) strikeStep(e,dt); else bossAI(e,dt,dx,dy,d);
+      if(e.chain) levStep(e,dt);
+      else if(e.strike) strikeStep(e,dt); else bossAI(e,dt,dx,dy,d);
       if(inMeltdown(e)) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg=ONE_SHOT;
       // a boss can hit harder than the shared numbers without editing every attack
       else if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
@@ -5773,6 +6138,8 @@ function update(dt){
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
           else killFx(e,ecolOf(e),e.t==='heavy'?40:22,e.t==='heavy'?370:300);
           enemies.splice(j,1);
+          // a Leviathan segment with more of it still swimming
+          if(e.chain&&levFall(e)) break;
           // a Titan with its twin still standing falls on its own
           if(e.t==='boss'&&e.twin&&enemies.includes(e.twin)){ duoFall(e); break; }
           if(e.t==='boss'){ // the boss falls: its escorts go with it
@@ -5837,7 +6204,7 @@ function update(dt){
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
       P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12; pilotHurt();
-      killer=b.src?unitName(b.src):'ENEMY FIRE';     // «WRITE:» the fallback
+      killer=b.src?unitName(b.src):'ENEMY FIRE';
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -5850,7 +6217,7 @@ function update(dt){
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0&&buffs.shield<=0){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
-              :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:10)
+              :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:e.t==='cloner'?24:10)
                *DIFF().dmgIn*P.st.armour*WV().dmg;
         pilotHurt(); killer=unitName(e);
         P.inv=.5;
@@ -5882,7 +6249,7 @@ function update(dt){
    screen, but in its own words: nothing about the system is lost, it just
    paid nothing. RELAUNCH flies the same mission again. */
 function sideFailText(M,why){
-  $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';   // «WRITE:»
+  $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';
   $('overSub').textContent = (why||'SHIP DESTROYED')+' \u2014 '+(M.B?M.B.n:branchName(M.k));
   $('overMeta').innerHTML = (why?'':recap())+'NO CREDITS EARNED &nbsp;\u00b7&nbsp; SCORE <span class="key">'+score+
     '</span> &nbsp;\u00b7&nbsp; BEST <span class="key">'+save.best+'</span>';
@@ -5951,6 +6318,10 @@ function endRun(win,why){
                        spawn cap, and they can turn up mid-boss. Shootable, but
                        tanky and worth nothing — killing one is a choice to
                        spend time on safety instead of the wave.
+     geysers (Europa)  A patch of ice cracks, then blows a column of freezing
+                       water. Caught in it, your ship is iced over for a
+                       second and a half: no thrust, no gun, and you drift.
+                       It freezes Iterations too, bosses aside.
 
    All three answer to the difficulty setting, in rate as well as in damage. */
 let world=null;
@@ -5974,6 +6345,14 @@ const LOWG_CARRY=.9, LOWG_MAXV=260;
 const STORM_HW=95, STORM_V=300, STORM_WARN=1.2, STORM_GAP=[5,8], STORM_HIT=5, STORM_TICK=.5;
 const STORM_FOG_R=150;
 const RAID_HP=46, RAID_AIM=.75, RAID_BEAM=.22, RAID_DMG=26, RAID_W=15;
+/* Europa's geysers: a patch of ice cracks for GEY_WARN, then blows for
+   GEY_BLOW. Caught in it you are frozen for GEY_FRZ: no thrust, no gun, no
+   dash, and almost no drag (GEY_DRAG of the usual), so you drift on whatever
+   you were doing plus the kick it gave you. After a thaw you cannot be frozen
+   again for GEY_SAFE. GEY_NEAR is how often one opens close to you rather
+   than anywhere at all. Hostiles freeze too; bosses do not. */
+const GEY_R=74, GEY_WARN=.8, GEY_BLOW=.6, GEY_GAP=[2,3.6], GEY_FRZ=1.5, GEY_SAFE=.8;
+const GEY_DRAG=.12, GEY_KICK=170, GEY_NEAR=.6;
 
 /* Scatter the vents rather than ring them: a ring leaves the middle of the
    arena permanently safe, and a hazard with a free seat in it is not a hazard.
@@ -6002,6 +6381,17 @@ function placeWell(){
   }
   return {x:rand(W*.2,W*.8), y:rand(H*.2,H*.8), t:0};
 }
+// a geyser opens anywhere, or half the time somewhere close to the pilot
+function placeGeyser(){
+  const P=player, m=GEY_R+10;
+  if(P&&Math.random()<GEY_NEAR){
+    const a=rand(0,TAU), r=rand(0,200);
+    return {x:clamp(P.x+Math.cos(a)*r,m,W-m), y:clamp(P.y+Math.sin(a)*r,m,H-m), t:0};
+  }
+  return {x:rand(m,W-m), y:rand(m,H-m), t:0};
+}
+// how far open a geyser is while it blows: 0 shut, 1 at full width
+const geyOpen=g=>{ const k=(g.t-GEY_WARN)/GEY_BLOW; return k<0||k>1?0:Math.min(1,k*4); };
 
 /* a ring lane: straight across the arena, through a point near the pilot but
    not always on them, at one of four headings. `x,y` is its middle, (cx,cy)
@@ -6075,7 +6465,7 @@ function inFront(o,pad){
 function worldStart(){
   const h=SYS().haz;
   world = h ? {h, t:0, vents:[], well:null, gap:1.8, raid:[], next:rand(3,5),
-               lane:null, bits:[], pads:[], front:null, fog:0, hail:0} : null;
+               lane:null, bits:[], pads:[], front:null, fog:0, hail:0, gey:[]} : null;
   if(!world) return;
   if(h==='lowg') for(let i=0;i<LOWG_N;i++) world.pads.push(makePad());
   if(h==='vents') world.vents=ventRing();
@@ -6089,6 +6479,7 @@ function worldWave(){
   if(world.h==='raiders') world.next=rand(3.5,6)/HAZ_RATE();
   if(world.h==='storm'&&!world.front) world.next=rand(1.6,2.6)/HAZ_RATE();
   if(world.h==='rings'){ world.lane=null; world.bits=[]; world.next=rand(2.4,3.6)/HAZ_RATE(); }
+  if(world.h==='geysers'){ world.gey=[]; world.next=rand(2,3.5)/HAZ_RATE(); }
   // the old splotches drain away while the new ones fill in
   if(world.h==='lowg'){ for(const p of world.pads) p.die=1;
     for(let i=0;i<LOWG_N;i++) world.pads.push(makePad()); }
@@ -6434,6 +6825,26 @@ function scenePaint(name){
         for(let i=0;i<8;i++) sceneBlob(g,P.cx+sp(-1,1)*P.half,P.top+sp(10,140),sp(60,160),sp(3,7),'220,235,255',.3,sp(-.08,.08));
       }});
   }
+  else if(name==='EUROPA'){
+    // bright water ice scored all over with long rust-brown cracks, the
+    // lineae, running in great arcs; a few darker blotches of chaos terrain
+    const P=cap(W*.38,138,cw*.4);
+    scenePlanet(g,P.cx,P.cy,P.R,{hi:'#f1ece2',lo:'#5c5a63',glow:'225,235,250',haze:12,
+      surf(){
+        for(let i=0;i<5;i++) sceneBlob(g,P.cx+sp(-.8,.8)*P.half,P.top+sp(20,140),
+          sp(50,120),sp(14,30),'150,120,100',.35,sp(-.3,.3));
+        g.lineCap='round';
+        for(let i=0;i<22;i++){
+          const x0=P.cx+sp(-1.1,1.1)*P.half, y0=P.top+sp(-10,150), a=sp(-.9,.9), L=sp(160,520);
+          g.strokeStyle='rgba('+(i%3?'150,95,70':'120,70,55')+','+sp(.12,.3).toFixed(2)+')';
+          g.lineWidth=sp(.6,1.8);
+          g.beginPath(); g.moveTo(x0,y0);
+          g.quadraticCurveTo(x0+Math.cos(a)*L*.5+sp(-60,60),y0+Math.sin(a)*L*.5+sp(-40,40),
+                             x0+Math.cos(a)*L,y0+Math.sin(a)*L);
+          g.stroke();
+        }
+      }});
+  }
   else if(name==='ICARUS'){
     /* not a planet: the Ruler's ship, close enough to fill the bottom of the
        screen. A long hull with towers stood on it, lit windows, a rim of
@@ -6624,7 +7035,7 @@ function hazHurt(dmg,x,y,col,kick){
   if(P.inv>0||buffs.shield>0) return false;
   P.hp-=dmg*HAZ_DMG()*P.st.armour;
   P.inv=.5; pilotHurt();
-  killer=HAZ_KILL[world&&world.h]||'THE ARENA';     // «WRITE:» the fallback
+  killer=HAZ_KILL[world&&world.h]||'THE HAZARD';
   burst(P.x,P.y,col,14,260);
   if(kick){ const a=Math.atan2(P.y-y,P.x-x);
     P.vx+=Math.cos(a)*kick; P.vy+=Math.sin(a)*kick; }
@@ -6820,6 +7231,39 @@ function worldStep(dt){
     }
   }
 
+  /* ---- Europa: ice geysers ---- */
+  if(world.h==='geysers'){
+    world.next-=dt;
+    if(world.next<=0&&!levBusy()){ world.gey.push(placeGeyser()); world.next=rand(GEY_GAP[0],GEY_GAP[1])/HAZ_RATE(); }
+    for(let i=world.gey.length-1;i>=0;i--){
+      const g=world.gey[i]; g.t+=dt;
+      if(g.t>=GEY_WARN+GEY_BLOW){ world.gey.splice(i,1); continue; }
+      const k=geyOpen(g);
+      if(!k) continue;
+      if(!g.blew){ g.blew=1; SFX.crack(); shake=Math.max(shake,6); }
+      const r=GEY_R*k;
+      for(let q=0;q<3&&parts.length<PARTS_MAX;q++){ const a=rand(0,TAU), v=rand(120,380);
+        parts.push({x:g.x+rand(-r,r)*.5,y:g.y+rand(-r,r)*.5,vx:Math.cos(a)*v,vy:Math.sin(a)*v,
+          life:rand(.25,.5),t:0,col:Math.random()<.5?'#dff4ff':'#8fdcff',r:rand(1.5,3)}); }
+      // it does not hurt: it takes your ship away from you for a moment
+      const rr=r+11;
+      if(!(P.frz>0)&&!(P.thaw>0)&&P.inv<=0&&buffs.shield<=0&&!levBusy()&&dist2(g,P)<rr*rr){
+        P.frz=GEY_FRZ;
+        const a=Math.atan2(P.y-g.y,P.x-g.x)||rand(0,TAU);
+        P.vx+=Math.cos(a)*GEY_KICK; P.vy+=Math.sin(a)*GEY_KICK;
+        burst(P.x,P.y,'#dff4ff',22,260); SFX.crack();
+      }
+      for(const e of enemies){
+        if(e.t==='boss'||e.t==='echo'||e.gone||e.frz>0||!e.on) continue;
+        const er=r+e.r;
+        if(dist2(g,e)>=er*er) continue;
+        const a=Math.atan2(e.y-g.y,e.x-g.x)||rand(0,TAU);
+        e.frz=GEY_FRZ; e.fvx=Math.cos(a)*GEY_KICK*.6; e.fvy=Math.sin(a)*GEY_KICK*.6;
+        burst(e.x,e.y,'#dff4ff',12,200);
+      }
+    }
+  }
+
   /* ---- Icarus: raiders ---- */
   if(world.h==='raiders'){
     world.next-=dt;
@@ -6893,8 +7337,36 @@ function worldStep(dt){
 /* ---- the arena, drawn ----
    Floor first, under everything that flies: vent plates, the well. Then the
    part that has to read over the top of a fight: fire, raiders, beams. */
+// the ice a geyser leaves on whatever it caught; `left` is how long it holds
+function iceShell(x,y,r,left){
+  const k=clamp(left/.3,0,1);          // it cracks away over the last moment
+  ctx.save(); ctx.translate(x,y); ctx.globalAlpha=.35+.65*k;
+  ctx.strokeStyle='rgba(200,240,255,.9)'; ctx.lineWidth=1.4; ctx.shadowColor='#8fdcff'; ctx.shadowBlur=12;
+  ctx.beginPath();
+  for(let i=0;i<9;i++){ const a=i/9*TAU+.4, rr=r*(i%2?.78:1);
+    i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr); }
+  ctx.closePath(); ctx.stroke();
+  // shards standing off it
+  for(let i=0;i<9;i+=2){ const a=i/9*TAU+.4;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); ctx.lineTo(Math.cos(a)*r*1.3,Math.sin(a)*r*1.3); ctx.stroke(); }
+  ctx.restore();
+}
 function worldFloor(){
   if(!world) return;
+  if(world.h==='geysers') for(const g of world.gey){
+    if(g.t>=GEY_WARN) continue;
+    const k=g.t/GEY_WARN;
+    ctx.save(); ctx.translate(g.x,g.y);
+    ctx.strokeStyle='rgba(200,240,255,'+(.3+.6*k)+')'; ctx.lineWidth=1.5+2*k;
+    ctx.setLineDash([6,6]); ctx.lineDashOffset=-g.t*40;
+    ctx.beginPath(); ctx.arc(0,0,GEY_R,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+    // the ice splitting from the middle out, further the closer it is to going
+    ctx.lineWidth=1.6; ctx.strokeStyle='rgba(230,248,255,'+(.4+.5*k)+')';
+    for(let i=0;i<7;i++){ const a=i/7*TAU+g.x*.01, l=GEY_R*(.25+.7*k)*(.7+.3*Math.sin(i*2.3+g.y));
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a+.25)*l*.5,Math.sin(a+.25)*l*.5);
+      ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke(); }
+    ctx.restore();
+  }
   if(world.h==='storm') stormFloor();
   if(world.h==='vents'){
     for(const v of world.vents){
@@ -7001,6 +7473,25 @@ function worldFloor(){
 }
 function worldDraw(){
   if(!world) return;
+  if(world.h==='geysers'){
+    for(const g of world.gey){
+      const k=geyOpen(g); if(!k) continue;
+      const r=GEY_R*k, fade=g.t>GEY_WARN+GEY_BLOW*.75?(GEY_WARN+GEY_BLOW-g.t)/(GEY_BLOW*.25):1;
+      ctx.save(); ctx.translate(g.x,g.y); ctx.globalAlpha=clamp(fade,0,1);
+      ctx.lineCap='round'; ctx.shadowColor='#8fdcff'; ctx.shadowBlur=16;
+      // jets of spray to the exact edge that freezes, jittered so it reads as water
+      for(let i=0;i<18;i++){
+        const a=i/18*TAU+rand(-.08,.08), l=r*rand(.75,1);
+        ctx.strokeStyle=i%3?'rgba(143,220,255,.7)':'rgba(235,250,255,.9)'; ctx.lineWidth=i%3?1.6:2.4;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*.15,Math.sin(a)*r*.15);
+        ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke();
+      }
+      ctx.strokeStyle='rgba(223,244,255,.85)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke();
+      ctx.restore();
+    }
+    for(const e of enemies) if(e.frz>0&&!e.hidden) iceShell(e.x,e.y,e.r+8,e.frz);
+  }
   if(world.h==='storm') stormDraw();
   if(world.h==='vents'){
     for(const v of world.vents){
@@ -7101,8 +7592,6 @@ let glitch=[];              // the fault lines, as they arrive
 let finaleArmed=false;      // the Ruler fell out of frame: this is coming
 let finaleDone=false;       // ...and it has already happened this run
 
-/* PROSE — what the defense net says while it is coming apart. Terse machine
-   faults, not sentences. «WRITE:» yours if you want them in your own voice. */
 const GLITCH_LINES=[
   'ERROR..UNKNOWN LIFEFORM',
   'ERROR..DEFENSE NET OFFLINE',
@@ -7512,7 +8001,7 @@ function eyeTick(dt){
     const ax=Math.max(0,W/2-EYE_R0-30), ay=Math.max(0,H/2-EYE_R0-30);
     const ph=(v,A)=>{ const s0=Math.asin(clamp(A?v/A:0,-1,1)); return Math.random()<.5?s0:Math.PI-s0; };
     M.eye={ax, ay, t0:M.t, px:ph(P.x-W/2,ax), py:ph(P.y-H/2,ay), r:EYE_R0, t:0, x:0, y:0};
-    banner='THE STORM CLOSES IN'; bannerT=2.4;     // «WRITE:»
+    banner='THE STORM CLOSES IN'; bannerT=2.4;
   }
   const E=M.eye; if(!E) return;
   E.t+=dt;
@@ -7932,12 +8421,29 @@ function unitPath(g,kind,r,spin,morph){
   }else if(kind==='b_hive'){
     // THE HIVE MIND: a core with the swarm still orbiting it
     g.beginPath(); g.arc(0,0,r*.55,0,TAU); g.closePath();
+  }else if(kind==='lev_head'||kind==='b_leviathan'){
+    // THE LEVIATHAN's head, facing +x. `morph` is how far its jaws are open
+    const j=clamp(morph,0,1), pts=[[-.8,-.7],[.3,-.85],[1.3,-.15-j*.55],[.45,-.05],
+      [.45,.05],[1.3,.15+j*.55],[.3,.85],[-.8,.7],[-1,0]];
+    g.beginPath(); pts.forEach(([x,y],i)=>i?g.lineTo(x*r,y*r):g.moveTo(x*r,y*r)); g.closePath();
+    // the skull ridge, back from the jaws
+    g.moveTo(r*.45,-r*.05); g.lineTo(-r*.55,-r*.35); g.moveTo(r*.45,r*.05); g.lineTo(-r*.55,r*.35);
+  }else if(kind==='lev_body'){
+    // a plated segment with a fin standing off either side
+    const pts=[[1,0],[.5,-.8],[0,-1.25],[-.5,-.8],[-1,0],[-.5,.8],[0,1.25],[.5,.8]];
+    g.beginPath(); pts.forEach(([x,y],i)=>i?g.lineTo(x*r,y*r):g.moveTo(x*r,y*r)); g.closePath();
+    g.moveTo(r*.42,0); g.arc(0,0,r*.42,0,TAU);
+  }else if(kind==='lev_tail'){
+    // the tail fluke, split behind it
+    const pts=[[.9,0],[.2,-.6],[-1.4,-1.1],[-.8,0],[-1.4,1.1],[.2,.6]];
+    g.beginPath(); pts.forEach(([x,y],i)=>i?g.lineTo(x*r,y*r):g.moveTo(x*r,y*r)); g.closePath();
   }else if(kind==='b_overseer'){
     // ITERATION 2117: the Overseer's circle, with a second ring inside it
     g.beginPath(); g.arc(0,0,r,0,TAU); g.closePath();
     g.moveTo(r*.6,0); g.arc(0,0,r*.6,0,TAU);
   }else{
-    // THE RULER: an ever-changing black shape, legible only by the light it bends
+    // THE RULER: an ever-changing black shape, legible only by the light it bends.
+    // The Cloner is drawn with this too: the same shape, small and blue
     g.rotate(spin);
     g.beginPath();
     const N=13;
@@ -7949,7 +8455,7 @@ function unitPath(g,kind,r,spin,morph){
     g.closePath();
   }
 }
-const unitKind=e=> (e.t==='boss'||e.t==='echo')?'b_'+e.k:e.t;
+const unitKind=e=> e.chain ? 'lev_'+e.kind : (e.t==='boss'||e.t==='echo')?'b_'+e.k:e.t;
 
 /* Weak spots are drawn in world space, after the hull, because the enemy pass
    runs inside translate/rotate — and unitPath rotates further for some shapes,
@@ -8159,6 +8665,7 @@ function draw(){
       }
     }
 
+    levDraw();
     // enemies
     for(const e of enemies){
       if(e.hidden) continue;                 // still arriving; the scene draws it
@@ -8239,6 +8746,15 @@ function draw(){
             ctx.stroke();
           }
           ctx.shadowBlur=0;
+        }
+      }else if(e.t==='cloner'){
+        // a Ruler in miniature: black, lit only by its rim and its tendrils
+        ctx.fillStyle='#000'; ctx.fill(); ctx.stroke();
+        ctx.shadowBlur=0; ctx.lineWidth=1.1; ctx.strokeStyle='rgba(120,170,255,.6)';
+        for(let i=0;i<6;i++){
+          const a=i/6*TAU+e.morph*.6, l=e.r*(1.2+.2*Math.sin(e.morph*3+i));
+          ctx.beginPath(); ctx.moveTo(Math.cos(a)*e.r*.85,Math.sin(a)*e.r*.85);
+          ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke();
         }
       }else{ ctx.fill(); ctx.stroke(); }
       if(e.t==='boss'&&e.open>0){
@@ -8330,6 +8846,7 @@ function draw(){
     if(entrance) entranceDraw();
     if(phaseCut) phaseDraw();
     worldDraw();
+    levBars();
     strikesDraw();
     if(mission) missionDraw();
 
@@ -8346,6 +8863,7 @@ function draw(){
         ctx.strokeStyle='#ffb44d'; ctx.stroke();
       }
       ctx.restore(); ctx.shadowBlur=0; ctx.globalAlpha=1;
+      if(P.frz>0) iceShell(P.x,P.y,24,P.frz);
       if(buffs.shield>0){
         ctx.beginPath(); ctx.arc(P.x,P.y,25+Math.sin(waveTimer*7)*1.6,0,TAU);
         ctx.strokeStyle='rgba(63,216,224,'+(buffs.shield<1.6?.35+.35*Math.sin(waveTimer*22):.8)+')';
@@ -8451,7 +8969,7 @@ function missionClock(){
   ctx.fillStyle='rgba('+col+','+(.85+.15*pu)+')';
   ctx.fillText(left.toFixed(1),W/2,y-12);
   ctx.font='10px Menlo,monospace'; ctx.fillStyle='rgba('+col+',.7)';
-  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':M.k==='eye'?'SURVIVE':'TIME LEFT',W/2,y-48);   // «WRITE:» SURVIVE
+  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':M.k==='eye'?'SURVIVE':'TIME LEFT',W/2,y-48);
   ctx.restore();
 }
 
@@ -8479,7 +8997,7 @@ function hud(){
                : M.k==='run'      ? 'GATE '+Math.min(M.gi+1,M.gates.length)+' / '+M.gates.length+'  ·  '+M.t.toFixed(1)+'s / '+RUN_LIMIT+'s'
                : M.k==='bounty'   ? 'ESCAPES IN '+left(M.dur-M.t)
                : M.k==='gauntlet' ? 'WAVE '+M.w+' / '+GAUNT_N+'  ·  ONE HIT KILLS'
-               : M.k==='eye'      ? (M.eye?'STAY IN THE EYE':'FIND THE GAPS')+'  ·  ONE HIT KILLS'   // «WRITE:»
+               : M.k==='eye'      ? (M.eye?'STAY IN THE EYE':'FIND THE GAPS')+'  ·  ONE HIT KILLS' 
                : '';
     let y=70;
     if(line){ ctx.fillStyle=M.ohk?'#ff6b8a':'#7d8bb0'; ctx.fillText(line,W-24,y); y+=18; }
@@ -8530,6 +9048,7 @@ function hud(){
   // boss bar
   const boss=enemies.find(e=>e.t==='boss'&&!e.hidden);
   if(boss&&boss.B.duoPart) duoBar(boss);
+  else if(boss&&boss.chain) levBar(boss.chain);
   else if(boss){
     const w=520,x=(W-w)/2,y=H-42;
     ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x,y,w,13);
@@ -8906,9 +9425,9 @@ function buildMap(){
       const bn=node(bx,y,cls+(lit?' open':'')+(selB?' sel':''), branchName(k),
         selB   ? 'SELECTED'
         : lit  ? branchSub(k)
-        : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'   // «WRITE:» lock label
+        : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'  
         : 'LOCKED',
-        k==='boss' ? 'SIDE BOSS' : 'SIDE MISSION');       // «WRITE:» the tag in the corner
+        k==='boss' ? 'SIDE BOSS' : 'SIDE MISSION');    
       if(pick) bn.onclick=()=>mapLaunch(i,k);
     };
     const sec=SECRET(i);
@@ -9364,7 +9883,7 @@ $('gearWipe').onclick=()=>{
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
   save={points:0, credits:0, owned:[], trees:[], unlocked:true, best:0, deepest:1, deepestSys:0,
         ships:[0], ship:0, hup:{},
-        branches:[], beaten:[], route:4,
+        branches:[], beaten:[], route:5,
         vol:SND.vol, sound:SND.on, seen:[], diff:save.diff};
   persist();
   landed=null; respecArmed=0;
@@ -9424,7 +9943,7 @@ const CODEX={
      u:'orbiter', a:[cxEnemy('orbiter',3),215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
      t:'A new Iteration type that will circle you and fire inwards.'},
     {c:'#a9b8ff', n:'PHANTOM', tag:'LUNA  ·  LINE UNIT', sys:4,
-     u:'phantom', a:[cxEnemy('phantom',4),110,12,.8,10], ctr:'Nail it when it is far away and before it shoots.',
+     u:'phantom', a:[cxEnemy('phantom',4),110,PH_DMG,.8,10], ctr:'Nail it when it is far away and before it shoots.',
      t:'Fires, then teleports and fades away. It is unhittable while it is gone. Shoot it when it is not teleporting.'},
     {c:'#ff9a5c', n:'METEOR', tag:'LUNA  ·  RAM', sys:4,
      u:'meteor', a:[cxEnemy('meteor',4),680,0,0,18], ctr:'Get out of the cluster of them, then shoot a barrage of spreaded rounds at them.',
@@ -9435,8 +9954,11 @@ const CODEX={
     {c:'#9fe8ff', n:'GLACIER', tag:'NEPTUNE  ·  AOE', sys:5,
      u:'glacier', a:[cxEnemy('glacier',5),40,20,0,24], ctr:'Fire spread rounds from distance.',
      t:'A tanky enemy that fires icy beams and spread patterns.'},
-    {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:6,
-     u:'splinter', a:[cxEnemy('splinter',6),110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
+    {c:'#4f8dff', n:'CLONER', tag:'EUROPA  ·  MIRROR', sys:6,
+     u:'cloner', a:[cxEnemy('cloner',6),CLONE_V,CLONE_DMG,.8,24], ctr:'Fire spreaded rounds from far away.',
+     t:'A strange enemy that copies your every movement besides firing. It will move in a mirrored movement to yours.'},
+    {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:7,
+     u:'splinter', a:[cxEnemy('splinter',7),110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
        'you. Those shards continue to break until an unstoppable torrent of shards are coming. It holds a working distance and weaves while it reloads, so the orb '+
        'is the warning and the fan is the attack.'},
@@ -9467,7 +9989,10 @@ const CODEX={
     {c:'#3a5bd0', n:'PROTEUS', tag:'NEPTUNE  ·  WAVE 5', sys:5,
      u:'b_proteus', a:[cxHull(PROTEUS,cxSys('titans')),46,29,.55,20], ctr:'Get in its face and avoid its AOE attacks.',
      t:'The tanky Titan. Get in close and dodge its lightning attacks and AOE beams.'},
-    {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:6, void:1,
+    {c:'#7fd8ff', n:'THE LEVIATHAN', tag:'EUROPA  ·  WAVE 5', sys:6,
+     u:'b_leviathan', a:[cxHull(cxBoss('leviathan'),cxSys('leviathan')),195,36,.5,15], ctr:'Dash to the side and fire spread rounds to hit all the segments.',
+     t:'A giant snake that rose from the depths of Europa. It is broken into five portions, destroy each.'},
+    {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:7, void:1,
      u:'b_ruler', a:[cxHull(cxBoss('ruler'),cxSys('ruler')),51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
      t:'The enemy leader, and the creature that all the other bosses answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
@@ -9482,7 +10007,7 @@ const CODEX={
     {c:'#c78dff', n:'THE ARCHIVE', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'archive',
      u:'b_archive', a:[cxHull(cxBoss('archive'),PORTAL_SYS),64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
      t:'Everything the Iterations ever recorded, kept in one frame. It is slow, it '+
-       'is enormous, and it rewrites what it is doing as you fight it.'},
+       'is enormous, and it is beyond the Ruler.'},
   ]},
   cells:{ label:'CELLS', sub:'what wrecks leave behind', rows:[
     {c:'#46e39b', n:'HULL REPAIR', tag:'INSTANT  ·  +30% HULL', sys:0,
@@ -9910,8 +10435,8 @@ function buildStory(){
   el.innerHTML=html;
 }
 /* ---- save codes: MF3-<base64 payload>-<checksum> ----
-   MF4 to MF1 are the same payload. The prefix changes whenever a system goes
-   in ahead of Icarus — Saturn for MF2, Luna for MF3, Neptune for MF4 — so an older code's
+   MF5 to MF1 are the same payload. The prefix changes whenever a system goes
+   in ahead of Icarus — Saturn for MF2, Luna for MF3, Neptune for MF4, Europa for MF5 — so an older code's
    system count is read on the route it was made on. */
 function checksum(raw){
   let sum=0;
@@ -9948,12 +10473,12 @@ function makeCode(){
              smask*8+SHIPS.indexOf(SHIP()),save.credits]
             .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1)),[bmask],SHIPS.map((sh,i)=>hupPack(i))).join('.');
   const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
-  return 'MF4-'+b64+'-'+checksum(raw);
+  return 'MF5-'+b64+'-'+checksum(raw);
 }
 function loadCode(code){
   code=(code||'').trim();
   const ver=code.slice(0,4).toUpperCase();
-  if(!['MF1-','MF2-','MF3-','MF4-'].includes(ver)) return 'Codes start with MF4-';
+  if(!['MF1-','MF2-','MF3-','MF4-','MF5-'].includes(ver)) return 'Codes start with MF5-';
   const body=code.slice(4), cut=body.lastIndexOf('-');
   if(cut<1) return 'That code is incomplete.';
   let raw;
@@ -9962,8 +10487,9 @@ function loadCode(code){
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   const f=raw.split('.').map(Number);
   if(f.length<5||f.length>7+2*SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
-  // an MF4 code can say every system is held; an older one is read on its own route
-  save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:ver==='MF3-'?5:SYSTEMS.length);
+  // an MF5 code can say every system is held; an older one is read on its own route
+  save.points=f[0]; save.best=f[1];
+  save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:ver==='MF3-'?5:ver==='MF4-'?6:SYSTEMS.length);
   const fromMask=m=>SKILLS.filter((sk,i)=>m&(1<<i)).map(sk=>sk.id);
   save.trees=[fromMask(f[3])];
   for(let i=1;i<SHIPS.length;i++) save.trees[i]=f.length>6+i?fromMask(f[6+i]):[];
