@@ -940,7 +940,7 @@ const SYSTEMS=[
     wave:{hp:1.6, dmg:1.5, rof:1.2, more:3, gap:.75, live:13} },
 
   { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier',
-    wave:{hp:1.8, dmg:1.7, rof:1.3, more:4, gap:.7, live:14} },
+    wave:{hp:1.5, dmg:1.5, rof:1.2, more:3, gap:.75, live:13} },
 
   { id:'007', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter' },
 ];
@@ -2136,6 +2136,7 @@ function nextWave(){
     if(unlockedType('splinter')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*8+6.5,'splinter');
     if(unlockedType('glacier')&&wave>=2)  for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5,'glacier');
   }else{
+    clearBuffs();                // a boss is fought on your own tree, not on what waves 1-4 dropped
     push(1.2,'boss');
     // the Titans come alone: the fight is the two of them and nothing else
     if(!BOSS(sysIdx).duo){
@@ -2310,8 +2311,7 @@ function spawn(type,at,def){
       hp:240*sc,max:240*sc,spd:46*vm,cool:rand(1.6,2.6)/cd,a:0,val:230,spin:0,
       rof:1/cd,dep:.5/cd});
   if(type==='boss'){
-    // whichever one this system answers to, unless a mission named one. It has
-    // watched every upgrade you bought, and it came ready for them.
+    // whichever one this system answers to, unless a mission named one
     const B0=def||BOSS(sysIdx);
     if(B0.duo){
       // two bosses, one entrance: the first one stages it for both
@@ -2328,7 +2328,7 @@ function spawn(type,at,def){
 }
 function makeBoss(B,S,D,vm){
   {
-    const hp=B.hp*S.hp*(1+owned().length*.05)*D.ehp*BOSS_BUFF;
+    const hp=B.hp*S.hp*D.ehp*BOSS_BUFF;
     const b={t:'boss',k:B.k,B,col:B.col,bn:B.n,
       x:W/2,y:-140,vx:0,vy:0,r:B.r,hp,max:hp,spd:B.spd*vm*BOSS_SPD,
       a:0,val:B.val,cool:3.2,pt:0,spin:0,morph:0,shed:0,
@@ -2416,14 +2416,14 @@ let toast='', toastT=0, flash=0;
 const DUO_GAP=.35;   // the beat after one Titan's attack before the other may start
 const TITAN_MUS={bpm:140, prog:[0,0,3,3, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
                  ost:[0,0,3,0, 0,8,1,0], hook:'tide', lead:'sawtooth', choirUp:1, ride:1};
-const TRITON={ k:'triton', n:'TRITON', col:'#2fa8ff', r:42, hp:2300, val:1200, duoPart:1, dmgX:1.3,
+const TRITON={ k:'triton', n:'TRITON', col:'#2fa8ff', r:42, hp:3450, val:1200, duoPart:1, dmgX:1.3,
   spd:140, want:270, strafe:1.25, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
   tiers:[
     {n:'', seq:['dash','trident','dash','fan','|'], pool:['dash','trident','fan'], rest:[.55,.85], spd:1.1},
     {n:'TRITON \u2014 PHASE 2', seq:['dash','dash','trident','fan','dash','trident','|'],
      pool:['dash','trident','fan'], rest:[.3,.55], spd:1.45},
   ]};
-const PROTEUS={ k:'proteus', n:'PROTEUS', col:'#3a5bd0', r:68, hp:2300, val:1200, duoPart:1, dmgX:1.3,
+const PROTEUS={ k:'proteus', n:'PROTEUS', col:'#3a5bd0', r:68, hp:3450, val:1200, duoPart:1, dmgX:1.3,
   spd:42, want:300, strafe:.4, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
   tiers:[
     {n:'', seq:['slam','walls','ring','slam','|'], pool:['slam','walls','ring'], rest:[.8,1.15], spd:1.1},
@@ -2431,6 +2431,8 @@ const PROTEUS={ k:'proteus', n:'PROTEUS', col:'#3a5bd0', r:68, hp:2300, val:1200
      pool:['slam','walls','ring'], rest:[.5,.75], spd:1.4},
   ]};
 const TRI_DASH=950, TRI_TEL=.45, TRIDENT_TEL=.7, SLAM_TEL=.95, SLAM_R=120;
+// what each Titan throws the moment the pair climbs, both at once
+const TITAN_COMBO={triton:'trident', proteus:'slam'};
 const ICE_HW=11, ICE_LEN=560, ICE_GAP=200, ICE_GROW=.5, ICE_LIFE=5.5, TETHER_W=8, TETHER_DMG=14;
 
 const BOSSES=[
@@ -2448,7 +2450,7 @@ const BOSSES=[
        pool:['shell','ring','charge','fan','summon'],  rest:[1.15,1.75], spd:1.45},
     ]},
 
-  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1470, val:1400,
+  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1617, val:1400,
     spd:64, want:360, strafe:.9, sum:'dart', nodes:{n:3, hp:100, orb:0.58, nm:'SPAWN POD'},
     mus:{bpm:152, prog:[0,0,3,3, 1,1,10,10], qual:[0,0,0,0, 1,1,1,1],
          ost:[0,3,0,3, 1,3,1,3], hook:'swarm', lead:'square', swarm:1},
@@ -2460,7 +2462,7 @@ const BOSSES=[
        pool:['swarm','lash','ring','fan','blink'], rest:[1.0,1.5], spd:1.7},
     ]},
 
-  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:1824, val:1500,
+  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:2189, val:1500,
     spd:60, want:300, strafe:.85, sum:'grunt', nodes:{n:2, hp:150, orb:0.62, nm:'ARC EMITTER'},
     mus:{bpm:134, prog:[0,0,6,6, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,6,0, 0,0,1,0], hook:'watch', lead:'triangle', shimmer:1},
@@ -2477,7 +2479,7 @@ const BOSSES=[
      throws is the shape it currently is: it lays one round you and closes it
      ('build'), or forms one round itself and lets it bloom outward ('forge').
      A built cage always leaves one way out. */
-  { k:'architect', n:'THE ARCHITECT', col:'#e8c872', r:66, hp:1935, val:2000,
+  { k:'architect', n:'THE ARCHITECT', col:'#e8c872', r:66, hp:2612, val:2000,
     spd:76, want:300, strafe:.85, sum:'orbiter', nodes:{n:3, hp:230, orb:0.6, nm:'FORM KEY'},
     mus:{bpm:144, prog:[0,0,4,4, 6,6,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,4,0, 0,6,1,0], hook:'build', lead:'triangle', bells:1},
@@ -2494,7 +2496,7 @@ const BOSSES=[
      in front of it: 'zoom' is a run straight through where you are with its
      guns open, and 'beam' / 'tribeam' stop it dead to throw wide lanes of
      light down the arena. Low gravity carries it even further than it meant. */
-  { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:2600, val:2100, dmgX:1.4,
+  { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:3770, val:2100, dmgX:1.4,
     spd:178, want:280, strafe:.9, sum:'phantom', nodes:{n:3, hp:200, orb:0.6, nm:'HORN'},
     mus:{bpm:150, prog:[0,0,1,1, 6,6,4,4], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 0,6,4,1], hook:'crescent', lead:'triangle', shimmer:1, ride:1},
@@ -2514,7 +2516,7 @@ const BOSSES=[
      than anything else on the roster, it closes distance rather than holding a
      ring, and its authored lines are longer between punish windows than the
      bosses before it — so reaching one is something you work toward. */
-  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:1775, val:2200,
+  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:2840, val:2200,
     spd:54, want:262, strafe:.82, sum:'dart', nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
     mus:{bpm:128, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1},
@@ -2547,7 +2549,7 @@ const SECRET_BOSSES=[
      a heavier armour ring that regrows more often, and rest windows about half
      what a campaign boss gets — so the punish windows are the only real damage
      you will do, and you have to earn every one. */
-  { k:'s3295', n:'ITERATION 3295', col:'#8dffc4', r:58, hp:7125, val:2600, secret:1,
+  { k:'s3295', n:'ITERATION 3295', col:'#8dffc4', r:58, hp:11400, val:2600, secret:1,
     spd:132, want:160, strafe:1.7, sum:'splinter',
     nodes:{n:3, hp:190, orb:0.66, nm:'SPLINTER RACK'},
     mus:{bpm:166, prog:[0,0,1,1, 3,3,1,1], qual:[0,0,1,1, 0,0,1,1],
@@ -2561,7 +2563,7 @@ const SECRET_BOSSES=[
        pool:['lash','charge','blink','fan','ring','swarm'], rest:[.7,1.0],  spd:1.8},
     ]},
 
-  { k:'archive', n:'THE ARCHIVE', col:'#c78dff', r:92, hp:10500, val:4200, secret:1,
+  { k:'archive', n:'THE ARCHIVE', col:'#c78dff', r:92, hp:16800, val:4200, secret:1,
     spd:58, want:290, strafe:.95, sum:'overseer',
     nodes:{n:7, hp:420, orb:0.55, nm:'STORED MIND', regrow:1},
     mus:{bpm:120, prog:[0,0,4,4, 8,8,6,6], qual:[0,0,1,1, 1,1,1,1],
@@ -2593,7 +2595,7 @@ const SECRET_BOSSES=[
    a little under two and a half times the Ruler you just put down: enough that
    you feel the floor go, and the longest fight in the campaign by a distance. */
 const FINAL_BOSS=
-  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:4200, val:5000, final:1,
+  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:6720, val:5000, final:1,
     spd:78, want:230, strafe:1.25, sum:'dart',
     nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
     mus:{bpm:170, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
@@ -4345,56 +4347,6 @@ function crackStrike(col,dmg,waves){
     },
   };
 }
-// fronts thrown out of a Titan: bands that run out from where it stood
-function titanFronts(n0,spread0,gap,hw,hl,v,mul){
-  return {
-    dur: (n0-1)*gap+.7+Math.hypot(W,H)/v,
-    init(s,e){
-      const P=player, aim=Math.atan2(P.y-e.y,P.x-e.x);
-      const n=s.hard?n0*2-1:n0, spread=s.hard?Math.min(TAU*.8,spread0*2):spread0;
-      s.dur=(n-1)*gap+.7+Math.hypot(W,H)/v;
-      s.f=Array.from({length:n},(_,i)=>({
-        a: aim+(n>1?(i/(n-1)-.5)*spread:0)+rand(-.08,.08),
-        at:i*gap+.7, ox:0, oy:0, d:e.r, live:false }));
-    },
-    step(s,e,dt){
-      const P=player;
-      for(const F of s.f){
-        if(!F.live&&s.t>=F.at){ F.live=true; F.ox=e.x; F.oy=e.y; SFX.crack(); }
-        if(!F.live) continue;
-        F.d+=v*dt;
-        const cx=Math.cos(F.a), cy=Math.sin(F.a), dx=P.x-F.ox, dy=P.y-F.oy;
-        const al=dx*cx+dy*cy, ac=-dx*cy+dy*cx;
-        if(Math.abs(al-F.d)<hw+13&&Math.abs(ac)<hl) strikeHurt(e,STRIKE_DMG*mul);
-      }
-    },
-    draw(s,e){
-      for(const F of s.f){
-        if(!F.live){
-          // a dim chevron off the hull, pointing the way it will throw
-          const k=s.t-(F.at-.7); if(k<0) continue;
-          ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(F.a);
-          ctx.strokeStyle='rgba('+FRONT_ICE+','+(.18+.2*Math.min(1,k/.7))+')'; ctx.lineWidth=3;
-          for(const o of [e.r+18,e.r+36]){ ctx.beginPath(); ctx.moveTo(o-8,-12); ctx.lineTo(o+4,0); ctx.lineTo(o-8,12); ctx.stroke(); }
-          ctx.restore(); continue;
-        }
-        ctx.save(); ctx.translate(F.ox,F.oy); ctx.rotate(F.a); ctx.translate(F.d,0);
-        const gr=ctx.createLinearGradient(-hw,0,hw,0);
-        gr.addColorStop(0,'rgba('+FRONT_ICE+',.08)'); gr.addColorStop(1,'rgba('+FRONT_ICE+',.38)');
-        ctx.fillStyle=gr; ctx.fillRect(-hw,-hl,hw*2,hl*2);
-        ctx.strokeStyle='rgba(240,250,255,.7)'; ctx.lineWidth=1.6; ctx.lineCap='round';
-        const n=Math.round(hl/7);
-        for(let i=0;i<n;i++){
-          const h1=Math.sin(i*91.7)*43758.5, u=h1-Math.floor(h1);
-          const x=-hw+((u*hw*2+s.t*420)%(hw*2)), y=-hl+(i/n)*hl*2;
-          ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-14,y-4); ctx.stroke();
-        }
-        ctx.strokeStyle='rgba(235,248,255,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(hw,-hl); ctx.lineTo(hw,hl); ctx.stroke();
-        ctx.restore();
-      }
-    },
-  };
-}
 
 const STRIKES={
   /* 3296 — beams. Two volleys of lasers straight out of the hull, the second
@@ -4587,10 +4539,6 @@ const STRIKES={
     },
   },
 
-  // Triton — small, fast fronts, a fan of them; Proteus — a few huge slow ones
-  triton:  titanFronts(7,1.3,.2,20,150,640,.8),
-  proteus: titanFronts(3,1.0,.5,60,420,230,1.1),
-
   // The Ruler — the arena cracks open from where it stands
   ruler: crackStrike('#9d86e8',STRIKE_DMG,[0]),
 
@@ -4780,6 +4728,8 @@ function bossAI(e,dt,dx,dy,d){
     // every climb owes a strike. One that rode along in its twin's cutscene
     // waits a beat longer, so a pair does not throw both at once
     if(tier>e.tier) e.strikeDue = cut ? 1 : (phaseCut ? 2 : 1);
+    // the Titans have no strike of their own: their climb opens on a combo instead
+    if(tier>e.tier && TITAN_COMBO[B.k]){ e.combo=TITAN_COMBO[B.k]; e.guard=1; }
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
     e.nodes=null;
@@ -4797,6 +4747,8 @@ function bossAI(e,dt,dx,dy,d){
        from. A cutscene saves it for its own moment of impact. */
     if(!cut && B.tiers[tier].bare && !e.bare) shellBreak(e,B.tiers[tier].n);
   }
+  // a Titan cannot be touched from its climb until its combo has played out
+  if(e.guard){ if(e.combo||e.act) e.inv=Math.max(e.inv,.15); else e.guard=0; }
   if(e.inv>0) e.inv-=dt;
   if(e.open>0) e.open=Math.max(0,e.open-dt);
   if(e.held>0) e.held-=dt;
@@ -4935,13 +4887,14 @@ function bossAI(e,dt,dx,dy,d){
   if(e.busy>0) e.busy-=dt;
   if(e.cool>0) return;
   // the Titans take turns: nothing starts while the other is mid-attack or
-  // has only just finished one
-  if(B.duoPart){
+  // has only just finished one. The climb's combo is the one time they don't.
+  if(B.duoPart && !e.combo){
     const tw=e.twin&&enemies.includes(e.twin)?e.twin:null;
     if(tw&&(tw.act||tw.busy>0)){ e.cool=.12; return; }
   }
   let k;
-  if(T.seq && T.seq.length){
+  if(e.combo){ k=e.combo; e.combo=null; }
+  else if(T.seq && T.seq.length){
     // an authored line, not a dice roll: the same boss opens the same way
     // every time, so the fight is something you can learn rather than react to
     e.si=(e.si||0)%T.seq.length;
@@ -7370,7 +7323,7 @@ const ECHO_HP=1.6, ECHO_SPD=1.45, ECHO_REST=.42, ECHO_DMG=1.5;
    there too, and the survivor absorbing whichever falls first. A pair runs
    two phases, so each brings its opening line and its second one. Two at
    once is a lot more than one, so each carries less hull than a lone echo. */
-const ECHO_DUO_HP=1.25;
+const ECHO_DUO_HP=1.57;
 function echoPart(k){
   const B=echoOf(k);
   return Object.assign(B,{ n:BOSSES.find(b=>b.k===k).n, duoPart:1,
