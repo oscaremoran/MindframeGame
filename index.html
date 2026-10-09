@@ -173,12 +173,40 @@
   .ship .bar{flex:1; height:8px; display:flex; gap:2px}
   .ship .bar u{flex:1; background:#1d2740; border:0; text-decoration:none}
   .ship .bar u.on{background:#4d9dff; box-shadow:0 0 7px rgba(77,157,255,.75)}
+  /* a hull's own upgrade screen, opened from its card */
+  .ship .cup{margin-top:10px; width:100%; padding:7px 4px; font-size:calc(clamp(8px,.9vw,10.5px) + 3px); letter-spacing:.14em}
+  #hullup{justify-content:flex-start; padding:3% 4%}
+  #hullBody{display:flex; gap:3%; width:100%; margin-top:18px; align-items:flex-start}
+  #hullCard{flex:0 0 26%; border:1px solid #33456d; padding:14px; background:linear-gradient(165deg,#141d33 0%,#0b1121 74%)}
+  #hullCard canvas{width:100%; height:auto; display:block}
+  #hullCard .sn{letter-spacing:.2em; color:#dfe9ff; font-size:calc(clamp(12px,1.5vw,17px) + 3px); margin-top:8px}
+  #hullCard .sc{letter-spacing:.12em; color:#8b9ac0; font-size:calc(clamp(9px,1vw,11px) + 3px); margin-top:4px}
+  #hullStats{flex:1; min-width:0; display:flex; flex-direction:column; gap:10px}
+  .hrow{display:flex; align-items:center; gap:16px; border:1px solid #33456d; padding:12px 16px;
+    background:linear-gradient(165deg,#141d33 0%,#0b1121 74%); font-size:calc(clamp(9px,1vw,12px) + 3px)}
+  .hrow .hl{width:5.5em; flex:none; letter-spacing:.16em; color:#dfe9ff; font-weight:700}
+  .hrow .gr{width:1.2em; flex:none; text-align:center; font-weight:700; font-size:1.15em}
+  .hrow .meter{flex:1; min-width:0; height:14px; position:relative; background:#141b2e; border:1px solid #1d2740}
+  .hrow .meter b{position:absolute; top:0; bottom:0; left:0}
+  .hrow .meter b.base{background:#4d9dff}
+  .hrow .meter b.got{background:#ffd24d; box-shadow:0 0 9px rgba(255,210,77,.55)}
+  .hrow .meter b.next{border:2px solid #ffd24d; background:rgba(255,210,77,.18); box-sizing:border-box}
+  .hrow .meter b.left{border:2px dashed #ffd24d; opacity:.55; box-sizing:border-box}
+  .hrow .hk{display:flex; gap:5px; flex:none; width:87px}
+  .hrow .hk i{width:18px; height:18px; border:1px solid #ffd24d; background:#0b1121}
+  .hrow .hk i.on{background:#ffd24d; box-shadow:0 0 9px rgba(255,210,77,.55)}
+  .hrow .hb{flex:none; width:12.5em; padding:10px 6px; font-size:1em; letter-spacing:.1em}
+  .hrow .hb:disabled{cursor:default; transform:none; box-shadow:none}
+  .hrow .hb.ghost{color:#63739a; border-color:#33456d}
+  .hrow .hb.max{background:#2a2410; color:#ffd24d; border:1px solid #8a7433}
   .A{color:#46e39b} .B{color:#4d9dff} .C{color:#dfe9ff} .D{color:#8b9ac0} .E{color:#ff4d5e}
   .ship .bar.A u.on{background:#46e39b; box-shadow:0 0 7px rgba(70,227,155,.75)}
   .ship .bar.B u.on{background:#4d9dff; box-shadow:0 0 7px rgba(77,157,255,.75)}
   .ship .bar.C u.on{background:#a9b9d8; box-shadow:0 0 7px rgba(169,185,216,.6)}
   .ship .bar.D u.on{background:#63739a; box-shadow:none}
   .ship .bar.E u.on{background:#ff4d5e; box-shadow:0 0 7px rgba(255,77,94,.7)}
+  .ship .bar u.can{background:#3a4868}
+  .ship .bar u.on.up{background:#ffd24d; box-shadow:0 0 7px rgba(255,210,77,.75)}
   .ship .foot{margin-top:auto; padding-top:11px; letter-spacing:.14em;
     border-top:1px solid #22304d; font-size:calc(clamp(8.5px,1vw,11px) + 3px); color:#8b9ac0}
   .ship.can{border-color:#ffb44d; box-shadow:inset 0 0 30px rgba(255,180,77,.09)}
@@ -808,6 +836,22 @@
     <div id="bay"></div>
   </div>
 
+  <div id="hullup" class="overlay">
+    <button id="btnHullBack" class="ghost back">BACK</button>
+    <div class="treeHead">
+      <h1 id="hullTitle" style="font-size:clamp(20px,3.2vw,34px)">UPGRADE</h1>
+      <span id="hullPts">0 CREDITS</span>
+    </div>
+    <div class="row" style="margin:10px 0 0; justify-content:flex-start">
+      <button id="btnHupRespec" class="ghost">RESPEC</button>
+    </div>
+    <div id="hullBody">
+      <div id="hullCard"><canvas id="hullArt" width="300" height="172"></canvas>
+        <div class="sn" id="hullName"></div><div class="sc" id="hullCls"></div></div>
+      <div id="hullStats"></div>
+    </div>
+  </div>
+
   <div id="launch" class="overlay">
     <button id="btnLaunchBack" class="ghost back">BACK — ESC</button>
     <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
@@ -1296,7 +1340,7 @@ const MUS={
      has its own; everything else is the campaign theme
      at whatever weight the situation calls for. */
   want(){
-    if($('garage').classList.contains('on')) return ['garage',this.PROGRAMS.garage,0,2];
+    if($('garage').classList.contains('on')||$('hullup').classList.contains('on')) return ['garage',this.PROGRAMS.garage,0,2];
     const inRun = state==='play';
     if(!inRun) return ['menu',this.PROGRAMS.menu,0,1];
     const b=enemies.find(e=>e.t==='boss'&&!e.hidden);
@@ -1515,7 +1559,7 @@ let save={points:0, credits:0, owned:[], trees:null, unlocked:true, best:0, deep
           ships:[0], ship:0,
           vol:.7, sound:true, seen:[], diff:1};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
-save.ships=save.ships||[0]; save.ship=save.ship||0;
+save.ships=save.ships||[0]; save.ship=save.ship||0; save.hup=save.hup||{};
 save.branches=save.branches||[]; save.beaten=save.beaten||[];
 /* The tree used to be locked until you held your first system. It is the
    whole progression, so it now opens on the title screen, and an old save
@@ -1747,20 +1791,25 @@ const tierOf=id=>{
    Multipliers are the truth and the letter grades are derived from them, so a
    card can never lie about a ship.                                          */
 const SHIPS=[
-  {n:'LANCER',  cls:'STANDARD PATTERN', hp:0.92, dmg:0.92, rate:0.92, spd:0.92, grip:0.92, cost:0,  sys:0},
-  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, cost:10, sys:1},
-  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:1.02, rate:1.09, spd:1.30, grip:1.35, cost:20, sys:2},
-  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:1.02, dmg:1.35, rate:1.14, spd:0.86, grip:0.80, cost:32, sys:3},
+  {n:'LANCER',  cls:'STANDARD PATTERN', hp:0.92, dmg:0.92, rate:0.92, spd:0.92, grip:0.92, cost:0,  sys:0,
+   up:{hp:3, dmg:3, rate:3, spd:3, grip:3}},
+  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, cost:10, sys:1,
+   up:{hp:4, dmg:4, rate:2, spd:2, grip:3}},
+  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:1.02, rate:1.09, spd:1.30, grip:1.35, cost:20, sys:2,
+   up:{hp:2, dmg:3, rate:3, spd:4, grip:4}},
+  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:1.02, dmg:1.35, rate:1.14, spd:0.86, grip:0.80, cost:32, sys:3,
+   up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
   /* The capstone hull, and the only one the campaign cannot hand you: it is
      behind THE ARCHIVE. Every gun stat is pinned at the top of the scale and
      everything about moving it is at the bottom — it does not fly so much as
      get aimed. `gate` is what it wants instead of a system count. */
   {n:'WORLDBREAKER', cls:'SIEGE PLATFORM', hp:1.28, dmg:1.45, rate:1.45, spd:0.81, grip:0.55,
-   cost:60, sys:3, gate:'archive'},
+   cost:60, sys:3, gate:'archive', up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
 ];
 const STATS=[['HULL','hp'],['POWER','dmg'],['RATE','rate'],['SPEED','spd'],['GRIP','grip']];
 const grade=v=> v>=1.3?'A' : v>=1.12?'B' : v>=.95?'C' : v>=.8?'D' : 'E';
-const barPc=v=> clamp((v-.55)/.9,.06,1)*100;
+// full at the best a stat can be with every upgrade on it (1.45 + 4 steps)
+const barPc=v=> clamp((v-.55)/1.14,.06,1)*100;
 const bossBeaten=k=>(save.beaten||[]).includes(k);
 const shipOwned=i=> i===0 || save.ships.includes(i);
 const shipReady=i=>{
@@ -1770,6 +1819,19 @@ const shipReady=i=>{
 };
 const shipBuy=i=> !shipOwned(i) && shipReady(i) && save.credits>=SHIPS[i].cost;
 const SHIP=()=>SHIPS[shipOwned(save.ship)?save.ship:0];
+/* ---- hull upgrades ----
+   Each stat on each hull can be raised in steps of HUP_STEP, as many times as
+   that hull's `up` allows. The caps are the archetype: a hull goes all the way
+   on what it is built for and barely moves on what it is not, so a Needle can
+   max its speed and grip but its hull never gets near a Bulwark's. A stat's
+   n-th step costs HUP_CR[n]. The card reads the upgraded number, so its grade
+   and meter stay the truth. */
+const HUP_STEP=.06, HUP_CR=[20,45,90,180];
+const hupLv=(i,key)=>((save.hup&&save.hup[i]&&save.hup[i][key])|0);
+const hupCap=(i,key)=>(SHIPS[i].up&&SHIPS[i].up[key])|0;
+const hupCost=(i,key)=>HUP_CR[hupLv(i,key)];
+const hupBuy=(i,key)=>shipOwned(i) && hupLv(i,key)<hupCap(i,key) && save.credits>=hupCost(i,key);
+const shipStat=(i,key)=>SHIPS[i][key]+HUP_STEP*hupLv(i,key);
 
 /* ================= player stats ================= */
 const BASE={dmg:10, delay:.19, maxHp:100, speed:250, bspeed:640};
@@ -1811,14 +1873,14 @@ function stats(){
   if(has('armour'))  s.armour=.78;        // every source of damage, not just fire
   if(has('dash2'))   s.dashLen=DASH_LEN*3;// the same shove, held three times as long
   // ---- hull multipliers, applied last so the Garage scales everything you own ----
-  const sh=SHIP();
-  s.maxHp=Math.round(s.maxHp*sh.hp);
-  s.dmg*=sh.dmg;
-  s.delay/=sh.rate;
-  s.speed*=sh.spd;
-  s.accel=2400*sh.grip;             // GRIP: how hard it can push against its own drift
-  s.dragBase=Math.pow(.0016,sh.grip);
-  s.hull=SHIPS.indexOf(sh);
+  const hi=SHIPS.indexOf(SHIP()), sh=k=>shipStat(hi,k);   // upgrades included
+  s.maxHp=Math.round(s.maxHp*sh('hp'));
+  s.dmg*=sh('dmg');
+  s.delay/=sh('rate');
+  s.speed*=sh('spd');
+  s.accel=2400*sh('grip');          // GRIP: how hard it can push against its own drift
+  s.dragBase=Math.pow(.0016,sh('grip'));
+  s.hull=hi;
   return s;
 }
 
@@ -8529,7 +8591,7 @@ function gearBack(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','launch','done','code','codex','pause','garage','map']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -9105,7 +9167,7 @@ $('gearWipe').onclick=()=>{
   wipeArmed=0;
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
   save={points:0, credits:0, owned:[], trees:[], unlocked:true, best:0, deepest:1, deepestSys:0,
-        ships:[0], ship:0,
+        ships:[0], ship:0, hup:{},
         branches:[], beaten:[], route:4,
         vol:SND.vol, sound:SND.on, seen:[], diff:save.diff};
   persist();
@@ -9426,9 +9488,14 @@ function buildGarage(){
     let rows='';
     const hide = !shipOwned(i) && !shipReady(i);
     for(const [label,key] of STATS){
-      const v=sh[key], g=grade(v), lit=Math.round(barPc(v)/100*BAY_SEGS);
+      const v=shipStat(i,key), g=grade(v), b0=Math.round(barPc(sh[key])/100*BAY_SEGS);
+      // the ticks an upgrade added are gold, and one step always shows as at least one
+      const lit=Math.min(BAY_SEGS, Math.max(Math.round(barPc(v)/100*BAY_SEGS), b0+(hupLv(i,key)?1:0)));
+      // ticks upgrades could still reach are a shade lighter, so the cap shows
+      const top=Math.min(BAY_SEGS, Math.max(Math.round(barPc(sh[key]+HUP_STEP*hupCap(i,key))/100*BAY_SEGS),
+                                            lit, b0+(hupCap(i,key)?1:0)));
       let segs='';
-      for(let q=0;q<BAY_SEGS;q++) segs+='<u class="'+(!hide&&q<lit?'on':'')+'"></u>';
+      for(let q=0;q<BAY_SEGS;q++) segs+='<u class="'+(hide?'':q<b0?'on':q<lit?'on up':q<top?'can':'')+'"></u>';
       rows+='<div class="st"><span class="lbl">'+label+'</span>'+
             '<span class="gr '+(hide?'lk':g)+'">'+(hide?'?':g)+'</span>'+
             '<span class="bar '+(hide?'':g)+'">'+segs+'</span></div>';
@@ -9460,17 +9527,81 @@ function buildGarage(){
           '<div class="lockover"><b>\u{1F512}</b>CLASSIFIED</div></div>'
         : '<canvas class="shipart" width="150" height="86"></canvas>')+
       '<div class="sn">'+sh.n+'</div><div class="sc">'+sh.cls+'</div>'+rows+
+      (owned?'<button class="cup">UPGRADE</button>':'')+
       '<div class="foot">'+foot+'</div>';
     d.onclick=()=>{
       if(owned){ save.ship=i; persist(); buildGarage(); refreshMenu(); }
       else if(buy){ save.credits-=sh.cost; save.ships.push(i); save.ship=i; persist();
                     buildGarage(); refreshMenu(); }
     };
+    // its own screen, without putting the hull in the bay
+    const ub=d.querySelector('.cup');
+    if(ub) ub.onclick=ev=>{ ev.stopPropagation(); openHull(i); };
     bay.appendChild(d);
     shipArt(d.querySelector('canvas'),i);
   });
 }
-
+/* A hull's upgrade screen: one row per stat, each with the meter (the hull's
+   own number in blue, bought steps in gold, the next step outlined, any after
+   it dashed), a block per step its archetype allows, and one button. */
+let hullView=0;
+function openHull(i){ hullView=i; buildHull(); show('hullup'); }
+function buildHull(){
+  const i=hullView, sh=SHIPS[i];
+  $('hullTitle').textContent='UPGRADE \u2014 '+sh.n;
+  $('hullPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
+  $('hullName').textContent=sh.n; $('hullCls').textContent=sh.cls;
+  shipArt($('hullArt'),i);
+  const rs=$('btnHupRespec'), back=hupSpent(i);
+  rs.textContent = back?'RESPEC '+sh.n+' \u2014 REFUND '+back+' CR':'RESPEC';
+  rs.className='ghost'; rs.disabled=!back; rs.style.opacity=back?'':'.4';
+  hupArmed=0;
+  let html='';
+  for(const [label,key] of STATS){
+    const lv=hupLv(i,key), cap=hupCap(i,key), v=shipStat(i,key), g=grade(v);
+    // base in blue, bought in gold, the next step outlined, the rest dashed
+    const b0=barPc(sh[key]), b1=barPc(v), bn=barPc(v+HUP_STEP), b2=barPc(sh[key]+HUP_STEP*cap);
+    let segs='<b class="base" style="width:'+b0+'%"></b>'+
+             '<b class="got" style="left:'+b0+'%;width:'+(b1-b0)+'%"></b>';
+    if(lv<cap)   segs+='<b class="next" style="left:'+b1+'%;width:'+(bn-b1)+'%"></b>';
+    if(lv<cap-1) segs+='<b class="left" style="left:'+bn+'%;width:'+(b2-bn)+'%"></b>';
+    let blocks=''; for(let q=0;q<cap;q++) blocks+='<i class="'+(q<lv?'on':'')+'"></i>';
+    const btn = lv>=cap ? '<button class="hb max" disabled>MAXED</button>'
+      : hupBuy(i,key) ? '<button class="hb" data-k="'+key+'">UPGRADE \u00b7 '+hupCost(i,key)+' CR</button>'
+      : '<button class="hb ghost" disabled>NEED '+hupCost(i,key)+' CR</button>';
+    html+='<div class="hrow"><span class="hl">'+label+'</span><span class="gr '+g+'">'+g+'</span>'+
+          '<span class="meter">'+segs+'</span>'+
+          '<span class="hk">'+blocks+'</span>'+btn+'</div>';
+  }
+  $('hullStats').innerHTML=html;
+  $('hullStats').querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{
+    const key=b.dataset.k; if(!hupBuy(i,key)) return;
+    save.credits-=hupCost(i,key);
+    save.hup[i]=save.hup[i]||{}; save.hup[i][key]=hupLv(i,key)+1;
+    persist(); buildHull(); refreshMenu();
+  });
+}
+function closeHull(){ buildGarage(); show('garage'); }
+/* ---- hull respec ----
+   The upgrade screen's own RESPEC: every upgrade on that hull comes back as
+   credits. It asks twice, the same way the skill tree's does. */
+const hupSpent=i=>STATS.reduce((n,[l,key])=>n+HUP_CR.slice(0,hupLv(i,key)).reduce((a,c)=>a+c,0),0);
+let hupArmed=0;
+$('btnHupRespec').onclick=()=>{
+  const i=hullView, back=hupSpent(i);
+  if(!back) return;
+  if(Date.now()>hupArmed){                    // first click arms it for four seconds
+    hupArmed=Date.now()+4000;
+    const b=$('btnHupRespec');
+    b.textContent='SELL '+SHIPS[i].n+' UPGRADES FOR '+back+' CR?';
+    b.className='hot';
+    setTimeout(()=>{ if(Date.now()>hupArmed) buildHull(); },4100);
+    return;
+  }
+  hupArmed=0;
+  save.credits+=back; delete save.hup[i]; persist();
+  buildHull(); refreshMenu();
+};
 function openGarage(){ buildGarage(); show('garage'); }
 function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
 
@@ -9591,6 +9722,18 @@ const treeMask=i=>{
   let m=0; SKILLS.forEach((s,k)=>{ if(t.includes(s.id)) m|=(1<<k); });
   return m;
 };
+// a hull's upgrade levels in one field, three bits a stat (no cap is over 7)
+function hupPack(i){
+  let n=0, b=1;
+  STATS.forEach(([l,key])=>{ n+=hupLv(i,key)*b; b*=8; });
+  return n;
+}
+function hupUnpack(i,n,h){
+  STATS.forEach(([l,key])=>{
+    const lv=Math.min(n%8,hupCap(i,key)); n=Math.floor(n/8);
+    if(lv){ h[i]=h[i]||{}; h[i][key]=lv; }
+  });
+}
 function makeCode(){
   let smask=0; SHIPS.forEach((sh,i)=>{ if(shipOwned(i)) smask|=(1<<i); });
   // the Portal bosses put down ride last, as one mask: the Archive and the
@@ -9598,7 +9741,7 @@ function makeCode(){
   let bmask=0; SECRET_BOSSES.forEach((B,i)=>{ if(bossBeaten(B.k)) bmask|=(1<<i); });
   const raw=[save.points,save.best,save.deepestSys,treeMask(0),save.unlocked?1:0,
              smask*8+SHIPS.indexOf(SHIP()),save.credits]
-            .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1)),[bmask]).join('.');
+            .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1)),[bmask],SHIPS.map((sh,i)=>hupPack(i))).join('.');
   const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
   return 'MF4-'+b64+'-'+checksum(raw);
 }
@@ -9613,7 +9756,7 @@ function loadCode(code){
   catch(err){ return 'That code could not be read.'; }
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   const f=raw.split('.').map(Number);
-  if(f.length<5||f.length>7+SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
+  if(f.length<5||f.length>7+2*SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
   // an MF4 code can say every system is held; an older one is read on its own route
   save.points=f[0]; save.best=f[1]; save.deepestSys=Math.min(f[2],ver==='MF1-'?3:ver==='MF2-'?4:ver==='MF3-'?5:SYSTEMS.length);
   const fromMask=m=>SKILLS.filter((sk,i)=>m&(1<<i)).map(sk=>sk.id);
@@ -9634,6 +9777,8 @@ function loadCode(code){
   save.credits = f.length>=7 ? f[6] : 0;    // codes from before credits carry none
   const bm = f.length>=8+SHIPS.length-1 ? f[7+SHIPS.length-1] : 0;
   save.beaten = SECRET_BOSSES.filter((B,i)=>bm&(1<<i)).map(B=>B.k);
+  // a field per hull after the bosses; older codes carry none
+  save.hup={}; SHIPS.forEach((sh,i)=>{ const v=f[7+SHIPS.length+i]; if(v) hupUnpack(i,v,save.hup); });
   mergeTrees();                             // a code carries a tree per hull: one tree now
   persist();
   return null;
@@ -9709,7 +9854,7 @@ function doneTreeBtn(){ $('btnDoneTree').style.display = skillReady()?'':'none';
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','launch','done','code','codex','pause','garage','map']
+const openOverlay=()=>['menu','over','skills','story','launch','done','code','codex','pause','garage','hullup','map']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -9718,6 +9863,7 @@ function onEscape(){
   if(state==='play'&&!o){ setPause(true); return; }
   if(o==='pause'){ setPause(false); return; }
   if(o==='garage'){ closeGarage(); return; }
+  if(o==='hullup'){ closeHull(); return; }
   if(o==='launch'){ $('btnLaunchBack').onclick(); return; }
   if(o==='skills'){ $('btnTreeBack').onclick(); return; }
   if(o==='menu') return;
@@ -9732,7 +9878,7 @@ function onEscape(){
 function onEnter(){
   const o=openOverlay();
   const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnOverMenu':'btnRelaunch',pause:'btnResume',
-              skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',
+              skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',hullup:'btnHullBack',
               story:'btnStoryBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
   const b=$(main);
@@ -9752,6 +9898,7 @@ $('btnCodexBack').onclick=()=>{ if(gearFrom){ gearBack(); return; }
 /* ---- garage ---- */
 $('btnGarage').onclick=openGarage;
 $('btnGarageBack').onclick=closeGarage;
+$('btnHullBack').onclick=closeHull;
 
 if(APP) $('linkApp').style.display='none';
 // the app calls this when you switch away from it or minimise it
