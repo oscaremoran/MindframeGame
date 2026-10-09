@@ -162,7 +162,8 @@
   .ship .bayid{display:flex; justify-content:space-between; align-items:baseline;
     font-size:11.5px; letter-spacing:.2em; color:#8b9ac0; border-bottom:1px solid #22304d;
     padding-bottom:6px; margin-bottom:4px}
-  .ship canvas{width:100%; height:74px; display:block}
+  /* the art keeps its own shape whatever width the card is: fit, never stretch */
+  .ship canvas{width:100%; height:74px; display:block; object-fit:contain}
   .ship .sn{letter-spacing:.2em; color:#dfe9ff; font-size:calc(clamp(10px,1.25vw,14px) + 3px); margin-top:6px}
   .ship .sc{letter-spacing:.12em; color:#8b9ac0; font-size:calc(clamp(8px,.95vw,10.5px) + 3px); margin:3px 0 11px}
   .ship .st{display:flex; align-items:center; gap:7px; margin:5px 0;
@@ -178,7 +179,7 @@
   #hullup{justify-content:flex-start; padding:3% 4%}
   #hullBody{display:flex; gap:3%; width:100%; margin-top:18px; align-items:flex-start}
   #hullCard{flex:0 0 26%; border:1px solid #33456d; padding:14px; background:linear-gradient(165deg,#141d33 0%,#0b1121 74%)}
-  #hullCard canvas{width:100%; height:auto; display:block}
+  #hullCard canvas{width:100%; height:auto; display:block; object-fit:contain}
   #hullCard .sn{letter-spacing:.2em; color:#dfe9ff; font-size:calc(clamp(12px,1.5vw,17px) + 3px); margin-top:8px}
   #hullCard .sc{letter-spacing:.12em; color:#8b9ac0; font-size:calc(clamp(9px,1vw,11px) + 3px); margin-top:4px}
   #hullStats{flex:1; min-width:0; display:flex; flex-direction:column; gap:10px}
@@ -2054,6 +2055,7 @@ function branchOverview(k,i){
            echo:    ['The Hive Mind and Iteration 2117 are back with a vengeance, together. Destroy them both again, this time on Luna.',
                     'Echoes of the Hive Mind and Iteration 2117, the previous enemy commanders of Venus and Jupiter.'],
            eye:     ['Dodge storm fronts and stay in the eye to avoid instant ship destruction.', 'The storm fronts.'],
+           mirror:  ['Defeat swarms of Cloners, then avoid a monster from the depths.', '«WRITE:» what is against you'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   return lpanel('ENEMY FORCE DETAILS',
@@ -2090,6 +2092,7 @@ const LAUNCH_TEXT={
   gauntlet:'Clear three waves of tough enemies without getting hit once.',
   echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.', 
   eye:     'Fly through a deadly storm and avoid treacherous winds.',
+  mirror:  '«WRITE:» Hall of Mirrors launch line',
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function buildPortalPick(){
@@ -2323,6 +2326,11 @@ const GLAC_ARMS=4, GLAC_LEN=190, GLAC_W=9, GLAC_SPIN=1.05, GLAC_ON=3.4, GLAC_OFF
    the reflection for long, and it shoots on its own clock. CLONE_ODDS is the
    chance each wave from 1 to 4 brings one, rolled again from wave 3 for a
    second. */
+/* With more than one up, each takes a different mirror — through the middle,
+   across the vertical line, across the horizontal one — and past three they
+   sit round their reflection on a ring CLONE_RING out. CLONE_SEP keeps them
+   off each other whatever the mirrors say. */
+const CLONE_MIRRORS=['pt','x','y'], CLONE_RING=110, CLONE_SEP=14;
 const CLONE_V=260, CLONE_CATCH=1.5, CLONE_ODDS=.75, CLONE_SHOT=380, CLONE_DMG=24, CLONE_CD=.8;
 const PH_IN=.4, PH_OUT=.3, PH_GONE=[.7,1.1], PH_BURST=3, PH_GAP=.13, PH_DMG=10, PH_WAIT=[.5,.9];
 const MET_AIM=.5, MET_V=680, MET_RUN=.95, MET_COAST=.6;
@@ -2341,6 +2349,21 @@ const SPLIT_R     =[9, 6, 4.5, 3.5];
 const SPLIT_DMG   =[11, 8, 5, 3];
 const SPLIT_COL   =['#d9c6ff', '#c9b3ff', '#b9a0f5', '#a98eea'];
 
+// the first slot no live Cloner is using: its mirror, and its seat on the ring
+function cloneSlot(){
+  const used=enemies.filter(o=>o.t==='cloner').map(o=>o.slot);
+  let n=0; while(used.includes(n)) n++;
+  return n;
+}
+function cloneTarget(e,P){
+  const m=CLONE_MIRRORS[e.slot%CLONE_MIRRORS.length];
+  let x = m==='y' ? P.x : W-P.x, y = m==='x' ? P.y : H-P.y;
+  if(e.slot>=CLONE_MIRRORS.length){
+    const a=(e.slot-CLONE_MIRRORS.length)*2.4+.6;
+    x+=Math.cos(a)*CLONE_RING; y+=Math.sin(a)*CLONE_RING;
+  }
+  return {x:clamp(x,e.r+wallIn,W-e.r-wallIn), y:clamp(y,e.r+wallIn,H-e.r-wallIn)};
+}
 function spawn(type,at,def){
   const ez=EASE(), D=DIFF();
   const S=SYS(),
@@ -2391,7 +2414,7 @@ function spawn(type,at,def){
       hp:EHULL.lander*sc,max:EHULL.lander*sc,spd:46*vm,cool:rand(1.6,2.6)/cd,a:0,val:230,spin:0,
       rof:1/cd,dep:.5/cd});
   // CLONER — Europa's rare one: your reflection, with its own gun
-  if(type==='cloner') enemies.push({t:'cloner',x:p.x,y:p.y,vx:0,vy:0,r:18,
+  if(type==='cloner') enemies.push({t:'cloner',slot:cloneSlot(),x:p.x,y:p.y,vx:0,vy:0,r:18,
       hp:EHULL.cloner*sc,max:EHULL.cloner*sc,spd:CLONE_V*vm,cool:rand(1.2,2)/cd,a:0,val:180,rof:1/cd,
       spin:0,morph:rand(0,9)});
   if(type==='boss'){
@@ -2553,6 +2576,13 @@ const LEV_MIS_CD=[3,1.3], LEV_MIS_N=[2,4], LEV_MIS_DMG=[12,19], LEV_MIS_V=205;
 const LEV_BOMB_CD=[3.6,1.7], LEV_BOMB_T=1.0, LEV_BOMB_R=[95,135], LEV_BOMB_DMG=[19,38];
 const LEV_SHOT_CD=[2.7,1.2], LEV_SHOT_N=[7,11], LEV_SHOT_DMG=[8,13], LEV_SHOT_V=390, LEV_SHOT_TEL=.3;
 const LEV_EAT_CD=[6.5,2.2], LEV_EAT_TEL=[1.1,.6], LEV_EAT_V=1050, LEV_EAT_RUN=.55, LEV_EAT_REST=.55;
+/* The phase change: when the tail falls, and again when the last body segment
+   does, it swims a circle round the middle of the arena for LEV_SPIN_T and
+   every living segment fires its attack straight out from the circle, once
+   every LEV_SPIN_EVERY (the head fires each attack it has taken over). Then
+   LEV_SPIN_REST with nothing at all, not even the bite. LEV_SPIN_R is the
+   circle; the laser shows its line for LEV_SPIN_TEL first. */
+const LEV_SPIN_T=4.5, LEV_SPIN_EVERY=.6, LEV_SPIN_REST=2, LEV_SPIN_R=.3, LEV_SPIN_TEL=.4;
 const LEV_COL='#7fd8ff';
 const levK=e=>e.chain.pow/5;
 const levL=(e,r)=>r[0]+(r[1]-r[0])*levK(e);
@@ -2566,7 +2596,7 @@ function makeLeviathan(B,S,D,vm){
     const kind=sg==='head'?'head':sg==='tail'?'tail':'body';
     const b=makeBoss(B,S,D,vm), hp=LEV_HP[kind]*S.hp*D.ehp*BOSS_BUFF;
     Object.assign(b,{seg:sg, kind, chain, r:LEV_R[kind], hp, max:hp, ward:sg==='tail'?0:1,
-      lcd:sg==='head'?3.5:rand(1,2.2), st:'swim', t0:0, jaw:0, hd:Math.PI/2, ha:Math.PI/2, dir:1, wt:0});
+      lcd:sg==='head'?3.5:rand(1,2.2), st:'swim', t0:0, heir:[], jaw:0, hd:Math.PI/2, ha:Math.PI/2, dir:1, wt:0});
     chain.segs.push(b);
   }
   return chain.segs;
@@ -2616,7 +2646,15 @@ function levSwim(e,dt){
   const v=e.spd*(1+LEV_VPOW*C.pow);
   const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
   e.t0+=dt; e.wt+=dt;
-  if(e.st==='swim'){
+  if(C.spin){
+    // round the middle of the arena, always aiming a little ahead on the circle
+    e.jaw=Math.max(0,e.jaw-dt*3);
+    const R=Math.min(W,H)*LEV_SPIN_R, th=Math.atan2(e.y-H/2,e.x-W/2)+.45;
+    const want=Math.atan2(H/2+Math.sin(th)*R-e.y, W/2+Math.cos(th)*R-e.x);
+    e.hd+=clamp(angDiff(want,e.hd),-4*dt,4*dt);
+    e.x+=Math.cos(e.hd)*v*1.15*dt; e.y+=Math.sin(e.hd)*v*1.15*dt;
+  }
+  else if(e.st==='swim'){
     e.jaw=Math.max(0,e.jaw-dt*3);
     // circles at a working range, weaving; off the walls it heads for the middle
     let want=Math.atan2(dy,dx)+(d<260?1.9:d<420?1.1:.35)*e.dir+Math.sin(e.wt*2.2)*.5;
@@ -2625,7 +2663,7 @@ function levSwim(e,dt){
     e.hd+=clamp(angDiff(want,e.hd),-2.4*dt,2.4*dt);
     e.x+=Math.cos(e.hd)*v*dt; e.y+=Math.sin(e.hd)*v*dt;
     if(Math.random()<dt*.15) e.dir*=-1;
-    e.lcd-=dt;
+    if(!(C.rest>0)) e.lcd-=dt;
     if(e.lcd<=0&&d<560&&!(P.frz>0)){
       e.st='aim'; e.t0=0; e.la=Math.atan2(dy,dx); e.tel=levL(e,LEV_EAT_TEL); SFX.crack();
     }
@@ -2660,54 +2698,104 @@ function levSwim(e,dt){
   levFxStep(C,dt);
 }
 
-// what the rest of the body throws: one attack each, on its own clock
-function levFire(e,dt){
+/* One attack on its own clock. `e` is what it fires from; `g` holds the
+   clock and the aim. A segment is its own `g`. The head carries one `g` per
+   attack it has taken over from a fallen segment (`heir`), each on its own
+   clock, so its own bite is never held up by them. */
+function levGun(e,g,atk,dt){
   const C=e.chain, P=player;
-  e.a=e.ha; e.t0+=dt;
-  const atk=LEV_ATK[e.seg];
-  if(e.st==='swim'){
-    e.lcd-=dt;
-    if(e.lcd>0) return;
-    if(atk==='laser'){ e.st='aim'; e.t0=0; e.tel=levL(e,LEV_LASER_TEL); e.la=Math.atan2(P.y-e.y,P.x-e.x); }
-    else if(atk==='shotgun'){ e.st='aim'; e.t0=0; e.tel=LEV_SHOT_TEL; }
+  g.t0+=dt;
+  if(g.st==='swim'){
+    g.lcd-=dt;
+    if(g.lcd>0) return;
+    if(atk==='laser'){ g.st='aim'; g.t0=0; g.tel=levL(e,LEV_LASER_TEL); g.la=Math.atan2(P.y-e.y,P.x-e.x); }
+    else if(atk==='shotgun'){ g.st='aim'; g.t0=0; g.tel=LEV_SHOT_TEL; }
     else if(atk==='missile'){
       const n=Math.round(levL(e,LEV_MIS_N)), base=Math.atan2(P.y-e.y,P.x-e.x);
       for(let i=0;i<n;i++){ const a=base+(i-(n-1)/2)*.45;
         ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*LEV_MIS_V,vy:Math.sin(a)*LEV_MIS_V,
           r:6.5,dmg:levL(e,LEV_MIS_DMG),col:'#bff0ff',seek:2,age:0,trail:LEV_COL}); }
       burst(e.x,e.y,LEV_COL,8,180);
-      e.lcd=levL(e,LEV_MIS_CD);
+      g.lcd=levL(e,LEV_MIS_CD)*(C.quiet?DARK_MIS_SLOW:1);
     }
     else if(atk==='bomb'){
       C.fx.push({k:'bomb', src:e, x0:e.x, y0:e.y, tx:P.x, ty:P.y, t:0,
         R:levL(e,LEV_BOMB_R), dmg:levL(e,LEV_BOMB_DMG)});
       burst(e.x,e.y,LEV_COL,10,200);
-      e.lcd=levL(e,LEV_BOMB_CD);
+      g.lcd=levL(e,LEV_BOMB_CD);
     }
     return;
   }
   // aiming: the laser's line is locked; the shotgun glows, then lets go
-  if(e.t0<e.tel) return;
+  if(g.t0<g.tel) return;
   if(atk==='laser'){
-    const cx=Math.cos(e.la), cy=Math.sin(e.la), px=P.x-e.x, py=P.y-e.y;
+    const cx=Math.cos(g.la), cy=Math.sin(g.la), px=P.x-e.x, py=P.y-e.y;
     const along=px*cx+py*cy, off=Math.abs(px*cy-py*cx);
     if(along>0&&off<LEV_LASER_W+12) levHurt(e,levL(e,LEV_LASER_DMG),e.x,e.y);
-    C.fx.push({k:'beam', x:e.x, y:e.y, a:e.la, t:0});
+    C.fx.push({k:'beam', x:e.x, y:e.y, a:g.la, t:0});
     SFX.crack(); shake=Math.max(shake,7);
-    e.lcd=levL(e,LEV_LASER_CD);
+    g.lcd=levL(e,LEV_LASER_CD);
   }else{
     const n=Math.round(levL(e,LEV_SHOT_N)), base=leadAngle(e,LEV_SHOT_V,.6);
     for(let i=0;i<n;i++){ const a=base+(i-(n-1)/2)*.13, sp=LEV_SHOT_V*rand(.9,1.1);
       ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:5,dmg:levL(e,LEV_SHOT_DMG),col:LEV_COL}); }
     burst(e.x,e.y,LEV_COL,14,260); SFX.fire();
-    e.lcd=levL(e,LEV_SHOT_CD);
+    g.lcd=levL(e,LEV_SHOT_CD);
   }
-  e.st='swim'; e.t0=0;
+  g.st='swim'; g.t0=0;
+}
+
+function levSpinStart(C,h){
+  C.spin={t:0, next:.5}; C.rest=0;
+  // whatever it was winding up is dropped
+  h.st='swim'; h.jaw=0;
+  for(const sg of C.segs){ sg.st='swim'; sg.t0=0; }
+  for(const g of h.heir){ g.st='swim'; g.t0=0; }
+  SFX.tier(); shake=Math.max(shake,14);
+}
+// one segment's attack, thrown straight out from the middle of the circle
+function levSpinFire(e,atk){
+  const C=e.chain, a=Math.atan2(e.y-H/2,e.x-W/2), cx=Math.cos(a), cy=Math.sin(a);
+  if(atk==='laser') C.fx.push({k:'slaser', src:e, x:e.x, y:e.y, a, t:0});
+  else if(atk==='missile')
+    ebullets.push({x:e.x,y:e.y,vx:cx*LEV_MIS_V,vy:cy*LEV_MIS_V,
+      r:6.5,dmg:levL(e,LEV_MIS_DMG),col:'#bff0ff',seek:1.4,age:0,trail:LEV_COL});
+  else if(atk==='bomb'){
+    const m=60, tx=clamp(e.x+cx*240,m,W-m), ty=clamp(e.y+cy*240,m,H-m);
+    C.fx.push({k:'bomb', src:e, x0:e.x, y0:e.y, tx, ty, t:0, R:levL(e,LEV_BOMB_R)*.8, dmg:levL(e,LEV_BOMB_DMG)});
+  }
+  else if(atk==='shotgun')
+    for(let i=0;i<5;i++){ const q=a+(i-2)*.12;
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(q)*LEV_SHOT_V,vy:Math.sin(q)*LEV_SHOT_V,r:5,dmg:levL(e,LEV_SHOT_DMG),col:LEV_COL}); }
+  burst(e.x,e.y,LEV_COL,6,160);
+}
+function levSpinStep(C,dt){
+  const S=C.spin; S.t+=dt; S.next-=dt;
+  if(S.next<=0){
+    S.next=LEV_SPIN_EVERY;
+    for(const sg of C.segs){
+      if(!enemies.includes(sg)) continue;
+      if(sg.kind==='head') for(const g of sg.heir) levSpinFire(sg,g.atk);
+      else levSpinFire(sg,LEV_ATK[sg.seg]);
+    }
+  }
+  if(S.t>=LEV_SPIN_T){ C.spin=null; C.rest=LEV_SPIN_REST; }
 }
 
 function levStep(e,dt){
   e.pt+=dt; if(e.flare>0) e.flare-=dt;
-  if(e.kind==='head') levSwim(e,dt); else levFire(e,dt);
+  const C=e.chain;
+  if(e.kind==='head'){
+    levSwim(e,dt);
+    if(C.spin) levSpinStep(C,dt);
+    else if(C.rest>0) C.rest-=dt;
+    else for(const g of e.heir) levGun(e,g,g.atk,dt);
+    return;
+  }
+  e.a=e.ha;
+  if(C.spin||C.rest>0) return;                            // the spin, and the breath after it
+  if(C.quiet&&!DARK_LOUD.includes(e.seg)) return;   // in the dark, the rest is quiet
+  levGun(e,e,LEV_ATK[e.seg],dt);
 }
 
 // bombs in the air and beams still burning; run off the head, which is last to go
@@ -2715,6 +2803,13 @@ function levFxStep(C,dt){
   for(let i=C.fx.length-1;i>=0;i--){
     const f=C.fx[i]; f.t+=dt;
     if(f.k==='beam'){ if(f.t>=LEV_BEAM) C.fx.splice(i,1); continue; }
+    if(f.k==='slaser'){
+      if(f.t<LEV_SPIN_TEL) continue;
+      const P=player, cx=Math.cos(f.a), cy=Math.sin(f.a), px=P.x-f.x, py=P.y-f.y;
+      if(px*cx+py*cy>0&&Math.abs(px*cy-py*cx)<LEV_LASER_W+12) levHurt(f.src,levL(f.src,LEV_LASER_DMG),f.x,f.y);
+      C.fx[i]={k:'beam', x:f.x, y:f.y, a:f.a, t:0}; SFX.crack();
+      continue;
+    }
     if(f.t>=LEV_BOMB_T){
       const P=player, rr=f.R+13;
       if(dist2({x:f.tx,y:f.ty},P)<rr*rr) levHurt(f.src,f.dmg,f.tx,f.ty);
@@ -2736,7 +2831,13 @@ function levFall(e){
   if(e.kind==='tail') for(const sg of left) if(sg.kind==='body') sg.ward=0;
   if(!left.some(sg=>sg.kind==='body')) for(const sg of left) sg.ward=0;
   for(const sg of left){ sg.flare=1.6; burst(sg.x,sg.y,LEV_COL,10,200); }
+  // the head takes up what this segment was throwing
+  const h=left.find(sg=>sg.kind==='head');
+  if(h){ h.heir.push({atk:LEV_ATK[e.seg], st:'swim', t0:0, lcd:rand(1.2,2.2)});
+    shock(h.x,h.y,LEV_COL,h.r,h.r*2.6,.45,5); }
   const bodies=left.filter(sg=>sg.kind==='body').length;
+  if(h&&(e.kind==='tail'||bodies===0)) levSpinStart(C,h);   // the phase change
+  // «WRITE:» what the banner says as each piece of it goes
   banner = e.kind==='tail' ? 'TAIL DOWN' : bodies ? 'SEGMENT DOWN · '+bodies+' LEFT' : 'THE HEAD IS OPEN';
   bannerT=2.4;
   return true;
@@ -2750,30 +2851,31 @@ function levDraw(){
   ctx.strokeStyle='rgba(127,216,255,.55)'; ctx.lineWidth=2; ctx.shadowColor=LEV_COL; ctx.shadowBlur=12;
   ctx.beginPath(); live.forEach((sg,i)=>i?ctx.lineTo(sg.x,sg.y):ctx.moveTo(sg.x,sg.y)); ctx.stroke();
   ctx.shadowBlur=0;
-  for(const e of live){
-    if(e.st!=='aim') continue;
-    const k=clamp(e.t0/e.tel,0,1);
-    if(LEV_ATK[e.seg]==='laser'){
+  const tele=(e,g,atk)=>{
+    if(g.st!=='aim') return;
+    const k=clamp(g.t0/g.tel,0,1);
+    if(atk==='laser'){
       ctx.strokeStyle='rgba(127,216,255,'+(.15+.6*k)+')'; ctx.lineWidth=2+LEV_LASER_W*k;
       ctx.shadowColor=LEV_COL; ctx.shadowBlur=18;
-      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(e.la)*1500,e.y+Math.sin(e.la)*1500); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(g.la)*1500,e.y+Math.sin(g.la)*1500); ctx.stroke();
       ctx.shadowBlur=0;
-    }else if(LEV_ATK[e.seg]==='shotgun'){
+    }else if(atk==='shotgun'){
       ctx.strokeStyle='rgba(200,240,255,'+(.3+.6*k)+')'; ctx.lineWidth=2; ctx.shadowColor=LEV_COL; ctx.shadowBlur=14;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(2.4-1.2*k),0,TAU); ctx.stroke(); ctx.shadowBlur=0;
-    }else if(e.kind==='head'){
-      // the line it will lunge down, red: this is the one that kills
-      const L=LEV_EAT_V*LEV_EAT_RUN, cx=Math.cos(e.la), cy=Math.sin(e.la), hw=e.r+13;
-      ctx.strokeStyle='rgba(255,77,94,'+(.3+.65*k)+')'; ctx.lineWidth=1.5+1.5*k;
-      ctx.shadowColor='#ff2233'; ctx.shadowBlur=16;
-      for(const o of [-hw,hw]){ ctx.beginPath(); ctx.moveTo(e.x-cy*o,e.y+cx*o);
-        ctx.lineTo(e.x-cy*o+cx*L,e.y+cx*o+cy*L); ctx.stroke(); }
-      ctx.setLineDash([10,10]); ctx.lineDashOffset=-e.t0*120; ctx.lineWidth=1.2;
-      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+cx*L,e.y+cy*L); ctx.stroke();
-      ctx.setLineDash([]); ctx.shadowBlur=0;
-    }
+    }else if(atk==='eat') levEatLine(e,k);
+  };
+  for(const e of live){
+    tele(e,e,LEV_ATK[e.seg]);
+    if(e.kind==='head') for(const g of e.heir) tele(e,g,g.atk);
   }
   for(const f of C.fx){
+    if(f.k==='slaser'){
+      const k=clamp(f.t/LEV_SPIN_TEL,0,1);
+      ctx.strokeStyle='rgba(127,216,255,'+(.15+.6*k)+')'; ctx.lineWidth=2+LEV_LASER_W*.8*k;
+      ctx.shadowColor=LEV_COL; ctx.shadowBlur=16;
+      ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(f.x+Math.cos(f.a)*1500,f.y+Math.sin(f.a)*1500); ctx.stroke();
+      ctx.shadowBlur=0; continue;
+    }
     if(f.k==='beam'){
       const a=1-f.t/LEV_BEAM;
       const x2=f.x+Math.cos(f.a)*1500, y2=f.y+Math.sin(f.a)*1500;
@@ -2800,9 +2902,21 @@ function levDraw(){
   }
   ctx.restore();
 }
+// the line the head will lunge down, red: this is the one that kills
+function levEatLine(e,k){
+  const L=LEV_EAT_V*LEV_EAT_RUN, cx=Math.cos(e.la), cy=Math.sin(e.la), hw=e.r+13;
+  ctx.save();
+  ctx.strokeStyle='rgba(255,77,94,'+(.3+.65*k)+')'; ctx.lineWidth=1.5+1.5*k;
+  ctx.shadowColor='#ff2233'; ctx.shadowBlur=16;
+  for(const o of [-hw,hw]){ ctx.beginPath(); ctx.moveTo(e.x-cy*o,e.y+cx*o);
+    ctx.lineTo(e.x-cy*o+cx*L,e.y+cx*o+cy*L); ctx.stroke(); }
+  ctx.setLineDash([10,10]); ctx.lineDashOffset=-e.t0*120; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+cx*L,e.y+cy*L); ctx.stroke();
+  ctx.restore();
+}
 // over the fight: every segment's own hull
 function levBars(){
-  const h=levHead(); if(!h||h.hidden) return;
+  const h=levHead(); if(!h||h.hidden||h.chain.quiet) return;
   for(const e of h.chain.segs){
     if(!enemies.includes(e)) continue;
     hpbar(e.x,e.y+e.r+12,Math.max(36,e.r*1.6),e.hp/e.max,e.ward?'#5d6a85':LEV_COL);
@@ -5886,9 +6000,15 @@ function update(dt){
     else if(e.t==='cloner'){
       // it flies to where your reflection is, and keeps up with you once it is there
       e.morph+=dt; e.spin+=dt*.5;
-      const mx=W-P.x, my=H-P.y, rx=mx-e.x, ry=my-e.y, rd=Math.hypot(rx,ry);
+      const tg=cloneTarget(e,P), rx=tg.x-e.x, ry=tg.y-e.y, rd=Math.hypot(rx,ry);
       const v=Math.max(e.spd,Math.hypot(P.vx,P.vy)*CLONE_CATCH);
       if(rd>.5){ const step=Math.min(rd,v*dt); e.x+=rx/rd*step; e.y+=ry/rd*step; }
+      // never on top of another one
+      for(const o of enemies){
+        if(o===e||o.t!=='cloner') continue;
+        const sx=e.x-o.x, sy=e.y-o.y, sd=Math.hypot(sx,sy)||.01, need=e.r+o.r+CLONE_SEP;
+        if(sd<need){ const k=(need-sd)/2; e.x+=sx/sd*k; e.y+=sy/sd*k; o.x-=sx/sd*k; o.y-=sy/sd*k; }
+      }
       e.cool-=dt;
       if(e.cool<=0&&e.on&&d<760){
         e.cool=CLONE_CD*(e.rof||1);
@@ -6114,6 +6234,16 @@ function update(dt){
       if(b.hit.includes(e)) continue;
       const rr=e.r+b.r;
       if(dist2(b,e)<rr*rr){
+        if(e.ward&&e.chain){
+          // a Leviathan segment not yet open: the round glances off it and flies on
+          const nx=(b.x-e.x)/(Math.sqrt(dist2(b,e))||1), ny=(b.y-e.y)/(Math.sqrt(dist2(b,e))||1);
+          const dot=b.vx*nx+b.vy*ny;
+          if(dot<0){ b.vx-=2*dot*nx; b.vy-=2*dot*ny; }
+          b.x=e.x+nx*(rr+1); b.y=e.y+ny*(rr+1);
+          b.hit.push(e);
+          flare(b.x,b.y,'#ffffff',8,.08);
+          continue;
+        }
         if(e.inv>0||e.ward){                        // mid-escalation, or a Titan waiting: untouchable
         burst(b.x,b.y,'#e6dcff',5,240);
         bullets.splice(i,1); break;
@@ -7234,7 +7364,7 @@ function worldStep(dt){
   /* ---- Europa: ice geysers ---- */
   if(world.h==='geysers'){
     world.next-=dt;
-    if(world.next<=0&&!levBusy()){ world.gey.push(placeGeyser()); world.next=rand(GEY_GAP[0],GEY_GAP[1])/HAZ_RATE(); }
+    if(world.next<=0&&!levBusy()&&!(mission&&mission.dark)){ world.gey.push(placeGeyser()); world.next=rand(GEY_GAP[0],GEY_GAP[1])/HAZ_RATE(); }
     for(let i=world.gey.length-1;i>=0;i--){
       const g=world.gey[i]; g.t+=dt;
       if(g.t>=GEY_WARN+GEY_BLOW){ world.gey.splice(i,1); continue; }
@@ -7749,6 +7879,9 @@ function finaleDraw(){
                          with less rest
      eye       (Neptune) crossing blizzard fronts with a hole in each, then
                          the storm shuts but for one drifting calm eye
+     mirror    (Europa)  two Cloners, then four, then UNDER THE ICE: the
+                         lights go out and the Leviathan hunts you. It
+                         cannot be killed; outlast it
    Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
    the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
@@ -7758,6 +7891,7 @@ const SECRETS=[
   {k:'gauntlet', n:'GAUNTLET',         sub:'ONE HIT KILLS'},
   {k:'echo',     n:'ECHO TRIAL',       sub:'HIVE MIND + 2117'},
   {k:'eye',      n:'THROUGH THE STORM', sub:'BLIZZARD SURVIVAL'},   
+  {k:'mirror',   n:'HALL OF MIRRORS',  sub:'CLONERS · THEN THE DARK'},   // «WRITE:» name and sub
   {k:'none',     n:'',                 sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
@@ -7873,6 +8007,10 @@ function startMission(kind){
     mission.ohk=1; mission.mark=player.hp;
     banner='EYE OF THE STORM'; bannerT=2.4;
   }
+  else if(kind==='mirror'){
+    wave=3; mission.w=0; mission.dark=0;
+    mirrorWave(mission);
+  }
   else if(kind==='echo'){
     const B=ECHO_TRIAL();
     mission.B=B;
@@ -7887,6 +8025,33 @@ const HOLD_T=35, HOLD_HP=420;               // how long, and how much the statio
 const BOUNTY_T=30;                          // how long before the target gets away
 const RUN_N=8, RUN_GATE=40, RUN_LIMIT=32;   // gates, gate radius, seconds allowed
 const GAUNT_FROM=2, GAUNT_N=3;              // which wave it starts on, and how many
+/* HALL OF MIRRORS — Europa. Wave 1 is MIRROR_N[0] Cloners, wave 2 is
+   MIRROR_N[1]. Wave 3 is UNDER THE ICE: the arena goes dark past DARK_R round
+   your ship and the Leviathan comes in. Every segment of it is warded, so it
+   cannot be killed. The head hunts you at MIRROR_POW of its five steps of
+   strength, and the DARK_LOUD segments fire too. Outlast it for DARK_T. The geysers stop when the
+   lights go out; a crack you cannot see is not a warning. */
+const MIRROR_N=[2,4], DARK_T=45, DARK_R=115, DARK_FADE=1.2, MIRROR_POW=5;
+// in the dark the missile segments fire as well: their rounds are lit
+const DARK_LOUD=['b1','b4'], DARK_MIS_SLOW=2;   // ...at half their usual rate
+function mirrorWave(M){
+  M.w++;
+  if(M.w<=MIRROR_N.length){
+    for(let q=0;q<MIRROR_N[M.w-1];q++) spawnQ.push({t:waveTimer+.6+q*.7, type:'cloner'});
+    banner='WAVE '+M.w+' / 3'; bannerT=2.4;          // «WRITE:»
+    return;
+  }
+  // the lights go out
+  M.dark=1; M.t0=M.t;
+  if(world){ world.gey=[]; }
+  const B=BOSSES.find(b=>b.k==='leviathan'), S=SYS(), D=DIFF();
+  const segs=makeLeviathan(B,S,D,S.spd*D.espd), C=segs[0].chain;
+  C.quiet=1; C.pow=MIRROR_POW;
+  segs.forEach(b=>{ b.bn=B.n; b.ward=1; b.flare=0; enemies.push(b); });
+  const h=segs[0]; h.x=rand(W*.2,W*.8); h.y=-50; h.hd=Math.PI/2; h.lcd=3;
+  levLay(C);
+  banner='UNDER THE ICE'; bannerT=2.6;                // «WRITE:»
+}
 
 /* HAZARD RUN — a chain of gates through the arena, taken in order. A gate is
    never placed inside a vent's reach, but it is often placed beside one, so
@@ -8142,6 +8307,12 @@ function missionTick(dt){
     return;
   }
 
+  if(M.k==='mirror'){
+    if(M.dark){ if(M.t-M.t0>=DARK_T) missionEnd(true); return; }
+    if(!spawnQ.length && !enemies.length && bannerT<=0) mirrorWave(M);
+    return;
+  }
+
   if(M.k==='bounty'){
     if(!enemies.some(e=>e.t==='quarry')){ missionEnd(true); return; }
     if(M.t>=M.dur){ missionEnd(false,'TARGET ESCAPED'); return; }
@@ -8155,6 +8326,27 @@ function missionTick(dt){
       banner='GAUNTLET — WAVE '+M.w+' / '+GAUNT_N; bannerT=2.4;
     }
   }
+}
+
+/* Under the Ice: black past a short ring round your ship. Enemy fire stays
+   lit, and so does the line the head is about to lunge down, red: the one
+   thing it does that kills has to be readable. The head itself shows as a
+   faint outline, there if you look for it. */
+function darkDraw(M){
+  const P=player, a=clamp((M.t-M.t0)/DARK_FADE,0,1);
+  const g=ctx.createRadialGradient(P.x,P.y,DARK_R*.55,P.x,P.y,DARK_R);
+  g.addColorStop(0,'rgba(0,0,2,0)'); g.addColorStop(.6,'rgba(0,0,2,'+(.85*a)+')');
+  g.addColorStop(1,'rgba(0,0,2,'+a+')');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  for(const b of ebullets){
+    if(b.ghost>0) continue;
+    ctx.fillStyle=b.col; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill();
+  }
+  const h=levHead(); if(!h) return;
+  ctx.save(); ctx.translate(h.x,h.y); ctx.rotate(h.a);
+  ctx.globalAlpha=.08+.06*Math.sin(M.t*2.3); ctx.strokeStyle=LEV_COL; ctx.lineWidth=1.2;
+  unitPath(ctx,'lev_head',h.r,0,h.jaw); ctx.stroke(); ctx.restore();
+  if(h.st==='aim') levEatLine(h,clamp(h.t0/h.tel,0,1));
 }
 
 function missionEnd(win,why){
@@ -8189,6 +8381,7 @@ const SIDE_CLEAR_TEXT={
   gauntlet:'Congratulations on wiping out the hordes without getting damaged.',
   echo:    'Congratulations on defeating the returning enemies.',
   eye:     'Congratulations on flying through the storm.',
+  mirror:  '«WRITE:» Hall of Mirrors clear line',
   boss:    'Congratulations on defeating the strange enemy!',
 };
 function missionVictory(M){
@@ -8199,6 +8392,7 @@ function missionVictory(M){
               : M.k==='bounty'   ? lrow('TIME TO KILL', secs(M.t),'good')
               : M.k==='gauntlet' ? lrow('WAVES CLEARED', GAUNT_N+' / '+GAUNT_N,'good')
               : M.k==='eye'      ? lrow('SURVIVED', EYE_T+'s  ·  NO HITS','good')
+              : M.k==='mirror'   ? lrow('SURVIVED THE DARK', DARK_T+'s','good')
               :                    lrow('TIME', secs(M.t),'good');
   $('doneKind').textContent = M.k==='boss' ? 'QUANTUM PORTAL' : 'SIDE MISSION COMPLETE';
   $('doneTitle').textContent = M.B ? M.B.n : branchName(M.k);
@@ -8217,6 +8411,7 @@ function missionVictory(M){
 function missionDraw(){
   const M=mission, P=player;
   if(M.k==='boss'||M.k==='echo') return;   // it draws itself, and it has its own bar
+  if(M.k==='mirror'){ if(M.dark) darkDraw(M); return; }
   if(M.k==='hold'){
     const w=M.ward;
     ctx.save(); ctx.translate(w.x,w.y);
@@ -8768,7 +8963,7 @@ function draw(){
         ctx.strokeStyle='rgba(255,210,77,.5)'; ctx.lineWidth=1.4; ctx.stroke();
         ctx.setLineDash([]);
       }
-      if(e.ward){                               // a Titan waiting on the other
+      if(e.ward&&!e.chain){                     // a Titan waiting on the other
         ctx.save(); ctx.rotate(-e.a);
         const now=performance.now(), R=e.r+16;
         // a solid shell under the turning dashes, so it reads as a wall
@@ -8950,9 +9145,11 @@ function duoBar(any){
    goes red and pulses, and the last five each tick out loud. */
 function missionClock(){
   const M=mission; if(!M) return;
-  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold'||M.k==='eye' ? M.dur : 0;
+  // the dark is the one clock that starts partway through a branch
+  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold'||M.k==='eye' ? M.dur
+            : M.k==='mirror'&&M.dark ? DARK_T : 0;
   if(!lim) return;
-  const left=Math.max(0,lim-M.t), k=left/lim, hot=left<10;
+  const left=Math.max(0,lim-(M.t-(M.t0||0))), k=left/lim, hot=left<10;
   const sec=Math.ceil(left);
   if(hot&&sec<=5&&sec!==M.tick){ M.tick=sec; SFX.deny(); }
   const pu=hot?.5+.5*Math.sin(M.t*10):0;
@@ -8969,7 +9166,7 @@ function missionClock(){
   ctx.fillStyle='rgba('+col+','+(.85+.15*pu)+')';
   ctx.fillText(left.toFixed(1),W/2,y-12);
   ctx.font='10px Menlo,monospace'; ctx.fillStyle='rgba('+col+',.7)';
-  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':M.k==='eye'?'SURVIVE':'TIME LEFT',W/2,y-48);
+  ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':M.k==='eye'||M.k==='mirror'?'SURVIVE':'TIME LEFT',W/2,y-48);
   ctx.restore();
 }
 
@@ -8998,6 +9195,7 @@ function hud(){
                : M.k==='bounty'   ? 'ESCAPES IN '+left(M.dur-M.t)
                : M.k==='gauntlet' ? 'WAVE '+M.w+' / '+GAUNT_N+'  ·  ONE HIT KILLS'
                : M.k==='eye'      ? (M.eye?'STAY IN THE EYE':'FIND THE GAPS')+'  ·  ONE HIT KILLS' 
+               : M.k==='mirror'   ? (M.dark?'UNDER THE ICE  ·  SURVIVE':'WAVE '+M.w+' / 3  ·  CLONERS '+enemies.length)
                : '';
     let y=70;
     if(line){ ctx.fillStyle=M.ohk?'#ff6b8a':'#7d8bb0'; ctx.fillText(line,W-24,y); y+=18; }
@@ -9048,7 +9246,7 @@ function hud(){
   // boss bar
   const boss=enemies.find(e=>e.t==='boss'&&!e.hidden);
   if(boss&&boss.B.duoPart) duoBar(boss);
-  else if(boss&&boss.chain) levBar(boss.chain);
+  else if(boss&&boss.chain){ if(!boss.chain.quiet) levBar(boss.chain); }
   else if(boss){
     const w=520,x=(W-w)/2,y=H-42;
     ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x,y,w,13);
