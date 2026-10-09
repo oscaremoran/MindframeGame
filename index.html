@@ -9382,6 +9382,12 @@ function resetWipeLink(){
    One place for everything the game expects you to know, off the title screen
    so the front page stays a front page. Hostiles you have not met yet are
    listed but dimmed.                                                        */
+/* A boss's HULL here is worked out from its own row, never typed in, so it
+   cannot go stale: its hp, scaled by the system it is fought in and
+   BOSS_BUFF, the way makeBoss scales it on CADET. */
+const cxHull=(B,sys)=>Math.round(B.hp*SYSTEMS[sys].hp*BOSS_BUFF);
+const cxBoss=k=>BOSSES.find(b=>b.k===k)||SECRET_BOSSES.find(b=>b.k===k);
+const cxSys=k=>BOSSES.findIndex(b=>b.k===k);
 const CODEX={
   hostiles:{ label:'HOSTILES', sub:'what is out there', rows:[
     {c:'#4d9dff', n:'ITERATION', tag:'EARTH  ·  LINE UNIT', sys:0,
@@ -9429,34 +9435,34 @@ const CODEX={
        'you. Those shards continue to break until an unstoppable torrent of shards are coming. It holds a working distance and weaves while it reloads, so the orb '+
        'is the warning and the fan is the attack.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'EARTH  ·  WAVE 5', sys:0,
-     u:'b_primary', a:[1284,62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
+     u:'b_primary', a:[cxHull(cxBoss('primary'),cxSys('primary')),62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
      t:'A Primary that outgrew its mindframe. It never retreats, it never stops '+
        'bracing, and once it is hurt it aims itself at you and blasts down the '+
        'line it showed you. Do not be standing on that line.'},
     {c:'#46e39b', n:'THE HIVE MIND', tag:'VENUS  ·  WAVE 5', sys:1,
-     u:'b_hive', a:[1691,70,10,.44,15], ctr:'Ignore the Watchers it spawns until they get close. Focus fire on the core to kill it.',
+     u:'b_hive', a:[cxHull(cxBoss('hive'),cxSys('hive')),70,10,.44,15], ctr:'Ignore the Watchers it spawns until they get close. Focus fire on the core to kill it.',
      t:'Not one enemy, a swarm around a core. It spits Watchers, and it sheds '+
        'two more every time you take an eighth of its hull off it. Killing the '+
        'core kills the swarm, so ignore the escorts and keep hitting the middle.'},
     {c:'#3fd8e0', n:'ITERATION 2117', tag:'JUPITER  ·  WAVE 5', sys:2,
-     u:'b_overseer', a:[2098,66,13,.46,15], ctr:'The arc blocks whatever it faces, so shoot from behind it.',
+     u:'b_overseer', a:[cxHull(cxBoss('overseer'),cxSys('overseer')),66,13,.46,15], ctr:'The arc blocks whatever it faces, so shoot from behind it.',
      t:'An Overseer that has learned. Its shield arc is wider and it '+
        'tracks you, so every shot has to come from somewhere it is not looking. '+
        'Hurt, it rakes a rotating wall of fire across the whole arena.'},
     {c:'#e8c872', n:'THE ARCHITECT', tag:'SATURN  ·  WAVE 5', sys:3,
-     u:'b_architect', a:[2225,76,14,.45,15], ctr:'Get outside of its shapes before they burst.',
+     u:'b_architect', a:[cxHull(cxBoss('architect'),cxSys('architect')),76,14,.45,15], ctr:'Get outside of its shapes before they burst.',
      t:'A new Iteration that builds exploding shapes. Move through the gaps in them to escape.'},
     {c:'#d6d9e0', n:'THE CRESCENT', tag:'LUNA  ·  WAVE 5', sys:4,
-     u:'b_crescent', a:[2600,460,11,.6,15], ctr:'Sit in one spot as long as possible, then fire a barrage of high-power spread rounds.',
+     u:'b_crescent', a:[cxHull(cxBoss('crescent'),cxSys('crescent')),460,11,.6,15], ctr:'Sit in one spot as long as possible, then fire a barrage of high-power spread rounds.',
      t:'A fast boss unit that will zoom around you in the low-g and fire AOE beams at you.'},
     {c:'#2fa8ff', n:'TRITON', tag:'NEPTUNE  ·  WAVE 5', sys:5,
-     u:'b_triton', a:[2300,950,13,.8,15], ctr:'Get away from it to get a free window of damage.',
+     u:'b_triton', a:[cxHull(TRITON,cxSys('titans')),950,13,.8,15], ctr:'Get away from it to get a free window of damage.',
      t:'The fast Titan. Stay away and dodge its attacks while firing the whole time.'},
     {c:'#3a5bd0', n:'PROTEUS', tag:'NEPTUNE  ·  WAVE 5', sys:5,
-     u:'b_proteus', a:[2300,46,29,.55,20], ctr:'Get in its face and avoid its AOE attacks.',
+     u:'b_proteus', a:[cxHull(PROTEUS,cxSys('titans')),46,29,.55,20], ctr:'Get in its face and avoid its AOE attacks.',
      t:'The tanky Titan. Get in close and dodge its lightning attacks and AOE beams.'},
     {c:'#000', n:'THE RULER', tag:'ICARUS  ·  POLYINTELLIGENCE', sys:6, void:1,
-     u:'b_ruler', a:[1553,51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
+     u:'b_ruler', a:[cxHull(cxBoss('ruler'),cxSys('ruler')),51,13,.43,15], ctr:'We have no idea how to kill this thing. Just try not to get your ship destroyed.',
      t:'The enemy leader, and the creature that all the other bosses answered to. Extremely '+
        'powerful and can kill you in a few hits.'},
     /* The two behind the Portal. `hide` keeps a row off the list entirely until
@@ -9464,11 +9470,11 @@ const CODEX={
        so neither is a padlock on the roster hinting at something you have not
        been told about yet. */
     {c:'#8dffc4', n:'ITERATION 3295', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'s3295',
-     u:'b_s3295', a:[5320,145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
+     u:'b_s3295', a:[cxHull(cxBoss('s3295'),PORTAL_SYS),145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
      t:'An Iteration that was never deployed. It fights at close range at speed, '+
        'and its lines run longer between openings than any campaign boss.'},
     {c:'#c78dff', n:'THE ARCHIVE', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'archive',
-     u:'b_archive', a:[12075,64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
+     u:'b_archive', a:[cxHull(cxBoss('archive'),PORTAL_SYS),64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
      t:'Everything the Iterations ever recorded, kept in one frame. It is slow, it '+
        'is enormous, and it rewrites what it is doing as you fight it.'},
   ]},
