@@ -2983,6 +2983,9 @@ function levBar(C){
      wing B  bursts: rings marked on and around you, then blown
      wing C  lasers: a spread of lines shown, then fired
      wing D  all three, each a little slower (OM_ALL_SLOW)
+   On top of its own guns each wing borrows two moves from the roster
+   (OM_MOVES), one every OM_MV_CD; its guns hold fire while one is under way.
+     A  fan, shell      B  slam, hammer      C  lance, trident      D  spiral, cross
    It comes alone. OM_HP is each wing's hull before scaling. */
 const OM_HP=3450, OM_ARM=470, OM_R=72, OM_OY=-250;     // wing hull; arm length; wing radius; hub height
 const OM_TURN=3.2, OM_FLARES=[.3,1.2,2.1];               // the turn, and when its flares go out
@@ -2991,16 +2994,20 @@ const OM_AOE_CD=2.7, OM_AOE_N=3, OM_AOE_R=95, OM_AOE_T=1.1, OM_AOE_DMG=26;
 const OM_LAS_CD=2.5, OM_LAS_N=3, OM_LAS_TEL=.75, OM_LAS_DMG=28, OM_LAS_SPREAD=.32, OM_LAS_W=14;
 const OM_ALL_SLOW=1.4;
 const OM_COL='#ffcf5a';
+const OM_HUB=340, OM_JUNK=22;                            // the hub's rim, so its underside shows; debris at once
 const OM_WINGS=['A','B','C','D'], OM_ATK={A:['mis'],B:['aoe'],C:['las'],D:['mis','aoe','las']};
+const OM_MOVES={A:['fan','shell'],B:['slam','hammer'],C:['lance','trident'],D:['spiral','cross']};
+const OM_MV_CD=[3.4,4.6], OM_T={rest:[0,0]};             // between borrowed moves; a rest the acts can read
 const omegaOf=()=>{ const e=enemies.find(q=>q.station); return e?e.station:null; };
 const omegaTurning=()=>{ const S=omegaOf(); return !!(S&&S.turn); };
 
 function makeOmega(B,S,D,vm){
-  const st={rot:0, wing:0, turn:null, fx:[], wings:[], oy:OM_OY};
+  const st={rot:0, wing:0, turn:null, fx:[], wings:[], oy:OM_OY, clk:0, junk:[]};
   OM_WINGS.forEach((w,i)=>{
     const b=makeBoss(B,S,D,vm), hp=OM_HP*S.hp*D.ehp*BOSS_BUFF;
     Object.assign(b,{station:st, wi:i, wing:w, r:OM_R, hp, max:hp, ward:i?1:0,
-      guns:OM_ATK[w].map(k=>({k, cd:rand(1.4,2.4)}))});
+      guns:OM_ATK[w].map(k=>({k, cd:rand(1.4,2.4)})), mv:OM_MOVES[w], mvi:0, mvcd:rand(2.2,3),
+      ink:{c:OM_COL, rgb:'255,207,90', hi:'255,236,170'}});
     st.wings.push(b);
   });
   return st.wings;
@@ -3017,15 +3024,16 @@ function omegaStep(e,dt){
   e.pt+=dt; if(e.flare>0) e.flare-=dt;
   // the station's own clock runs off whichever wing is first still standing
   if(S.wings.find(w=>enemies.includes(w))===e) omegaStation(S,dt);
-  if(e.ward||S.turn) return;
+  if(e.ward||S.turn){ e.act=null; e.tel=null; return; }
   const slow=e.wing==='D'?OM_ALL_SLOW:1, P=player;
+  if(omegaMove(e,dt,slow)) return;
   for(const g of e.guns){
     g.cd-=dt; if(g.cd>0) continue;
     if(g.k==='mis'){
       const base=Math.atan2(P.y-e.y,P.x-e.x);
       for(let i=0;i<OM_MIS_N;i++){ const a=base+(i-(OM_MIS_N-1)/2)*.5;
         ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*OM_MIS_V,vy:Math.sin(a)*OM_MIS_V,r:6.5,
-          dmg:OM_MIS_DMG,col:'#ffe0a0',seek:OM_MIS_SEEK,age:0,trail:OM_COL}); }
+          dmg:OM_MIS_DMG,col:OM_COL,seek:OM_MIS_SEEK,age:0,trail:OM_COL}); }
       burst(e.x,e.y,OM_COL,10,200);
       g.cd=OM_MIS_CD*slow;
     }else if(g.k==='aoe'){
@@ -3043,6 +3051,32 @@ function omegaStep(e,dt){
     }
   }
 }
+// a borrowed move: start one when its clock runs out, step it while it runs.
+// True while one is under way, so the wing's own guns wait for it
+function omegaMove(e,dt,slow){
+  const P=player, dx=P.x-e.x, dy=P.y-e.y, a=Math.atan2(dy,dx);
+  if(!e.act){
+    e.mvcd-=dt; if(e.mvcd>0) return false;
+    const k=e.mv[e.mvi++%e.mv.length];
+    e.mvcd=rand(OM_MV_CD[0],OM_MV_CD[1])*slow;
+    if(k==='fan'){ shotFan(e,leadAngle(e,290,.6)); return false; }
+    if(k==='shell'){ shotShell(e); return false; }
+    e.act= k==='slam'   ? {k,t:0,x:P.x,y:P.y,r:SLAM_R,hit:0}
+         : k==='hammer' ? {k,t:0,x:P.x,y:P.y,r:104,hit:0}
+         : k==='cross'  ? {k,t:0,a:e.spin,hit:0,lines:[]}
+         : k==='spiral' ? {k,t:0,fire:0,a:e.spin}
+         :                {k,t:0,a};                     // lance, trident
+  }
+  e.act.t+=dt;
+  const m=e.act.k;
+  if(m==='slam') actSlam(e,dt,dx,dy,OM_T);
+  else if(m==='hammer') actHammer(e,dt,dx,dy,OM_T);
+  else if(m==='cross') actCross(e,dt,dx,dy,OM_T);
+  else if(m==='spiral') actSpiral(e,dt,OM_T);
+  else if(m==='lance') actLance(e,dt,dx,dy,OM_T);
+  else actTrident(e,dt,dx,dy,OM_T);
+  return true;
+}
 function omegaStation(S,dt){
   if(S.turn){
     const T=S.turn; T.t+=dt;
@@ -3059,12 +3093,26 @@ function omegaStation(S,dt){
     }
   }
   omegaPlace(S);
+  S.clk+=dt;
+  // the fallen wings burn, and shed plating down into the arena
+  for(const w of S.wings){
+    if(enemies.includes(w)) continue;
+    if(w.y>-40&&Math.random()<dt*14) embers(w.x+rand(-30,30),w.y+rand(-30,30),Math.random()<.5?'#ff9a3c':OM_COL,2,90);
+    if(S.junk.length<OM_JUNK&&Math.random()<dt*1.6){
+      const a=omegaAng(S,w);
+      S.junk.push({x:clamp(W/2+Math.cos(a)*OM_HUB*.8,30,W-30)+rand(-60,60), y:-20,
+        vx:Math.cos(a)*rand(8,30), vy:rand(35,70), a:rand(0,TAU), va:rand(-1.5,1.5), r:rand(5,13)});
+    }
+  }
+  for(let i=S.junk.length-1;i>=0;i--){ const j=S.junk[i];
+    j.x+=j.vx*dt; j.y+=j.vy*dt; j.a+=j.va*dt;
+    if(j.y>H+30) S.junk.splice(i,1); }
   const P=player;
   for(let i=S.fx.length-1;i>=0;i--){
     const f=S.fx[i]; f.t+=dt;
     if(f.k==='aoe'&&f.t>=OM_AOE_T){
       if(dist2(f,P)<(OM_AOE_R+13)*(OM_AOE_R+13)) levHurt(f.src,OM_AOE_DMG,f.x,f.y);
-      shock(f.x,f.y,OM_COL,10,OM_AOE_R,.35,6); burst(f.x,f.y,'#ffb347',30,340);
+      shock(f.x,f.y,OM_COL,10,OM_AOE_R,.35,6); burst(f.x,f.y,OM_COL,30,340);
       shake=Math.max(shake,10); SFX.crack(); S.fx.splice(i,1);
     }else if(f.k==='las'&&f.t>=OM_LAS_TEL&&!f.fired){
       f.fired=1; f.t=0;
@@ -3098,9 +3146,17 @@ function omegaDraw(){
   const gr=ctx.createRadialGradient(W/2,S.oy,40,W/2,S.oy,420);
   gr.addColorStop(0,'rgba(255,207,90,.22)'); gr.addColorStop(1,'rgba(255,207,90,0)');
   ctx.fillStyle=gr; ctx.fillRect(0,0,W,Math.max(0,S.oy+420));
+  // drifting plating off the fallen wings: outlines only, never over a round
+  ctx.strokeStyle='rgba(255,207,90,.35)'; ctx.lineWidth=1.2;
+  for(const j of S.junk){
+    ctx.save(); ctx.translate(j.x,j.y); ctx.rotate(j.a);
+    ctx.beginPath(); ctx.moveTo(-j.r,-j.r*.4); ctx.lineTo(j.r*.6,-j.r*.6); ctx.lineTo(j.r,j.r*.3); ctx.lineTo(-j.r*.3,j.r*.5);
+    ctx.closePath(); ctx.stroke(); ctx.restore();
+  }
+  const T=S.clk, P=player;
   for(const w of S.wings){
     const alive=enemies.includes(w), a=omegaAng(S,w), ca=Math.cos(a), sa=Math.sin(a);
-    const L=alive?OM_ARM-OM_R:OM_ARM*.45;     // a fallen wing is a broken stub
+    const L=alive?OM_ARM-OM_R:OM_ARM-OM_R*1.4;   // a fallen wing's arm ends short, torn
     // the arm: two rails and the struts between them
     ctx.strokeStyle=alive?'rgba(255,207,90,.6)':'rgba(255,207,90,.22)'; ctx.lineWidth=2;
     ctx.shadowColor=OM_COL; ctx.shadowBlur=alive?10:0;
@@ -3110,20 +3166,83 @@ function omegaDraw(){
     for(let q=40;q<L;q+=34){ ctx.beginPath();
       ctx.moveTo(W/2+sa*16+ca*q,S.oy-ca*16+sa*q); ctx.lineTo(W/2-sa*16+ca*(q+34),S.oy+ca*16+sa*(q+34)); ctx.stroke(); }
     ctx.shadowBlur=0;
-    if(!alive) continue;
-    // the wing itself: a plated module with its letter's panels
     ctx.save(); ctx.translate(w.x,w.y); ctx.rotate(a);
+    const r=w.r;
+    if(!alive){
+      // the wreck: the back half of the module, torn open and burning
+      ctx.fillStyle='#000'; ctx.strokeStyle='rgba(255,207,90,.35)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(-r,-.55*r); ctx.lineTo(-.35*r,-.95*r); ctx.lineTo(.1*r,-.95*r);
+      ctx.lineTo(-.05*r,-.5*r); ctx.lineTo(.25*r,-.2*r); ctx.lineTo(0,.15*r); ctx.lineTo(.3*r,.5*r);
+      ctx.lineTo(-.05*r,.95*r); ctx.lineTo(-.35*r,.95*r); ctx.lineTo(-r,.55*r); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      const fl=.55+.45*Math.sin(T*17+w.wi*3)*Math.sin(T*7.3+w.wi);
+      const g=ctx.createRadialGradient(.1*r,0,0,.1*r,0,r*.7);
+      g.addColorStop(0,'rgba(255,170,70,'+(.55*fl)+')'); g.addColorStop(1,'rgba(255,90,30,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(.1*r,0,r*.7,0,TAU); ctx.fill();
+      ctx.restore(); continue;
+    }
+    // the wing itself: a plated module with its letter's panels
+    const lit=w.ward?.35:1;
     ctx.fillStyle='#000'; ctx.strokeStyle=w.ward?'rgba(255,207,90,.45)':OM_COL; ctx.lineWidth=w.ward?2:3;
     ctx.shadowColor=OM_COL; ctx.shadowBlur=w.ward?6:(18+(w.flare>0?20:0));
-    unitPath(ctx,'b_omega',w.r,0,0); ctx.fill(); ctx.stroke();
-    ctx.restore(); ctx.shadowBlur=0;
+    unitPath(ctx,'b_omega',r,0,0); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+    // two rows of lit windows, a few dark at any moment
+    for(const y of [-.68,.68]) for(let i=0;i<7;i++){
+      const on=Math.sin(T*1.3+i*2.1+w.wi*5+y*4)>-.6;
+      ctx.fillStyle=on?'rgba(255,226,150,'+(.75*lit)+')':'rgba(255,207,90,'+(.12*lit)+')';
+      ctx.fillRect((-.28+i*.17)*r,y*r-2,.09*r,4);
+    }
+    // running lights at the tips, red and green, blinking out of step
+    const bl=(T*1.4+w.wi*.3)%1<.18;
+    ctx.fillStyle=bl?'#ff4d5e':'rgba(255,77,94,.25)'; ctx.beginPath(); ctx.arc(1.15*r,-.45*r,3,0,TAU); ctx.fill();
+    ctx.fillStyle=bl?'#57ff9a':'rgba(87,255,154,.25)'; ctx.beginPath(); ctx.arc(1.15*r,.45*r,3,0,TAU); ctx.fill();
+    ctx.restore();
+    // the letter, upright, painted where you can read it
+    ctx.fillStyle='rgba(255,207,90,'+(.55*lit)+')'; ctx.font='bold 22px Menlo,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(w.wing,w.x+ca*(-.62*r),w.y+sa*(-.62*r));
+    ctx.textBaseline='alphabetic';
+    // the turret on the module's face, tracking you while it is open
+    const ta=w.ward?a:Math.atan2(P.y-w.y,P.x-w.x), tx=w.x+ca*.3*r, ty=w.y+sa*.3*r;
+    ctx.strokeStyle=w.ward?'rgba(255,207,90,.45)':OM_COL; ctx.lineWidth=5; ctx.lineCap='butt';
+    ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx+Math.cos(ta)*.55*r,ty+Math.sin(ta)*.55*r); ctx.stroke();
+    ctx.lineCap='round'; ctx.fillStyle='#000'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(tx,ty,.24*r,0,TAU); ctx.fill(); ctx.stroke();
     if(!w.ward&&!w.hidden) hpbar(w.x,w.y-w.r-22,w.r*2.2,w.hp/w.max,OM_COL);
+  }
+  // the hub's underside, over the roots of the arms: rim, plating, windows,
+  // spokes and the core, turning with the station
+  {
+    const hr=S.rot+T*.06, cx=W/2, cy=S.oy;
+    ctx.save(); ctx.translate(cx,cy);
+    ctx.fillStyle='rgba(255,207,90,.05)';
+    ctx.beginPath(); ctx.arc(0,0,OM_HUB,0,TAU); ctx.arc(0,0,OM_HUB-30,0,TAU,true); ctx.fill();
+    ctx.strokeStyle=OM_COL; ctx.shadowColor=OM_COL; ctx.shadowBlur=14; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(0,0,OM_HUB,0,TAU); ctx.stroke();
+    ctx.shadowBlur=0; ctx.lineWidth=1.4; ctx.strokeStyle='rgba(255,207,90,.6)';
+    ctx.beginPath(); ctx.arc(0,0,OM_HUB-30,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,OM_HUB*.55,0,TAU); ctx.stroke();
+    ctx.rotate(hr);
+    // plates between the rims, and a window lit in every other one
+    for(let i=0;i<48;i++){ const q=i/48*TAU, c=Math.cos(q), s2=Math.sin(q);
+      ctx.strokeStyle='rgba(255,207,90,.4)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(c*(OM_HUB-30),s2*(OM_HUB-30)); ctx.lineTo(c*OM_HUB,s2*OM_HUB); ctx.stroke();
+      if(i%2) continue;
+      const qq=q+TAU/96, on=Math.sin(T*.9+i*1.7)>-.5;
+      ctx.fillStyle=on?'rgba(255,226,150,.8)':'rgba(255,207,90,.15)';
+      ctx.beginPath(); ctx.arc(Math.cos(qq)*(OM_HUB-15),Math.sin(qq)*(OM_HUB-15),2.6,0,TAU); ctx.fill();
+    }
+    // spokes from the core to the inner ring
+    ctx.strokeStyle='rgba(255,207,90,.45)'; ctx.lineWidth=2;
+    for(let i=0;i<8;i++){ const q=i/8*TAU;
+      ctx.beginPath(); ctx.moveTo(Math.cos(q)*70,Math.sin(q)*70); ctx.lineTo(Math.cos(q)*OM_HUB*.55,Math.sin(q)*OM_HUB*.55); ctx.stroke(); }
+    ctx.restore();
   }
   // its warnings, and the lasers going off
   for(const f of S.fx){
     if(f.k==='aoe'){
       const k=clamp(f.t/OM_AOE_T,0,1); if(f.t<0) continue;
-      ctx.strokeStyle='rgba(255,180,80,'+(.35+.6*k)+')'; ctx.lineWidth=2; ctx.shadowColor='#ff9a3c'; ctx.shadowBlur=14;
+      ctx.strokeStyle='rgba(255,207,90,'+(.35+.6*k)+')'; ctx.lineWidth=2; ctx.shadowColor=OM_COL; ctx.shadowBlur=14;
       ctx.beginPath(); ctx.arc(f.x,f.y,OM_AOE_R,0,TAU); ctx.stroke();
       ctx.setLineDash([6,8]); ctx.lineDashOffset=-f.t*60; ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.arc(f.x,f.y,OM_AOE_R*(1.9-.9*k),0,TAU); ctx.stroke(); ctx.setLineDash([]);
@@ -3137,7 +3256,7 @@ function omegaDraw(){
         ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(x2,y2); ctx.stroke(); ctx.shadowBlur=0;
       }else{
         const a=1-f.t/LEV_BEAM;
-        ctx.strokeStyle='rgba(255,180,80,'+(.45*a)+')'; ctx.lineWidth=OM_LAS_W*1.6; ctx.shadowColor='#ff9a3c'; ctx.shadowBlur=26;
+        ctx.strokeStyle='rgba(255,207,90,'+(.45*a)+')'; ctx.lineWidth=OM_LAS_W*1.6; ctx.shadowColor=OM_COL; ctx.shadowBlur=26;
         ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(x2,y2); ctx.stroke();
         ctx.strokeStyle='rgba(255,246,220,'+a+')'; ctx.lineWidth=3; ctx.shadowBlur=0;
         ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(x2,y2); ctx.stroke();
@@ -3387,6 +3506,55 @@ const inMeltdown=e=>!!(e.B&&e.B.final&&e.tier>=MELTDOWN_TIER);
 const ONE_SHOT=9999;
 const heavyDmg=(e,n)=> inMeltdown(e) ? ONE_SHOT : n;
 
+/* A move's colours, unless whoever fires it carries its own (`ink`): Omega's
+   wings borrow other bosses' moves but throw all of them in their gold.
+   inkRGB(e,rgb,hi) gives an 'r,g,b' for rgba(); `hi` asks for the pale one. */
+const ink=(e,c)=>e.ink?e.ink.c:c;
+const inkRGB=(e,rgb,hi)=>e.ink?(hi?e.ink.hi:e.ink.rgb):rgb;
+
+/* FAN, SHELL, LANCE, SPIRAL — the roster's common moves, kept out here so
+   Omega's wings can fire them too. */
+function shotFan(e,base){
+  const n=(e.tier===0?1:2)+DIFF().dense;
+  for(let i=-n;i<=n;i++){const a=base+i*.19;
+    ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*290,vy:Math.sin(a)*290,r:5,dmg:9*BOSS_DMG,col:ink(e,'#e6dcff')});}
+}
+// the Primary's braced spread, but it never stops bracing
+function shotShell(e){
+  const base=leadAngle(e,205,.7), sn=2+DIFF().dense;
+  for(let i=-sn;i<=sn;i++){const a=base+i*.155;
+    ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*205,vy:Math.sin(a)*205,r:9,dmg:13*BOSS_DMG,col:ink(e,'#ff4d5e')});}
+}
+// charges a line, tracking you slowly, then fires down it
+function actLance(e,dt,dx,dy,T){
+  e.act.a += clamp(angDiff(Math.atan2(dy,dx),e.act.a),-1,1)*1.5*AGGR()*DIFF().track*dt;
+  e.tel={a:e.act.a, t:e.act.t, len:1100}; SFX.warn();
+  if(e.act.t>=.95){
+    for(let i=0;i<16;i++){
+      const sp=430+i*22;
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.act.a)*sp,vy:Math.sin(e.act.a)*sp,
+        r:7,dmg:12*BOSS_DMG,col:ink(e,'#ffffff')});
+    }
+    for(let i=-1;i<=1;i+=2){                       // splash either side of it
+      const a=e.act.a+i*.13;
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*360,vy:Math.sin(a)*360,r:5,dmg:9*BOSS_DMG,col:ink(e,'#e6dcff')});
+    }
+    shake=Math.max(shake,13); e.tel=null; e.act=null; e.cool=bossRest(T);
+  }
+}
+function actSpiral(e,dt,T){
+  e.act.fire-=dt;
+  while(e.act.fire<=0){
+    e.act.fire+=.105;
+    const a=e.act.a; e.act.a+=.42;
+    for(let i=0;i<2;i++){
+      const aa=a+i*Math.PI;
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(aa)*190,vy:Math.sin(aa)*190,r:6,dmg:8*BOSS_DMG,col:ink(e,'#b49cf5')});
+    }
+  }
+  if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=bossRest(T)+.4; }
+}
+
 /* BRAND — a lance that means it. One thick line, held long, then a wall of
    fire straight down it. */
 function actBrand(e,dt,dx,dy,T){
@@ -3416,15 +3584,15 @@ function actHammer(e,dt,dx,dy,T){
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y) < rr*rr && P.inv<=0 && buffs.shield<=0){
       P.hp-=heavyDmg(e,55)*DIFF().dmgIn*P.st.armour;
       P.inv=.5; pilotHurt(); killer=unitName(e);
-      burst(P.x,P.y,'#ff2233',20,320);
+      burst(P.x,P.y,ink(e,'#ff2233'),20,320);
     }
-    shock(m.x,m.y,'#ff2233',m.r*.3,m.r*1.25,.45,8);
-    burst(m.x,m.y,'#ff8090',34,420);
+    shock(m.x,m.y,ink(e,'#ff2233'),m.r*.3,m.r*1.25,.45,8);
+    burst(m.x,m.y,ink(e,'#ff8090'),34,420);
     SFX.crack(); shake=Math.max(shake,26);
     // and a low ring off the impact, so standing on the lip is not free either
     for(let i=0;i<14;i++){ const a=i/14*TAU;
       ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*230,vy:Math.sin(a)*230,
-        r:6,dmg:heavyDmg(e,14),col:'#ff6070'}); }
+        r:6,dmg:heavyDmg(e,14),col:ink(e,'#ff6070')}); }
   }
   if(m.t>HEAVY_TEL+.3){ e.act=null; e.cool=bossRest(T); }
 }
@@ -3443,7 +3611,7 @@ function actCross(e,dt,dx,dy,T){
       for(let i=0;i<13;i++){
         const sp=400+i*30;
         ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-          r:8,dmg:heavyDmg(e,45),col:'#ff2233',heavy:1});
+          r:8,dmg:heavyDmg(e,45),col:ink(e,'#ff2233'),heavy:1});
       }
     SFX.strip(); shake=Math.max(shake,24); flash=Math.max(flash,.4);
   }
@@ -3707,7 +3875,7 @@ function actTrident(e,dt,dx,dy,T){
   if(m.t<TRIDENT_TEL){ SFX.warn(); return; }
   for(const o of [-.22,0,.22]) for(let i=0;i<10;i++){
     const a=m.a+o, sp=380+i*25;
-    ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:6,dmg:10*BOSS_DMG,col:'#e6f6ff'});
+    ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:6,dmg:10*BOSS_DMG,col:ink(e,'#e6f6ff')});
   }
   shake=Math.max(shake,10);
   e.act=null; e.cool=bossRest(T)+.2;
@@ -3724,13 +3892,13 @@ function actSlam(e,dt,dx,dy,T){
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y)<rr*rr && P.inv<=0 && buffs.shield<=0){
       P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
-      burst(P.x,P.y,'#9fd8ff',20,320);
+      burst(P.x,P.y,ink(e,'#9fd8ff'),20,320);
     }
-    shock(m.x,m.y,e.col,m.r*.3,m.r*1.3,.45,8); burst(m.x,m.y,'#dff4ff',30,380);
+    shock(m.x,m.y,e.col,m.r*.3,m.r*1.3,.45,8); burst(m.x,m.y,ink(e,'#dff4ff'),30,380);
     SFX.crack(); shake=Math.max(shake,20);
     const n=16+DIFF().dense*2;
     for(let i=0;i<n;i++){ const a=i/n*TAU;
-      ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*210,vy:Math.sin(a)*210,r:6,dmg:9*BOSS_DMG,col:'#7f9cff'}); }
+      ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*210,vy:Math.sin(a)*210,r:6,dmg:9*BOSS_DMG,col:ink(e,'#7f9cff')}); }
   }
   if(m.t>SLAM_TEL+.3){ e.act=null; e.cool=bossRest(T); }
 }
@@ -5569,24 +5737,7 @@ function bossAI(e,dt,dx,dy,d){
     if(e.act.k==='trident'){ actTrident(e,dt,dx,dy,T); return; }
     if(e.act.k==='slam'){   actSlam(e,dt,dx,dy,T);   return; }
     if(e.act.k==='beam'){   actBeam(e,dt,dx,dy,T);   return; }
-    if(e.act.k==='lance'){
-      // charges a line, tracking you slowly, then fires down it
-      e.act.a += clamp(angDiff(Math.atan2(dy,dx),e.act.a),-1,1)*1.5*AGGR()*DIFF().track*dt;
-      e.tel={a:e.act.a, t:e.act.t, len:1100}; SFX.warn();
-      if(e.act.t>=.95){
-        for(let i=0;i<16;i++){
-          const sp=430+i*22;
-          ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.act.a)*sp,vy:Math.sin(e.act.a)*sp,
-            r:7,dmg:12*BOSS_DMG,col:'#ffffff'});
-        }
-        for(let i=-1;i<=1;i+=2){                       // splash either side of it
-          const a=e.act.a+i*.13;
-          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*360,vy:Math.sin(a)*360,r:5,dmg:9*BOSS_DMG,col:'#e6dcff'});
-        }
-        shake=Math.max(shake,13); e.tel=null; e.act=null; e.cool=bossRest(T);
-      }
-      return;
-    }
+    if(e.act.k==='lance'){  actLance(e,dt,dx,dy,T);  return; }
     if(e.act.k==='charge'){
       // 3296 braces, aims itself, and rams down the line it showed you
       if(e.act.t<.75){ e.tel={a:e.act.a, t:e.act.t*1.27, len:560}; SFX.warn(); }
@@ -5612,19 +5763,7 @@ function bossAI(e,dt,dx,dy,d){
       if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=bossRest(T)+.4; }
       return;
     }
-    if(e.act.k==='spiral'){
-      e.act.fire-=dt;
-      while(e.act.fire<=0){
-        e.act.fire+=.105;
-        const a=e.act.a; e.act.a+=.42;
-        for(let i=0;i<2;i++){
-          const aa=a+i*Math.PI;
-          ebullets.push({x:e.x,y:e.y,vx:Math.cos(aa)*190,vy:Math.sin(aa)*190,r:6,dmg:8*BOSS_DMG,col:'#b49cf5'});
-        }
-      }
-      if(e.act.t>(e.tier===2?1.9:1.5)){ e.act=null; e.cool=bossRest(T)+.4; }
-      return;
-    }
+    if(e.act.k==='spiral'){ actSpiral(e,dt,T);       return; }
   }
 
   // ---- pick the next one ----
@@ -5686,18 +5825,10 @@ function bossAI(e,dt,dx,dy,d){
   else if(k==='fan'){
     // the Crescent only fires where it points, so it snaps round toward you first
     if(B.k==='crescent'){ e.h+=clamp(angDiff(Math.atan2(dy,dx),e.h),-.8,.8); e.a=e.h; }
-    const n=(e.tier===0?1:2)+DIFF().dense, base=B.k==='crescent'?e.h:leadAngle(e,290,.6);
-    for(let i=-n;i<=n;i++){const a=base+i*.19;
-      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*290,vy:Math.sin(a)*290,r:5,dmg:9*BOSS_DMG,col:'#e6dcff'});}
+    shotFan(e,B.k==='crescent'?e.h:leadAngle(e,290,.6));
     e.cool=bossRest(T);
   }
-  else if(k==='shell'){
-    // the Primary's braced spread, but it never stops bracing
-    const base=leadAngle(e,205,.7), sn=2+DIFF().dense;
-    for(let i=-sn;i<=sn;i++){const a=base+i*.155;
-      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*205,vy:Math.sin(a)*205,r:9,dmg:13*BOSS_DMG,col:'#ff4d5e'});}
-    e.cool=bossRest(T)+.5;
-  }
+  else if(k==='shell'){ shotShell(e); e.cool=bossRest(T)+.5; }
   else if(k==='lash'){
     // the Hive spits: fast, scattered, and cheap to dodge if you keep moving
     const base=leadAngle(e,330,.6);
@@ -9268,7 +9399,7 @@ function draw(){
         }
       }else{
         ctx.globalAlpha=.12+.5*k;
-        ctx.strokeStyle=e.k==='primary'?'#ff9aa3':'#e6dcff';
+        ctx.strokeStyle=e.k==='primary'?'#ff9aa3':ink(e,'#e6dcff');
         ctx.lineWidth=2+16*k*k; ctx.shadowColor=ecolOf(e); ctx.shadowBlur=22;
         ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(ex,ey); ctx.stroke();
       }
@@ -9282,19 +9413,19 @@ function draw(){
       if(m.k==='hammer'&&!m.hit){
         const k=clamp(m.t/HEAVY_TEL,0,1);
         ctx.save();
-        ctx.strokeStyle='rgba(255,34,51,'+(.35+.6*k)+')'; ctx.lineWidth=2+4*k;
+        ctx.strokeStyle='rgba('+inkRGB(e,'255,34,51')+','+(.35+.6*k)+')'; ctx.lineWidth=2+4*k;
         ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.stroke();
-        ctx.fillStyle='rgba(255,34,51,'+(.06+.2*k*k)+')';
+        ctx.fillStyle='rgba('+inkRGB(e,'255,34,51')+','+(.06+.2*k*k)+')';
         ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
         // a ring closing onto the mark: the clock, drawn
-        ctx.strokeStyle='rgba(255,140,150,'+(.5+.5*k)+')'; ctx.lineWidth=2.5;
+        ctx.strokeStyle='rgba('+inkRGB(e,'255,140,150',1)+','+(.5+.5*k)+')'; ctx.lineWidth=2.5;
         ctx.beginPath(); ctx.arc(m.x,m.y,m.r*(1.9-.9*k),0,TAU); ctx.stroke();
         ctx.restore();
       }
       if(m.k==='beam') beamDraw(e);
       if(m.k==='trident'&&m.t<TRIDENT_TEL){
         const k=clamp(m.t/TRIDENT_TEL,0,1);
-        ctx.save(); ctx.strokeStyle='rgba(230,246,255,'+(.15+.55*k)+')';
+        ctx.save(); ctx.strokeStyle='rgba('+inkRGB(e,'230,246,255',1)+','+(.15+.55*k)+')';
         ctx.lineWidth=2+12*k*k; ctx.shadowColor=e.col; ctx.shadowBlur=20;
         for(const o of [-.22,0,.22]){ const a=m.a+o;
           ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(a)*1300,e.y+Math.sin(a)*1300); ctx.stroke(); }
@@ -9303,19 +9434,19 @@ function draw(){
       if(m.k==='slam'&&!m.hit){
         const k=clamp(m.t/SLAM_TEL,0,1);
         ctx.save();
-        ctx.strokeStyle='rgba(127,156,255,'+(.35+.6*k)+')'; ctx.lineWidth=2+4*k;
+        ctx.strokeStyle='rgba('+inkRGB(e,'127,156,255')+','+(.35+.6*k)+')'; ctx.lineWidth=2+4*k;
         ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.stroke();
-        ctx.fillStyle='rgba(127,156,255,'+(.06+.2*k*k)+')';
+        ctx.fillStyle='rgba('+inkRGB(e,'127,156,255')+','+(.06+.2*k*k)+')';
         ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
-        ctx.strokeStyle='rgba(200,215,255,'+(.5+.5*k)+')'; ctx.lineWidth=2.5;
+        ctx.strokeStyle='rgba('+inkRGB(e,'200,215,255',1)+','+(.5+.5*k)+')'; ctx.lineWidth=2.5;
         ctx.beginPath(); ctx.arc(m.x,m.y,m.r*(1.9-.9*k),0,TAU); ctx.stroke();
         ctx.restore();
       }
       if(m.k==='cross'&&!m.hit&&m.lines){
         const k=clamp(m.t/HEAVY_TEL,0,1);
         ctx.save();
-        ctx.strokeStyle='rgba(255,34,51,'+(.22+.55*k)+')';
-        ctx.lineWidth=6+22*k*k; ctx.shadowColor='#ff2233'; ctx.shadowBlur=24;
+        ctx.strokeStyle='rgba('+inkRGB(e,'255,34,51')+','+(.22+.55*k)+')';
+        ctx.lineWidth=6+22*k*k; ctx.shadowColor=ink(e,'#ff2233'); ctx.shadowBlur=24;
         for(const a of m.lines){
           ctx.beginPath(); ctx.moveTo(e.x,e.y);
           ctx.lineTo(e.x+Math.cos(a)*1400,e.y+Math.sin(a)*1400); ctx.stroke();
