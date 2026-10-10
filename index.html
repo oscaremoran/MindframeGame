@@ -489,6 +489,14 @@
   .mnode.secret.open:hover{transform:translate(-50%,-50%) scale(1.06)}
   .mnode.secret.open.sel{border-width:2px; box-shadow:0 0 0 3px rgba(255,210,77,.16),0 0 26px rgba(255,210,77,.3)}
   .mnode.secret.portal.open.sel{box-shadow:0 0 0 3px rgba(199,141,255,.16),0 0 26px rgba(199,141,255,.32)}
+  /* a side mission you have beaten turns green, the way a held system does */
+  .mnode.secret.open.won{border-color:#46e39b; background:rgba(16,45,36,.94); animation:mapWon 3s ease-in-out infinite}
+  @keyframes mapWon{
+    0%,100%{ box-shadow:0 0 12px rgba(70,227,155,.14) }
+    50%    { box-shadow:0 0 24px rgba(70,227,155,.3) }
+  }
+  .mnode.secret.open.won .id{color:#6bf3b4} .mnode.secret.open.won .st{color:#46e39b} .mnode.secret.open.won .mi{color:#46e39b}
+  .mnode.secret.open.won.sel{box-shadow:0 0 0 3px rgba(70,227,155,.16),0 0 26px rgba(70,227,155,.3)}
   /* the portal: the only violet thing on the chart, and it turns */
   .mnode.portal{width:15%; border-color:#3b2b57; border-style:solid}
   .mnode.portal .id{color:#7a5fa8}
@@ -890,7 +898,7 @@
     <input id="codeOut" readonly>
     <div class="row" style="margin-top:12px"><button id="btnCopy">COPY</button></div>
     <p style="margin-top:24px">Load a code</p>
-    <input id="codeIn" placeholder="MF6-...">
+    <input id="codeIn" placeholder="MF7-...">
     <div class="row" style="margin-top:12px">
       <button id="btnLoadCode">LOAD</button>
     </div>
@@ -1569,6 +1577,9 @@ let save={points:0, credits:0, owned:[], trees:null, unlocked:true, best:0, deep
           ships:[0], ship:0,
           vol:.7, sound:true, seen:[], diff:1};
 try{const r=localStorage.getItem(SAVE); if(r) save=Object.assign(save,JSON.parse(r));}catch(e){}
+/* Everything a save is brought forward by, in one place: run on the stored
+   save at start, and again on one loaded whole from an MF7 code. */
+function fixSave(){
 save.ships=save.ships||[0]; save.ship=save.ship||0; save.hup=save.hup||{};
 save.branches=save.branches||[]; save.beaten=save.beaten||[];
 /* The tree used to be locked until you held your first system. It is the
@@ -1625,6 +1636,8 @@ if(!save.swapRB){
   if(save.runBest&&save.runBest['0']!==undefined){ save.runBest['2']=save.runBest['0']; delete save.runBest['0']; }
   save.swapRB=1;
 }
+}
+fixSave();
 SND.vol=save.vol; SND.on=save.sound;
 const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
@@ -2066,6 +2079,7 @@ function branchOverview(k,i){
                     'Echoes of the Hive Mind and Iteration 2117, the previous enemy commanders of Venus and Jupiter.'],
            eye:     ['Dodge storm fronts and stay in the eye to avoid instant ship destruction.', 'The storm fronts.'],
            mirror:  ['Defeat swarms of Cloners, then avoid a monster from the depths.', 'Swarms of Cloners, and then a deadly monster from beneath the ice.'],
+           hunt:    ['Defeat 12 Coronas within a strict time limit.', 'Swarms of Coronas with Solar Flares.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   return lpanel('ENEMY FORCE DETAILS',
@@ -2104,6 +2118,7 @@ const LAUNCH_TEXT={
   echo:    'Defeat stronger versions of the Hive Mind and Iteration 2117.', 
   eye:     'Fly through a deadly storm and avoid treacherous winds.',
   mirror:  'Defeat clones of your ship, then survive under the ice.',
+  hunt:    'Launch towards the Sun to battle against swarms of Coronas.',
   boss:   'Enter a cosmic wormhole to face off against an unknown power. WARNING: HIGHLY DANGEROUS.',
 };
 function buildPortalPick(){
@@ -2482,7 +2497,6 @@ function makeBoss(B,S,D,vm){
     if(B.k==='overseer'||B.k==='archive'){
       b.sh=B.k==='archive'?1.0:1.25; b.shA=rand(0,TAU); b.shSpin=(Math.random()<.5?-1:1)*.7;
     }
-    bossNodes(b);
     return b;
   }
 }
@@ -2562,14 +2576,14 @@ const DUO_GAP=.35;   // the beat after one Titan's attack before the other may s
 const TITAN_MUS={bpm:140, prog:[0,0,3,3, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
                  ost:[0,0,3,0, 0,8,1,0], hook:'tide', lead:'sawtooth', choirUp:1, ride:1};
 const TRITON={ k:'triton', n:'TRITON', col:'#2fa8ff', r:42, hp:3450, val:1200, duoPart:1, dmgX:1.3,
-  spd:140, want:270, strafe:1.25, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+  spd:140, want:270, strafe:1.25, sum:null, mus:TITAN_MUS,
   tiers:[
     {n:'', seq:['dash','trident','dash','fan','|'], pool:['dash','trident','fan'], rest:[.55,.85], spd:1.1},
     {n:'TRITON \u2014 PHASE 2', seq:['dash','dash','trident','fan','dash','trident','|'],
      pool:['dash','trident','fan'], rest:[.3,.55], spd:1.45},
   ]};
 const PROTEUS={ k:'proteus', n:'PROTEUS', col:'#3a5bd0', r:68, hp:3450, val:1200, duoPart:1, dmgX:1.3,
-  spd:42, want:300, strafe:.4, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+  spd:42, want:300, strafe:.4, sum:null, mus:TITAN_MUS,
   tiers:[
     {n:'', seq:['slam','walls','ring','slam','|'], pool:['slam','walls','ring'], rest:[.8,1.15], spd:1.1},
     {n:'PROTEUS \u2014 PHASE 2', seq:['walls','slam','ring','slam','walls','|'],
@@ -3285,7 +3299,7 @@ const BOSSES=[
   /* The first boss anyone meets, so it sits a shade under the rest of the
      roster: less hull, and a little more air between its attacks. */
   { k:'primary', n:'ITERATION 3296', col:'#ff4d5e', r:62, hp:1008, val:1200,
-    spd:56, want:250, strafe:.25, sum:'grunt', nodes:{n:3, hp:110, orb:0.6, nm:'BRACE PLATE'},
+    spd:56, want:250, strafe:.25, sum:'grunt',
     mus:{bpm:138, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,1,0, 0,0,1,1], hook:'brace', lead:'sawtooth', ride:1},
     tiers:[
@@ -3297,7 +3311,7 @@ const BOSSES=[
     ]},
 
   { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1617, val:1400,
-    spd:64, want:360, strafe:.9, sum:'dart', nodes:{n:3, hp:100, orb:0.58, nm:'SPAWN POD'},
+    spd:64, want:360, strafe:.9, sum:'dart',
     mus:{bpm:152, prog:[0,0,3,3, 1,1,10,10], qual:[0,0,0,0, 1,1,1,1],
          ost:[0,3,0,3, 1,3,1,3], hook:'swarm', lead:'square', swarm:1},
     tiers:[
@@ -3309,7 +3323,7 @@ const BOSSES=[
     ]},
 
   { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:2189, val:1500,
-    spd:60, want:300, strafe:.85, sum:'grunt', nodes:{n:2, hp:150, orb:0.62, nm:'ARC EMITTER'},
+    spd:60, want:300, strafe:.85, sum:'grunt',
     mus:{bpm:134, prog:[0,0,6,6, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,6,0, 0,0,1,0], hook:'watch', lead:'triangle', shimmer:1},
     tiers:[
@@ -3326,7 +3340,7 @@ const BOSSES=[
      ('build'), or forms one round itself and lets it bloom outward ('forge').
      A built cage always leaves one way out. */
   { k:'architect', n:'THE ARCHITECT', col:'#e8c872', r:66, hp:2612, val:2000,
-    spd:76, want:300, strafe:.85, sum:'orbiter', nodes:{n:3, hp:230, orb:0.6, nm:'FORM KEY'},
+    spd:76, want:300, strafe:.85, sum:'orbiter',
     mus:{bpm:144, prog:[0,0,4,4, 6,6,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,4,0, 0,6,1,0], hook:'build', lead:'triangle', bells:1},
     tiers:[
@@ -3343,7 +3357,7 @@ const BOSSES=[
      guns open, and 'beam' / 'tribeam' stop it dead to throw wide lanes of
      light down the arena. Low gravity carries it even further than it meant. */
   { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:3770, val:2100, dmgX:1.4,
-    spd:178, want:280, strafe:.9, sum:'phantom', nodes:{n:3, hp:200, orb:0.6, nm:'HORN'},
+    spd:178, want:280, strafe:.9, sum:'phantom',
     mus:{bpm:150, prog:[0,0,1,1, 6,6,4,4], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 0,6,4,1], hook:'crescent', lead:'triangle', shimmer:1, ride:1},
     tiers:[
@@ -3363,7 +3377,7 @@ const BOSSES=[
      the six hulls added up, for the bestiary; `val` is paid per segment. */
   { k:'leviathan', n:'THE LEVIATHAN', col:'#7fd8ff', r:40, chain:1, val:400,
     hp:LEV_HP.tail+4*LEV_HP.body+LEV_HP.head,
-    spd:195, want:0, strafe:0, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+    spd:195, want:0, strafe:0, sum:null, mus:TITAN_MUS,
     tiers:[{n:''}]},
 
   /* SPACE STATION OMEGA — Sol. Four wings, each its own hull: see the block
@@ -3371,7 +3385,7 @@ const BOSSES=[
      is the four added up, for the bestiary; `val` is paid per wing. */
   { k:'omega', n:'SPACE STATION OMEGA', col:'#ffcf5a', r:72, station:1, val:500,
     hp:OM_HP*4,
-    spd:0, want:0, strafe:0, sum:null, nodes:{n:0, hp:0, orb:0, nm:''}, mus:TITAN_MUS,
+    spd:0, want:0, strafe:0, sum:null, mus:TITAN_MUS,
     tiers:[{n:''}]},
 
   /* The last thing in the campaign, and it is meant to feel like it. Heavier
@@ -3379,7 +3393,7 @@ const BOSSES=[
      ring, and its authored lines are longer between punish windows than the
      bosses before it — so reaching one is something you work toward. */
   { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:2840, val:2200,
-    spd:54, want:262, strafe:.82, sum:'dart', nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
+    spd:54, want:262, strafe:.82, sum:'dart',
     mus:{bpm:128, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1},
     tiers:[
@@ -3413,7 +3427,6 @@ const SECRET_BOSSES=[
      you will do, and you have to earn every one. */
   { k:'s3295', n:'ITERATION 3295', col:'#8dffc4', r:58, hp:11400, val:2600, secret:1,
     spd:132, want:160, strafe:1.7, sum:'splinter',
-    nodes:{n:3, hp:190, orb:0.66, nm:'SPLINTER RACK'},
     mus:{bpm:166, prog:[0,0,1,1, 3,3,1,1], qual:[0,0,1,1, 0,0,1,1],
          ost:[0,1,0,1, 0,1,3,1], hook:'record', lead:'square', swarm:1, ride:1},
     tiers:[
@@ -3427,7 +3440,6 @@ const SECRET_BOSSES=[
 
   { k:'archive', n:'THE ARCHIVE', col:'#c78dff', r:92, hp:16800, val:4200, secret:1,
     spd:58, want:290, strafe:.95, sum:'overseer',
-    nodes:{n:7, hp:420, orb:0.55, nm:'STORED MIND', regrow:1},
     mus:{bpm:120, prog:[0,0,4,4, 8,8,6,6], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,0,6, 0,0,1,6], hook:'archive', lead:'triangle', bells:1, choirUp:1},
     tiers:[
@@ -3459,7 +3471,6 @@ const SECRET_BOSSES=[
 const FINAL_BOSS=
   { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:6720, val:5000, final:1,
     spd:78, want:230, strafe:1.25, sum:'dart',
-    nodes:{n:4, hp:130, orb:0.58, nm:'THRONE ANCHOR'},
     mus:{bpm:170, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1, ride:1},
     tiers:[
@@ -4649,15 +4660,6 @@ function pilotHurt(){
 }
 const GUARD_HELD=.6;
 
-/* ---- armour nodes ----
-   Every boss carries a ring of them, and they are the reason a boss fight is
-   about target priority and not only dodging. While one is alive the hull only
-   takes ARMOURED of what you deal it. Strip the ring and the boss is wide open
-   for STRIP_OPEN seconds at full punish value — so clearing them is strictly
-   faster than grinding through them, which is the whole idea. They come back
-   at every tier change, so a fight is three strips, not one.               */
-const ARMOURED=.6, STRIP_OPEN=3.0;
-
 /* ---- TOTAL RECALL ----
    THE ARCHIVE's last tier is a hard DPS check rather than a long grind. From
    the moment it crosses into that tier you have RECALL_T seconds to finish it.
@@ -4670,62 +4672,6 @@ const ARMOURED=.6, STRIP_OPEN=3.0;
    would be a trap, and a trap is not the same thing as difficulty. */
 const RECALL_T=20.0;
 const RECALL_LABEL='WARNING: ARCHIVE IS REGENERATING';
-/* Armour does NOT come back at every tier. Stripping a boss is most of the
-   work of the fight and having it instantly re-plate undoes that. It grows
-   back once, at the last escalation, and only half of it — so a fight is one
-   full strip, a long stretch of open hull, and one short second strip. */
-const REARMOUR_TIER=2;
-/* Bosses no longer carry a ring of weak spots. A fight is about reading the
-   attack line and staying alive in it, not about flanking to a socket. The
-   spawner is the single switch: nodesUp() is false everywhere downstream, so
-   nothing draws them, no round is blocked on one, and the hull always takes
-   full damage. The ring data on each boss is left in place, unused, so the
-   mechanic can be put back by restoring this one function. */
-function bossNodes(e,frac){ e.nodes=null; }
-const nodesUp=e=> !!(e.nodes && e.nodes.length);
-// nodes ride the boss's spin, so flanking one is a moving problem
-const nodeXY=(e,nd)=>{
-  const a=nd.a+e.spin*.55, R=e.r*e.B.nodes.orb;
-  return {x:e.x+Math.cos(a)*R, y:e.y+Math.sin(a)*R, a};
-};
-// a round meets the ring before it meets the hull
-function nodeHit(b){
-  for(const e of enemies){
-    if(e.t!=='boss'||e.hidden||!nodesUp(e)) continue;
-    for(let i=e.nodes.length-1;i>=0;i--){
-      const nd=e.nodes[i], p=nodeXY(e,nd), rr=nd.r+b.r+3;
-      const dx=p.x-b.x, dy=p.y-b.y;
-      if(dx*dx+dy*dy>rr*rr) continue;
-      if(e.sh){                              // the arc covers its spots too
-        const ia=Math.atan2(b.y-e.y,b.x-e.x);
-        if(Math.abs(angDiff(ia,e.shA))<e.sh){
-          burst(b.x,b.y,'#3fd8e0',5,220); return true;
-        }
-      }
-      nd.hp-=b.dmg; nd.flash=.18;
-      SFX.hit();
-      burst(b.x,b.y,'#ffd24d',5,190);
-      if(nd.hp<=0){
-        e.nodes.splice(i,1); SFX.crack();
-        burst(p.x,p.y,'#ffd24d',26,340);
-        shock(p.x,p.y,'#ffd24d',4,90,.45,4);
-        shake=Math.max(shake,12);
-        if(!e.nodes.length){              // the ring is down: it is wide open
-          e.nodes=null;
-          e.open=e.openMax=STRIP_OPEN;
-          e.act=null; e.tel=null; e.cool=STRIP_OPEN;
-          shock(e.x,e.y,'#ffd24d',e.r,e.r*4.2,.8,9);
-          burst(e.x,e.y,'#ffd24d',48,430);
-          shake=Math.max(shake,26); flash=Math.max(flash,.4); SFX.strip();
-          banner='ARMOUR STRIPPED'; bannerT=1.7;
-        }
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
 /* ---- the walls ----
    Only the Ruler's last stand uses this: the arena closes to WALL_MAX px of
    inset, and everything — you, it, its escorts — is held inside what is left. */
@@ -5645,7 +5591,6 @@ function bossAI(e,dt,dx,dy,d){
     if(tier>e.tier && TITAN_COMBO[B.k]){ e.combo=TITAN_COMBO[B.k]; e.guard=1; }
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
-    e.nodes=null;
     // the Archive starts its clock here, and re-arms it if it ever recalls
     e.recall = (B.k==='archive' && B.tiers[tier].last) ? RECALL_T : 0;
     ebullets.length=0;                        // the shockwave wipes the screen
@@ -5673,7 +5618,7 @@ function bossAI(e,dt,dx,dy,d){
     e.recall-=dt;
     if(e.recall<=0){
       e.recall=0;
-      e.hp=e.max; e.nodes=null; e.bare=0; e.r=B.r; e.knit=0;
+      e.hp=e.max; e.bare=0; e.r=B.r; e.knit=0;
       e.act=null; e.tel=null; e.open=0; e.si=0; e.cool=1.4; e.inv=1.0;
       wallWant=0;                             // the arena opens back up
       slow(1.1); shake=52; flash=.95;
@@ -6610,7 +6555,6 @@ function update(dt){
     }
     { const f=lowgOn()&&inLowG(b)?LOWG_SLOW:1; b.x+=b.vx*dt*f; b.y+=b.vy*dt*f; }
     if(b.x<-30||b.x>W+30||b.y<-30||b.y>H+30){bullets.splice(i,1);continue;}
-    if(nodeHit(b)){ bullets.splice(i,1); continue; }   // the ring is in the way
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
       if(e.t==='echo'||e.gone) continue;  // a quotation cannot be shot, nor a phantom that is not there
@@ -6639,7 +6583,7 @@ function update(dt){
             bullets.splice(i,1); break;
           }
         }
-        e.hp-= b.dmg * (e.open>0?player.st.punish:1) * (nodesUp(e)?ARMOURED:1); b.hit.push(e);
+        e.hp-= b.dmg * (e.open>0?player.st.punish:1); b.hit.push(e);
         e.knit=0;                              // pressure held: it cannot knit
         SFX.hit();
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?14:7, e.open>0?300:190);
@@ -6712,7 +6656,7 @@ function update(dt){
         G.done=true; ebullets.splice(i,1);
         const a=Math.atan2(P.y-G.y,P.x-G.x);
         ebullets.push({x:G.x,y:G.y,vx:Math.cos(a)*CORO_RKT_V,vy:Math.sin(a)*CORO_RKT_V,r:9,
-          dmg:CORO_RKT_DMG*EASE(),col:'#ff9a3c',seek:CORO_SEEK,age:0,trail:'#ffcf5a',src:G.src});
+          dmg:CORO_RKT_DMG*EASE(),col:'#ff9a3c',seek:CORO_SEEK,age:0,trail:'#ffcf5a',src:G.src,rkt:1});
         burst(G.x,G.y,'#ffcf5a',18,240); flare(G.x,G.y,'#ffffff',16,.12); SFX.crack();
         continue;
       }
@@ -6734,6 +6678,7 @@ function update(dt){
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
       P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12; pilotHurt();
+      if(b.rkt&&mission&&mission.k==='hunt') mission.rh++;
       killer=b.src?unitName(b.src):'ENEMY FIRE';
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
@@ -8462,6 +8407,9 @@ function finaleDraw(){
      mirror    (Europa)  two Cloners, then four, then UNDER THE ICE: the
                          lights go out and the Leviathan hunts you. It
                          cannot be killed; outlast it
+     hunt      (Sol)     Coronas keep coming; kill HUNT_N before the clock
+                         runs out. Take HUNT_RKT of their fused rockets and
+                         it is over
    Icarus has none. The QUANTUM PORTAL hangs off Jupiter on the other side of
    the spine and leads to the two off-roster bosses.                        */
 const SECRETS=[
@@ -8472,6 +8420,7 @@ const SECRETS=[
   {k:'echo',     n:'ECHO TRIAL',       sub:'HIVE MIND + 2117'},
   {k:'eye',      n:'THROUGH THE STORM', sub:'BLIZZARD SURVIVAL'},   
   {k:'mirror',   n:'CONQUERING THE DEPTHS',  sub:'CLONES AND A MONSTER'},
+  {k:'hunt',     n:'CORONA HUNT', sub:'ELITE TIMED BATTLE'},
   {k:'none',     n:'',                 sub:''},
 ];
 // the portal hangs off Jupiter and leads nowhere on the route at all
@@ -8591,6 +8540,11 @@ function startMission(kind){
     wave=3; mission.w=0; mission.dark=0;
     mirrorWave(mission);
   }
+  else if(kind==='hunt'){
+    wave=3;
+    mission.dur=HUNT_T; mission.kills=0; mission.rh=0; mission.live=[]; mission.gap=0;
+    banner='CORONA HUNT'; bannerT=2.4;
+  }
   else if(kind==='echo'){
     const B=ECHO_TRIAL();
     mission.B=B;
@@ -8614,6 +8568,19 @@ const GAUNT_FROM=2, GAUNT_N=3;              // which wave it starts on, and how 
 const MIRROR_N=[2,4], DARK_T=45, DARK_R=115, DARK_FADE=1.2, MIRROR_POW=5;
 // in the dark the missile segments fire as well: their rounds are lit
 const DARK_LOUD=['b1','b4'], DARK_MIS_SLOW=2;   // ...at half their usual rate
+/* CORONA HUNT — Sol. Coronas and nothing else, one every HUNT_GAP while
+   fewer than HUNT_LIVE are up. Kill HUNT_N inside HUNT_T. Every fused rocket
+   that lands counts, and HUNT_RKT of them ends it; a shield-blocked one does
+   not. The flares keep going. */
+const HUNT_N=12, HUNT_T=60, HUNT_RKT=3, HUNT_LIVE=4, HUNT_GAP=1.6;
+function huntStep(M,dt){
+  // a Corona that left the field with no hull left was a kill
+  for(const e of M.live) if(!enemies.includes(e)&&e.hp<=0) M.kills++;
+  M.live=enemies.filter(e=>e.t==='corona');
+  M.gap-=dt;
+  const coming=spawnQ.filter(q=>q.type==='corona').length;
+  if(M.gap<=0&&M.live.length+coming<HUNT_LIVE){ spawnQ.push({t:waveTimer+.3, type:'corona'}); M.gap=HUNT_GAP; }
+}
 function mirrorWave(M){
   M.w++;
   if(M.w<=MIRROR_N.length){
@@ -8893,6 +8860,14 @@ function missionTick(dt){
     return;
   }
 
+  if(M.k==='hunt'){
+    huntStep(M,dt);
+    if(M.kills>=HUNT_N){ missionEnd(true); return; }
+    if(M.rh>=HUNT_RKT){ missionEnd(false,'TOO MANY ROCKET HITS'); return; }
+    if(M.t>=M.dur){ missionEnd(false,'OUT OF TIME'); return; }
+    return;
+  }
+
   if(M.k==='bounty'){
     if(!enemies.some(e=>e.t==='quarry')){ missionEnd(true); return; }
     if(M.t>=M.dur){ missionEnd(false,'TARGET ESCAPED'); return; }
@@ -8962,6 +8937,7 @@ const SIDE_CLEAR_TEXT={
   echo:    'Congratulations on defeating the returning enemies.',
   eye:     'Congratulations on flying through the storm.',
   mirror:  'Congratulations on defeating the clones and avoiding the monstrosity.',
+  hunt:    'Congratulations on defeating the swarm within the time limit.',
   boss:    'Congratulations on defeating the strange enemy!',
 };
 function missionVictory(M){
@@ -8973,6 +8949,8 @@ function missionVictory(M){
               : M.k==='gauntlet' ? lrow('WAVES CLEARED', GAUNT_N+' / '+GAUNT_N,'good')
               : M.k==='eye'      ? lrow('SURVIVED', EYE_T+'s  ·  NO HITS','good')
               : M.k==='mirror'   ? lrow('SURVIVED THE DARK', DARK_T+'s','good')
+              : M.k==='hunt'     ? lrow('CORONAS', HUNT_N+' IN '+secs(M.t),'good')+
+                                   lrow('ROCKET HITS', M.rh+' / '+HUNT_RKT, M.rh?'warn':'good')
               :                    lrow('TIME', secs(M.t),'good');
   $('doneKind').textContent = M.k==='boss' ? 'QUANTUM PORTAL' : 'SIDE MISSION COMPLETE';
   $('doneTitle').textContent = M.B ? M.B.n : branchName(M.k);
@@ -9246,42 +9224,6 @@ function unitPath(g,kind,r,spin,morph){
   }
 }
 const unitKind=e=> e.chain ? 'lev_'+e.kind : (e.t==='boss'||e.t==='echo')?'b_'+e.k:e.t;
-
-/* Weak spots are drawn in world space, after the hull, because the enemy pass
-   runs inside translate/rotate — and unitPath rotates further for some shapes,
-   so anything drawn in that frame lands somewhere other than where nodeHit
-   tests for it. Spots have to be exactly where they look. */
-function bossSpots(){
-  for(const e of enemies){
-    if(e.t!=='boss'||e.hidden||!nodesUp(e)) continue;
-    for(const nd of e.nodes){
-      const p=nodeXY(e,nd), k=nd.hp/nd.max, x=p.x, y=p.y;
-      if(nd.flash>0) nd.flash=Math.max(0,nd.flash-1/60);
-      const pu=.5+.5*Math.sin(performance.now()/230+nd.a*3);
-      // the wound: a hot core that dulls as it takes damage
-      const g=ctx.createRadialGradient(x,y,0,x,y,nd.r*1.9);
-      g.addColorStop(0, nd.flash>0?'rgba(255,255,255,.95)':'rgba(255,236,170,'+(.55+.35*pu)+')');
-      g.addColorStop(.45,'rgba(255,190,60,'+((.45+.2*pu)*k)+')');
-      g.addColorStop(1,'rgba(255,150,40,0)');
-      ctx.fillStyle=g;
-      ctx.beginPath(); ctx.arc(x,y,nd.r*1.9,0,TAU); ctx.fill();
-      // the socket it is set into
-      ctx.beginPath(); ctx.arc(x,y,nd.r,0,TAU);
-      ctx.fillStyle='rgba(52,26,4,.85)'; ctx.fill();
-      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2;
-      ctx.shadowColor='#ffd24d'; ctx.shadowBlur=14; ctx.stroke(); ctx.shadowBlur=0;
-      // how much of it is left, as an arc around the socket
-      ctx.beginPath(); ctx.arc(x,y,nd.r+5,-Math.PI/2,-Math.PI/2+TAU*k);
-      ctx.strokeStyle='rgba(255,236,170,.9)'; ctx.lineWidth=2.5; ctx.stroke();
-      // and a cross, so it reads as something to shoot rather than decoration
-      ctx.strokeStyle='rgba(255,236,170,'+(.5+.4*pu)+')'; ctx.lineWidth=1.4;
-      ctx.beginPath();
-      ctx.moveTo(x-nd.r*.5,y); ctx.lineTo(x+nd.r*.5,y);
-      ctx.moveTo(x,y-nd.r*.5); ctx.lineTo(x,y+nd.r*.5);
-      ctx.stroke();
-    }
-  }
-}
 
 // one silhouette per hull, so you can tell what you are flying at a glance
 function shipPath(g,r,hull){
@@ -9634,7 +9576,6 @@ function draw(){
 
     iceDraw();
     wallDraw();
-    bossSpots();
     if(entrance) entranceDraw();
     if(phaseCut) phaseDraw();
     worldDraw();
@@ -9743,7 +9684,7 @@ function duoBar(any){
 function missionClock(){
   const M=mission; if(!M) return;
   // the dark is the one clock that starts partway through a branch
-  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold'||M.k==='eye' ? M.dur
+  const lim = M.k==='run' ? RUN_LIMIT : M.k==='bounty'||M.k==='hold'||M.k==='eye'||M.k==='hunt' ? M.dur
             : M.k==='mirror'&&M.dark ? DARK_T : 0;
   if(!lim) return;
   const left=Math.max(0,lim-(M.t-(M.t0||0))), k=left/lim, hot=left<10;
@@ -9793,6 +9734,7 @@ function hud(){
                : M.k==='gauntlet' ? 'WAVE '+M.w+' / '+GAUNT_N+'  ·  ONE HIT KILLS'
                : M.k==='eye'      ? (M.eye?'STAY IN THE EYE':'FIND THE GAPS')+'  ·  ONE HIT KILLS' 
                : M.k==='mirror'   ? (M.dark?'UNDER THE ICE  ·  SURVIVE':'WAVE '+M.w+' / 3  ·  CLONERS '+enemies.length)
+               : M.k==='hunt'     ? 'CORONAS '+M.kills+' / '+HUNT_N+'  ·  ROCKET HITS '+M.rh+' / '+HUNT_RKT
                : '';
     let y=70;
     if(line){ ctx.fillStyle=M.ohk?'#ff6b8a':'#7d8bb0'; ctx.fillText(line,W-24,y); y+=18; }
@@ -9884,9 +9826,6 @@ function hud(){
     }else if(boss.marked){
       ctx.fillStyle='#6b7390'; ctx.font='11px Menlo,monospace';
       ctx.fillText('HIT TAKEN \u00b7 NO OPENING THIS LINE',W/2,y-24);
-    }else if(nodesUp(boss)){
-      ctx.fillStyle='#8a7433'; ctx.font='11px Menlo,monospace';
-      ctx.fillText(boss.B.nodes.nm+'  '+boss.nodes.length+' \u00b7 HULL ARMOURED',W/2,y-24);
     }
   }
 
@@ -10216,9 +10155,9 @@ function buildMap(){
     // a branch: flown on its own off the map, once the system it hangs off is held
     const branch=(k,bx,cls,col,dim)=>{
       const pick=branchPickable(i,k), selB=pick && mapPickK===k && mapPick===i;
-      const lit=pick;
-      line(bx,y,MAP_X,y, lit?col:dim, true, false);
-      const bn=node(bx,y,cls+(lit?' open':'')+(selB?' sel':''), branchName(k),
+      const lit=pick, won=k!=='boss'&&branchBanked(i,k);
+      line(bx,y,MAP_X,y, lit?(won?'#46e39b':col):dim, true, false);
+      const bn=node(bx,y,cls+(lit?' open':'')+(won?' won':'')+(selB?' sel':''), branchName(k),
         selB   ? 'SELECTED'
         : lit  ? branchSub(k)
         : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'  
@@ -11236,8 +11175,10 @@ function buildStory(){
   }
   el.innerHTML=html;
 }
-/* ---- save codes: MF3-<base64 payload>-<checksum> ----
-   MF6 to MF1 are the same payload. The prefix changes whenever a system goes
+/* ---- save codes: MF7-<base64 payload>-<checksum> ----
+   MF7 is the whole save, every field of it, as JSON: whatever the save
+   learns to hold, a code carries without this ever changing.
+   MF6 to MF1 are the older packed payload, still read. The prefix changes whenever a system goes
    in ahead of Icarus — Saturn for MF2, Luna for MF3, Neptune for MF4, Europa for MF5, Sol for MF6 — so an older code's
    system count is read on the route it was made on. */
 function checksum(raw){
@@ -11245,21 +11186,9 @@ function checksum(raw){
   for(let i=0;i<raw.length;i++) sum=(sum*31+raw.charCodeAt(i))&0xfff;
   return sum.toString(36).toUpperCase();
 }
-/* The payload grew a mask per hull when trees went per-ship. Field 3 is still
-   hull 0's tree, so nothing about an older code changes meaning; the rest are
-   appended, and a code that does not carry them simply leaves those trees
-   empty. */
-const treeMask=i=>{
-  const t=(save.trees&&save.trees[i])||[];
-  let m=0; SKILLS.forEach((s,k)=>{ if(t.includes(s.id)) m|=(1<<k); });
-  return m;
-};
-// a hull's upgrade levels in one field, three bits a stat (no cap is over 7)
-function hupPack(i){
-  let n=0, b=1;
-  STATS.forEach(([l,key])=>{ n+=hupLv(i,key)*b; b*=8; });
-  return n;
-}
+/* Reading an old packed code: field 3 is hull 0's tree and a mask per hull
+   follows it, then the Portal bosses, then a field per hull of upgrade
+   levels, three bits a stat (no cap is over 7). */
 function hupUnpack(i,n,h){
   STATS.forEach(([l,key])=>{
     const lv=Math.min(n%8,hupCap(i,key)); n=Math.floor(n/8);
@@ -11267,26 +11196,37 @@ function hupUnpack(i,n,h){
   });
 }
 function makeCode(){
-  let smask=0; SHIPS.forEach((sh,i)=>{ if(shipOwned(i)) smask|=(1<<i); });
-  // the Portal bosses put down ride last, as one mask: the Archive and the
-  // Worldbreaker are gated on them
-  let bmask=0; SECRET_BOSSES.forEach((B,i)=>{ if(bossBeaten(B.k)) bmask|=(1<<i); });
-  const raw=[save.points,save.best,save.deepestSys,treeMask(0),save.unlocked?1:0,
-             smask*8+SHIPS.indexOf(SHIP()),save.credits]
-            .concat(SHIPS.slice(1).map((sh,i)=>treeMask(i+1)),[bmask],SHIPS.map((sh,i)=>hupPack(i))).join('.');
-  const b64=btoa(raw).split('=').join('').split('+').join('-').split('/').join('_');
-  return 'MF6-'+b64+'-'+checksum(raw);
+  const raw=JSON.stringify(save);
+  const b64=btoa(unescape(encodeURIComponent(raw))).split('=').join('').split('+').join('-').split('/').join('_');
+  return 'MF7-'+b64+'-'+checksum(raw);
+}
+// a whole save out of an MF7 code, over a blank one so nothing old leaks through
+function loadWhole(raw){
+  let o;
+  try{ o=JSON.parse(raw); }catch(err){ return 'That code could not be read.'; }
+  if(!o||typeof o!=='object'||Array.isArray(o)) return 'That code could not be read.';
+  const blank={points:0, credits:0, owned:[], trees:[], unlocked:true, best:0, deepest:1, deepestSys:0,
+               ships:[0], ship:0, hup:{}, branches:[], beaten:[], vol:.7, sound:true, seen:[], diff:1};
+  for(const k of Object.keys(o)) if(k!=='__proto__'&&k!=='constructor'&&k!=='prototype') blank[k]=o[k];
+  save=blank;
+  fixSave();
+  SND.vol=save.vol; SND.on=save.sound;
+  mergeTrees();
+  persist();
+  return null;
 }
 function loadCode(code){
   code=(code||'').trim();
   const ver=code.slice(0,4).toUpperCase();
-  if(!['MF1-','MF2-','MF3-','MF4-','MF5-','MF6-'].includes(ver)) return 'Codes start with MF6-';
+  if(!['MF1-','MF2-','MF3-','MF4-','MF5-','MF6-','MF7-'].includes(ver)) return 'Codes start with MF7-';
   const body=code.slice(4), cut=body.lastIndexOf('-');
   if(cut<1) return 'That code is incomplete.';
   let raw;
-  try{ raw=atob(body.slice(0,cut).split('-').join('+').split('_').join('/')); }
+  try{ raw=atob(body.slice(0,cut).split('-').join('+').split('_').join('/'));
+       if(ver==='MF7-') raw=decodeURIComponent(escape(raw)); }
   catch(err){ return 'That code could not be read.'; }
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
+  if(ver==='MF7-') return loadWhole(raw);
   const f=raw.split('.').map(Number);
   if(f.length<5||f.length>7+2*SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
   // an MF6 code can say every system is held; an older one is read on its own route
