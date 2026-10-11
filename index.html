@@ -11279,13 +11279,20 @@ function assessArt(dt){
    Four hulls. Each is unlocked by how deep you have flown AND paid for in skill
    points, so a hull competes with the skill tree for the same currency.
    The letter grades are computed from the multipliers, never written by hand. */
+/* The canvas is drawn at the size it is shown at, in device pixels, so the
+   page never has to stretch it: CSS scaling a canvas to a box of another
+   shape squashes the hull, and object-fit is not honoured on a canvas
+   everywhere (the Mac app's WebKit among them). Its screen has to be showing
+   for there to be a size to read, so openGarage/openHull show, then build. */
 function shipArt(cv2,hull){
   const g=cv2.getContext('2d'); if(!g) return;
-  const w=cv2.width, h=cv2.height;
+  const box=cv2.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  if(box.width>0&&box.height>0){ cv2.width=Math.round(box.width*dpr); cv2.height=Math.round(box.height*dpr); }
+  const w=cv2.width, h=cv2.height, k=box.width>0?dpr:1;
   g.clearRect(0,0,w,h);
   g.save(); g.translate(w/2,h/2); g.rotate(-Math.PI/2);
-  g.fillStyle='#0a1426'; g.strokeStyle='#dfe9ff'; g.lineWidth=2.2;
-  g.shadowColor='#9fd0ff'; g.shadowBlur=14;
+  g.fillStyle='#0a1426'; g.strokeStyle='#dfe9ff'; g.lineWidth=2.2*k;
+  g.shadowColor='#9fd0ff'; g.shadowBlur=14*k;
   shipPath(g,Math.min(w,h)*.32,hull); g.fill(); g.stroke();
   g.restore();
 }
@@ -11358,7 +11365,7 @@ function buildGarage(){
    own number in blue, bought steps in gold, the next step outlined, any after
    it dashed), a block per step its archetype allows, and one button. */
 let hullView=0;
-function openHull(i){ hullView=i; buildHull(); show('hullup'); }
+function openHull(i){ hullView=i; show('hullup'); buildHull(); }
 function buildHull(){
   const i=hullView, sh=SHIPS[i];
   $('hullTitle').textContent='UPGRADE \u2014 '+sh.n;
@@ -11394,7 +11401,7 @@ function buildHull(){
     persist(); buildHull(); refreshMenu();
   });
 }
-function closeHull(){ buildGarage(); show('garage'); }
+function closeHull(){ show('garage'); buildGarage(); }
 /* ---- hull respec ----
    The upgrade screen's own RESPEC: every upgrade on that hull comes back as
    credits. It asks twice, the same way the skill tree's does. */
@@ -11415,7 +11422,12 @@ $('btnHupRespec').onclick=()=>{
   save.credits+=back; delete save.hup[i]; persist();
   buildHull(); refreshMenu();
 };
-function openGarage(){ buildGarage(); show('garage'); }
+function openGarage(){ show('garage'); buildGarage(); }
+// a window resized under the garage redraws its art at the new size
+addEventListener('resize',()=>{
+  const o=openOverlay();
+  if(o==='garage') buildGarage(); else if(o==='hullup') shipArt($('hullArt'),hullView);
+});
 function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
 
 /* Difficulty, in the same two panels as the sound control and rebuilt the same
