@@ -403,8 +403,32 @@
   @keyframes mdNew{0%{transform:scale(2.2); box-shadow:0 0 26px rgba(255,210,77,1)} 100%{transform:scale(1)}}
   #doneStats .lpanel.medals, #launchStats .lpanel.medals{border-color:#3a3220}
   .lpanel.medals h3{color:#ffd24d}
-  #medalGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,90vw),1fr)); gap:14px;
-    width:min(94vw,1100px); margin-top:16px; max-height:72vh; overflow-y:auto; text-align:left; padding-right:6px}
+  #medalScroll{width:min(94vw,1100px); margin-top:16px; max-height:74vh; overflow-y:auto; padding-right:6px; text-align:left}
+  #medalGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,90vw),1fr)); gap:14px; margin-top:16px}
+  #rewardGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,90vw),1fr)); gap:14px;
+    width:min(94vw,1000px); margin-top:20px; max-height:74vh; overflow-y:auto; text-align:left}
+  /* a reward opening: a card from the top that says what and where, then goes */
+  #rwToast{position:fixed; top:18px; left:50%; transform:translateX(-50%); z-index:60; display:flex;
+    flex-direction:column; gap:8px; pointer-events:none}
+  .rwT{border:1px solid #ffd24d; background:rgba(30,24,8,.96); padding:12px 22px; text-align:center;
+    box-shadow:0 0 26px rgba(255,210,77,.35); animation:rwT 4.6s ease-out both}
+  .rwT small{display:block; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.3em; color:#8a7433}
+  .rwT b{display:block; font-weight:400; font-size:clamp(13px,1.6vw,17px); letter-spacing:.18em; color:#ffd24d; margin:5px 0}
+  @keyframes rwT{0%{opacity:0; transform:translateY(-14px)} 8%{opacity:1; transform:none} 85%{opacity:1} 100%{opacity:0}}
+  .rw{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:18px 20px 20px; opacity:.6}
+  .rw.open{opacity:1; border-color:#3a3220}
+  .rw h5{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:0 0 10px;
+    font-weight:400; border-bottom:1px solid #16203a; padding-bottom:10px}
+  .rw h5 span{font-size:clamp(12px,1.5vw,16px); letter-spacing:.2em; color:#ffd24d}
+  .rw h5 em{font-style:normal; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.22em; color:#8a7433}
+  .rwDesc{margin:0 0 14px; font-size:clamp(10px,1.1vw,12px); line-height:1.6; color:#a9bad9; letter-spacing:.03em}
+  .rw button{margin:0; font-size:clamp(11px,1.25vw,13px); padding:10px 22px}
+  .rwOpts{display:flex; flex-wrap:wrap; gap:8px}
+  .rwOpts button{display:flex; align-items:center; gap:9px; padding:9px 14px; font-size:clamp(10px,1.1vw,12px)}
+  .rwOpts i{width:13px; height:13px; border-radius:50%; display:inline-block; box-shadow:0 0 8px currentColor}
+  .rwLock{display:flex; align-items:center; gap:10px; color:#7d8bb0; font-size:16px}
+  .rwLock span{font-size:clamp(10px,1.1vw,12px); letter-spacing:.06em}
+  .rwBest{margin-top:10px; font-size:clamp(9px,1vw,11px); letter-spacing:.2em; color:#7d8bb0}
   .mdSys.lock{opacity:.55}
   .mdLock{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
     min-height:150px; font-size:22px; color:#5d6c8f}
@@ -926,6 +950,7 @@
     <h1 style="font-size:clamp(20px,3.2vw,34px)">EXTRAS</h1>
     <div id="extrasBtns">
       <button id="extMedals" class="ghost">MEDALS</button>
+      <button id="extRewards" class="ghost">REWARDS</button>
       <button id="extCodex" class="ghost">BESTIARY</button>
       <button id="extCells" class="ghost">CELLS</button>
       <button id="extControls" class="ghost">CONTROLS</button>
@@ -939,7 +964,20 @@
       <h1 style="font-size:clamp(20px,3.2vw,34px)">MEDALS</h1>
       <span id="medalsSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
     </div>
-    <div id="medalGrid"></div>
+    <div id="medalScroll">
+      <div id="medalGrid"></div>
+    </div>
+  </div>
+
+  <div id="rwToast"></div>
+
+  <div id="rewards" class="overlay">
+    <button id="btnRewardsBack" class="ghost back">BACK — ESC</button>
+    <div class="treeHead">
+      <h1 style="font-size:clamp(20px,3.2vw,34px)">REWARDS</h1>
+      <span id="rewardsSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
+    </div>
+    <div id="rewardGrid"></div>
   </div>
 
   <div id="story" class="overlay">
@@ -2017,7 +2055,7 @@ let relaunch=null;
 function newBranch(kind,i){
   if(!save.flown){ save.flown=true; persist(); }
   relaunch=()=>newBranch(kind,i);
-  MR=null;
+  MR=null; rush=null;
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
@@ -2043,7 +2081,7 @@ function newRun(){
   branchSortie=false; runCr=0;
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
   bossTries=0;
-  MR=medalRun();
+  MR=medalRun(); rush=null; secondUsed=false;
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   // straight into the fight: no readout in front of it, on any run
@@ -2289,8 +2327,17 @@ function medalsAward(i){
   if(!MR||MR.retried) return [];
   const had=medalsOf(i), got=[1].concat((MEDALS[i]||[]).map(m=>m[1]()?1:0));
   const now=had.map((h,k)=>h||got[k]?1:0), fresh=now.map((v,k)=>v&&!had[k]?1:0);
+  const n0=medalCount();
   save.medals=save.medals||{}; save.medals[SYSTEMS[i].name]=now;
+  const n1=medalCount();
+  REWARDS.filter(r=>n0<r.at&&n1>=r.at).forEach((r,k)=>setTimeout(()=>rewardToast(r),600+k*900));
   return fresh;
+}
+function rewardToast(r){
+  const d=document.createElement('div'); d.className='rwT';
+  d.innerHTML='<small>REWARD UNLOCKED</small><b>'+r.n+'</b><small>EXTRAS \u00b7 REWARDS</small>';
+  $('rwToast').appendChild(d); SFX.tier();
+  setTimeout(()=>d.remove(),4700);
 }
 // three rows, one a medal: the goal, and whether you hold it
 function medalsPanel(i,fresh,note){
@@ -2301,12 +2348,154 @@ function medalsPanel(i,fresh,note){
     '<div class="md'+(have[k]?' got':'')+(fresh&&fresh[k]?' new':'')+'"><i></i><span><em>'+MEDAL_NAMES[i][k]+'</em>'+g+'</span>'+
     '<b>'+(fresh&&fresh[k]?'EARNED':have[k]?'HELD':'')+'</b></div>').join(''), 'medals');
 }
+function buildRewards(){
+  const n=medalCount(), box=$('rewardGrid');
+  $('rewardsSub').textContent=n+' MEDALS';
+  box.innerHTML=REWARDS.map(r=>{
+    const open=n>=r.at;
+    let body;
+    if(!open) body='<div class="rwLock">\u{1F512}<span>Requires '+r.at+' medals to unlock.</span></div>';
+    else if(r.tog){ const on=perkOn(r.k);
+      body='<button class="'+(on?'':'ghost')+'" data-tog="'+r.k+'">'+(on?'ON':'OFF')+'</button>'; }
+    else if(r.k==='rush')
+      body='<button data-rush="1">FLY</button>'+(save.rushBest?'<div class="rwBest">BEST '+save.rushBest.toFixed(1)+'s</div>':'');
+    else{ const cur=cosOf(r.k);
+      body='<div class="rwOpts">'+COS_LIST[r.k].map((o,i)=>
+        '<button class="'+(o===cur?'':'ghost')+'" data-cos="'+r.k+'" data-i="'+i+'">'+
+        (o.c||o.col?'<i style="background:'+(o.c||o.col)+'"></i>':'')+o.n+'</button>').join('')+'</div>'; }
+    return '<div class="rw'+(open?' open':'')+'"><h5><span>'+r.n+'</span><em>'+r.at+' MEDALS</em></h5>'+
+      '<p class="rwDesc">'+(REWARD_TEXT[r.k]||'')+'</p>'+body+'</div>';
+  }).join('');
+  box.onclick=ev=>{
+    const b=ev.target.closest('button'); if(!b) return;
+    if(b.dataset.tog){ save.perk=save.perk||{}; save.perk[b.dataset.tog]=perkOn(b.dataset.tog)?0:1; }
+    else if(b.dataset.cos){ save.cos=save.cos||{}; save.cos[b.dataset.cos]=+b.dataset.i; }
+    else if(b.dataset.rush){ gearFrom=null; hideAll(); startRush(); return; }
+    persist(); buildRewards();
+  };
+}
 function buildMedals(){
   $('medalsSub').textContent=medalCount()+' / '+SYSTEMS.length*3;
   $('medalGrid').innerHTML=SYSTEMS.map((sy,i)=> sysReached(i)
     ? '<div class="mdSys"><h4>'+String(i+1).padStart(2,'0')+'  '+sy.name+'</h4>'+medalsPanel(i)+'</div>'
     : '<div class="mdSys lock"><h4>'+String(i+1).padStart(2,'0')+'</h4><section class="lpanel medals">'+
       '<div class="mdLock">\u{1F512}<span>LOCKED</span></div></section></div>').join('');
+}
+
+/* ══════════════════════ MEDAL REWARDS ══════════════════════
+   Six, opened by how many medals you hold in all, and they alternate: a
+   look, then a help, then a look. The two helps that change a fight can be
+   switched off (save.perk), the looks are picked (save.cos), all of it on the
+   Medals screen. A choice only counts while its reward is open.
+     4  SHIP COLOURS        9  STARTING POWER-UP: every wave opens with one
+    13  ENGINE TRAILS      18  SECOND CHANCE: once a system, a killing blow
+    22  BULLET STYLES          leaves 1 hull instead
+                           27  BOSS RUSH: the nine route bosses in a row     */
+const REWARDS=[
+  {at:4,  k:'paint',  n:'SHIP COLOURS'},
+  {at:9,  k:'kit',    n:'STARTING POWER-UP', tog:1},
+  {at:13, k:'trail',  n:'ENGINE TRAILS'},
+  {at:18, k:'second', n:'SECOND CHANCE', tog:1},
+  {at:22, k:'bolt',   n:'BULLET STYLES'},
+  {at:27, k:'rush',   n:'BOSS RUSH'},
+];
+/* PROSE — the line under each reward on the Rewards screen. */
+const REWARD_TEXT={
+  paint: 'Allows you to change your paint job!',
+  kit:   'Begin every wave with a randomly selected powerup.',
+  trail: 'Allows you to customize your engine trail!',
+  second:'When an attack would have killed you, stay alive at 1 Hull.',
+  bolt:  'Allows you to select a special image for your bullets!',
+  rush:  'Unlocks a special mode where you battle every boss in the hardest challenge in the game.',
+};
+const rewardOpen=k=>{ const r=REWARDS.find(x=>x.k===k); return !!r&&medalCount()>=r.at; };
+// the hull's outline and glow; its fill stays dark so it still reads as you
+const PAINTS=[{n:'STANDARD',c:'#dfe9ff',g:'#9fd0ff'},{n:'GOLD',c:'#ffe08a',g:'#ffb44d'},
+              {n:'CRIMSON',c:'#ff8a95',g:'#ff2233'},{n:'VIOLET',c:'#dcc4ff',g:'#9d6bff'},
+              {n:'EMERALD',c:'#9dffc8',g:'#2fd17f'},{n:'ICE',c:'#d4f6ff',g:'#57c9ff'}];
+// what the engine leaves behind: sparks, drawn under every round
+const TRAILS=[{n:'STANDARD'},{n:'COMET',col:'#bfe4ff'},{n:'ION',col:'#57c9ff'},
+              {n:'EMBER',col:'#ff8a3c'},{n:'STARDUST',col:'#ffffff'}];
+// your rounds. OVERCHARGE keeps its own red over any of them, so you can see it is on
+const BOLTS=[{n:'STANDARD',c:'#eaf3ff',g:'#9fd0ff'},{n:'GOLD',c:'#fff1b8',g:'#ffd24d'},
+             {n:'PLASMA',c:'#c8fff0',g:'#2fe0b0',w:3.4},{n:'NEEDLE',c:'#ffe0ff',g:'#ff5ad8',w:1.6,len:1.8},
+             {n:'VIOLET',c:'#ecdcff',g:'#9d6bff'}];
+const COS_LIST={paint:PAINTS, trail:TRAILS, bolt:BOLTS};
+const cosOf=k=> rewardOpen(k) ? COS_LIST[k][clamp(((save.cos||{})[k])|0,0,COS_LIST[k].length-1)] : COS_LIST[k][0];
+const perkOn=k=> rewardOpen(k) && (save.perk||{})[k]!==0;
+const KIT=['power','rapid','shield','scatter'];
+
+// a wave opening: one of the four, on the house
+function kitGive(){
+  if(!perkOn('kit')||mission||!player) return;
+  takePup(KIT[Math.floor(Math.random()*KIT.length)]);
+}
+// a killing blow, once a system: 1 hull and a breath instead of the end
+let secondUsed=false;
+function secondChance(){
+  if(!perkOn('second')||mission||secondUsed) return false;
+  secondUsed=true;
+  const P=player; P.hp=1; P.inv=1.6;
+  shock(P.x,P.y,'#46e39b',10,240,.6,8); burst(P.x,P.y,'#9dffc8',50,420);
+  flash=Math.max(flash,.5); shake=Math.max(shake,20); slow(.8);
+  banner='SECOND CHANCE'; bannerT=2.2; SFX.tier();
+  return true;
+}
+// the engine's sparks, laid down where the ship has just been
+function trailStep(dt){
+  const T=cosOf('trail'), P=player; if(!T.col||!P||P.hp<=0) return;
+  const sp=Math.hypot(P.vx,P.vy); if(sp<40) return;
+  const bx=-P.vx/sp, by=-P.vy/sp, x=P.x+bx*12, y=P.y+by*12;
+  if(T.n==='COMET'){
+    if(parts.length<PARTS_MAX) parts.push({x,y,vx:0,vy:0,life:.32,t:0,col:T.col,r:3});
+  }else if(T.n==='ION'){
+    if(Math.random()<dt*70) parts.push({x:x+rand(-3,3),y:y+rand(-3,3),vx:bx*90+rand(-25,25),vy:by*90+rand(-25,25),life:rand(.2,.35),t:0,col:T.col,r:1.8});
+  }else if(T.n==='EMBER'){
+    if(Math.random()<dt*45) parts.push({x,y,vx:bx*50+rand(-35,35),vy:by*50+rand(-35,35),life:rand(.4,.7),t:0,col:Math.random()<.5?T.col:'#ffd24d',r:rand(1.6,2.6)});
+  }else if(Math.random()<dt*30){
+    parts.push({x:x+rand(-6,6),y:y+rand(-6,6),vx:0,vy:0,life:rand(.4,.8),t:0,col:T.col,r:rand(2,4),g:1});
+  }
+}
+
+/* ---- BOSS RUSH ----
+   The nine route bosses, Earth to Icarus, back to back, each in its own
+   system's arena and at its strength. RUSH_HEAL of the hull comes back
+   between them. It ends on the Ruler: nothing comes through behind it. It pays
+   nothing and earns no medals; it keeps a best time. */
+const RUSH_HEAL=.4;
+let rush=null;
+function startRush(){
+  mapPick=0; mapPickK=null; newRun();
+  relaunch=startRush; MR=null;
+  rush={i:0, t:0}; finaleDone=true;
+  rushBoss();
+}
+function rushBoss(){
+  sysIdx=rush.i;
+  bullets=[]; ebullets=[]; enemies=[]; spawnQ=[];
+  worldStart(); sceneStart();
+  wave=4; nextWave();
+  banner='BOSS '+(rush.i+1)+' / '+SYSTEMS.length; bannerT=2.2;
+}
+function rushCleared(){
+  if(rush.i>=SYSTEMS.length-1){ rushWin(); return; }
+  rush.i++;
+  player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*RUSH_HEAL);
+  rushBoss();
+}
+function rushWin(){
+  const t=rush.t, was=save.rushBest;
+  if(!was||t<was) save.rushBest=Math.round(t*10)/10;
+  save.best=Math.max(save.best,score); persist();
+  rush=null;
+  const secs=v=>v.toFixed(1)+'s';
+  $('doneKind').textContent='BOSS RUSH';
+  $('doneTitle').textContent='ALL '+SYSTEMS.length+' DOWN';
+  $('doneSub').textContent=!was||t<was?'NEW BEST':'VICTORY';
+  $('doneStats').innerHTML=lpanel('RESULT', lrow('TIME',secs(t),'good')+lrow('BEST',secs(save.rushBest))+lrow('SCORE',score));
+  $('doneText').innerHTML='';
+  doneTreeBtn();
+  state='done'; show('done');
 }
 
 /* Clearing a system is where the flight ends. It does not roll into the next
@@ -2379,6 +2568,7 @@ function nextWave(){
     if(unlockedType('glacier'))  push(22,'glacier');
     }
   }
+  kitGive();
   // Earth patches you up between waves. Later systems do not.
   if(sysIdx===0 && wave>1 && player) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.10);
   waveTimer=0;
@@ -6233,6 +6423,7 @@ function update(dt){
   if(sp>cap){P.vx=P.vx/sp*cap;P.vy=P.vy/sp*cap;}
   P.x=clamp(P.x+P.vx*dt,18+wallIn,W-18-wallIn);
   P.y=clamp(P.y+P.vy*dt,18+wallIn,H-18-wallIn);
+  trailStep(dt);
   if(!(P.frz>0)) P.a=Math.atan2(mouse.y-P.y,mouse.x-P.x);
   if(P.thaw>0) P.thaw=Math.max(0,P.thaw-dt);
 
@@ -6735,7 +6926,7 @@ function update(dt){
             // comes next is not the victory screen, whatever the screen says
             if(e.B.k==='ruler'&&!e.B.final&&e.B.tiers[e.tier]&&e.B.tiers[e.tier].last)
               armFinale();
-            if(!mission) credit(CREDIT_BOSS);   // a branch boss is paid by its branch, once
+            if(!mission&&!rush) credit(CREDIT_BOSS);   // a branch boss is paid by its branch, once; a rush pays nothing
             bossDeathFx(e);
             enemies.length=0; break;
           }
@@ -6840,13 +7031,15 @@ function update(dt){
   /* --- end conditions --- */
   // the gauntlet: any damage at all, from anything, is the end of it
   if(mission&&mission.ohk){ if(P.hp<mission.mark-.01) P.hp=0; else mission.mark=P.hp; }
-  if(P.hp<=0){
+  if(P.hp<=0 && !secondChance()){
     P.hp=0; endRun(false); return;
   }
+  if(rush) rush.t+=dt;
   if(sealing) return;                 // let the boss finish falling first
   if(mission){ missionTick(dt); return; }
   if(!spawnQ.length && !enemies.length){
-    if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); systemCleared(); }
+    if(wave>=5&&rush) rushCleared();
+    else if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); systemCleared(); }
     else if(bannerT<=0){ credit(CREDITS_PER_WAVE(sysIdx)); nextWave(); }
   }
 }
@@ -6925,10 +7118,11 @@ function bossLeft(){
 function endRun(win,why){
   const M=mission;
   const left=win||M?null:bossLeft();
-  retryOk=!win&&!M&&wave>=5&&!!left&&!finaleArmed&&!finale;
+  retryOk=!win&&!M&&!rush&&wave>=5&&!!left&&!finaleArmed&&!finale;
+  const R=rush; rush=null;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
-  save.deepestSys=Math.max(save.deepestSys,sysIdx);
+  if(!R) save.deepestSys=Math.max(save.deepestSys,sysIdx);
   if(win) save.unlocked=true;
   persist();
   mission=null;
@@ -6936,6 +7130,7 @@ function endRun(win,why){
   document.getElementById('overSub').textContent   = win
     ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
     : why ? why+' — '+SYS().name
+    : R ? 'BOSS RUSH — FELL TO '+BOSS(sysIdx).n+'  ('+(R.i+1)+' / '+SYSTEMS.length+')'
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   const tip=win?'':deathTip();
   document.getElementById('overMeta').innerHTML = (win?'':recap())+
@@ -7385,8 +7580,9 @@ function launchDraw(){
   partsDraw();
   // the hull itself
   ctx.save(); ctx.translate(S.x,S.y); ctx.rotate(-Math.PI/2); ctx.scale(S.s,S.s);
-  ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=16;
-  ctx.fillStyle='#0a1426'; ctx.strokeStyle='#dfe9ff'; ctx.lineWidth=2.2/S.s*1.4;
+  const PT=cosOf('paint');
+  ctx.shadowColor=PT.g; ctx.shadowBlur=16;
+  ctx.fillStyle='#0a1426'; ctx.strokeStyle=PT.c; ctx.lineWidth=2.2/S.s*1.4;
   shipPath(ctx,15,player.st.hull); ctx.fill(); ctx.stroke();
   ctx.restore(); ctx.shadowBlur=0;
 }
@@ -7765,7 +7961,7 @@ function hazBossKill(e){
   if(e.twin&&enemies.includes(e.twin)){ const j=enemies.indexOf(e); if(j>=0) enemies.splice(j,1);
     score+=e.val; duoFall(e); return; }
   score+=e.val; shake=Math.max(shake,26);
-  if(!mission) credit(CREDIT_BOSS);           // a branch boss is paid by its branch, once
+  if(!mission&&!rush) credit(CREDIT_BOSS);   // a branch boss is paid by its branch, once; a rush pays nothing
   bossDeathFx(e);
   enemies.length=0;
 }
@@ -9443,10 +9639,13 @@ function draw(){
     }
 
     // player bullets
-    ctx.lineWidth=2.4; ctx.shadowBlur=10;
+    const BT=cosOf('bolt');
+    ctx.shadowBlur=10;
     for(const b of bullets){
-      ctx.strokeStyle=b.hot?'#ffd0d4':'#eaf3ff'; ctx.shadowColor=b.hot?'#ff4d5e':'#9fd0ff';
-      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.x-b.vx*(b.hot?.022:.016),b.y-b.vy*(b.hot?.022:.016)); ctx.stroke();
+      ctx.lineWidth=b.hot?2.4:(BT.w||2.4);
+      ctx.strokeStyle=b.hot?'#ffd0d4':BT.c; ctx.shadowColor=b.hot?'#ff4d5e':BT.g;
+      const L=b.hot?.022:.016*(BT.len||1);
+      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.x-b.vx*L,b.y-b.vy*L); ctx.stroke();
     }
     ctx.shadowBlur=0;
 
@@ -9720,8 +9919,9 @@ function draw(){
     if(P.hp>0){
       ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.a);
       ctx.globalAlpha = P.inv>0 ? (Math.floor(P.inv*22)%2?.35:1) : 1;
-      ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=16;
-      ctx.fillStyle='#0a1426'; ctx.strokeStyle='#dfe9ff'; ctx.lineWidth=2.2;
+      const PT=cosOf('paint');
+      ctx.shadowColor=PT.g; ctx.shadowBlur=16;
+      ctx.fillStyle='#0a1426'; ctx.strokeStyle=PT.c; ctx.lineWidth=2.2;
       shipPath(ctx,15,P.st.hull); ctx.fill(); ctx.stroke();
       if(Math.hypot(P.vx,P.vy)>60){
         ctx.beginPath(); ctx.moveTo(-11,4); ctx.lineTo(-19-rand(0,9),0); ctx.lineTo(-11,-4);
@@ -9853,6 +10053,11 @@ function hud(){
   ctx.textAlign='right'; ctx.font='13px Menlo,monospace'; ctx.fillStyle='#dfe9ff';
   ctx.fillText('SCORE '+score,W-24,32);
   ctx.fillStyle='#7d8bb0'; ctx.font='11px Menlo,monospace';
+  if(rush){
+    ctx.fillStyle='#ffd24d';
+    ctx.fillText('BOSS RUSH — '+(rush.i+1)+' / '+SYSTEMS.length,W-24,52);
+    ctx.fillStyle='#7d8bb0'; ctx.fillText(rush.t.toFixed(1)+'s'+(save.rushBest?'  ·  BEST '+save.rushBest.toFixed(1)+'s':''),W-24,70);
+  }
   if(mission){
     const M=mission;
     ctx.fillStyle=M.B?M.B.col:'#ffd24d';
@@ -10034,6 +10239,7 @@ function setPause(on){
   if(on){
     $('pauseSub').textContent = mission
       ? (mission.B?mission.B.n:branchName(mission.k))+'  ·  '+(mission.k==='boss'?'SIDE BOSS':'SIDE MISSION')
+      : rush ? 'BOSS RUSH  ·  '+(rush.i+1)+' / '+SYSTEMS.length
       : SYS().name+'  ·  WAVE '+wave;
     buildSound(); buildDiff(); show('pause');
   }else hideAll();
@@ -10044,7 +10250,8 @@ function quitRun(){
   mission=null; fxClear(); flash=0; shake=0; launchCut=null;
   save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
-  save.deepestSys=Math.max(save.deepestSys,sysIdx);
+  if(!rush) save.deepestSys=Math.max(save.deepestSys,sysIdx);
+  rush=null;
   persist();
   state='menu'; refreshMenu(); show('menu');
 }
@@ -10180,7 +10387,7 @@ function gearBack(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','medals','extras','rewards','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -11518,6 +11725,8 @@ $('extCells').onclick=()=>{ gearFrom='extras'; codexTab='cells'; codexSel=0; bui
 $('extControls').onclick=()=>{ gearFrom='extras'; codexTab='controls'; codexSel=0; buildCodex(); show('codex'); };
 $('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
 $('extMedals').onclick=()=>{ gearFrom='extras'; buildMedals(); show('medals'); };
+$('extRewards').onclick=()=>{ gearFrom='extras'; buildRewards(); show('rewards'); };
+$('btnRewardsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('gearCode').onclick=()=>gearGo(openCode);
 $('btnMedalsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
@@ -11562,7 +11771,7 @@ function doneTreeBtn(){ $('btnDoneTree').style.display = skillReady()?'':'none';
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']
+const openOverlay=()=>['menu','over','skills','story','medals','extras','rewards','launch','done','code','codex','pause','garage','hullup','map']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -11578,7 +11787,7 @@ function onEscape(){
   if(o==='done'&&finaleArmed) return;         // the finale is about to break this card
   // screens with a BACK of their own go back the way it does — the Bestiary
   // opened from pause returns to pause, one opened from the gear to the gear
-  const back={codex:'btnCodexBack',code:'btnCodeBack',story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',map:'btnMapBack'}[o];
+  const back={codex:'btnCodexBack',code:'btnCodeBack',story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',rewards:'btnRewardsBack',map:'btnMapBack'}[o];
   if(back){ $(back).onclick(); return; }
   // anything else lands on the title, and the game has to know it is there
   if(o){ state='menu'; refreshMenu(); show('menu'); }
@@ -11587,7 +11796,7 @@ function onEnter(){
   const o=openOverlay();
   const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnOverMenu':'btnRelaunch',pause:'btnResume',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',hullup:'btnHullBack',
-              story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
+              story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',rewards:'btnRewardsBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
   const b=$(main);
   if(b && b.style.display!=='none' && b.onclick) b.onclick();
