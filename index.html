@@ -794,7 +794,6 @@
       <button id="btnStart">LAUNCH</button>
       <button id="btnTreeMenu" class="ghost">SKILL TREE</button>
       <button id="btnGarage" class="hot">GARAGE</button>
-      <button id="btnMedals" class="ghost">MEDALS</button>
       <button id="btnExtras" class="ghost">EXTRAS</button>
     </div>
     <div id="demoKeys">
@@ -926,6 +925,7 @@
     <button id="btnExtrasBack" class="ghost back">BACK — ESC</button>
     <h1 style="font-size:clamp(20px,3.2vw,34px)">EXTRAS</h1>
     <div id="extrasBtns">
+      <button id="extMedals" class="ghost">MEDALS</button>
       <button id="extCodex" class="ghost">BESTIARY</button>
       <button id="extCells" class="ghost">CELLS</button>
       <button id="extControls" class="ghost">CONTROLS</button>
@@ -1856,18 +1856,18 @@ const tierOf=id=>{
 const SHIPS=[
   {n:'LANCER',  cls:'STANDARD PATTERN', hp:0.92, dmg:0.92, rate:0.92, spd:0.92, grip:0.92, cost:0,  sys:0,
    up:{hp:3, dmg:3, rate:3, spd:3, grip:3}},
-  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, cost:10, sys:1,
+  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, cost:20, sys:1,
    up:{hp:4, dmg:4, rate:2, spd:2, grip:3}},
-  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:1.02, rate:1.09, spd:1.30, grip:1.35, cost:20, sys:2,
+  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:1.02, rate:1.09, spd:1.30, grip:1.35, cost:40, sys:3,
    up:{hp:2, dmg:3, rate:3, spd:4, grip:4}},
-  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:1.02, dmg:1.35, rate:1.14, spd:0.86, grip:0.80, cost:32, sys:3,
+  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:1.02, dmg:1.35, rate:1.14, spd:0.86, grip:0.80, cost:64, sys:4,
    up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
   /* The capstone hull, and the only one the campaign cannot hand you: it is
      behind THE ARCHIVE. Every gun stat is pinned at the top of the scale and
      everything about moving it is at the bottom — it does not fly so much as
      get aimed. `gate` is what it wants instead of a system count. */
   {n:'WORLDBREAKER', cls:'SIEGE PLATFORM', hp:1.28, dmg:1.45, rate:1.45, spd:0.81, grip:0.55,
-   cost:60, sys:3, gate:'archive', up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
+   cost:120, sys:3, gate:'archive', up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
 ];
 const STATS=[['HULL','hp'],['POWER','dmg'],['RATE','rate'],['SPEED','spd'],['GRIP','grip']];
 const grade=v=> v>=1.3?'A' : v>=1.12?'B' : v>=.95?'C' : v>=.8?'D' : 'E';
@@ -11509,7 +11509,7 @@ $('btnLoadCode').onclick=()=>{
 
 $('gearBtn').onclick=()=>{ gearIsOpen()?gearClose():gearOpen(); };
 $('gearClose').onclick=gearClose;
-/* EXTRAS — off the title: the reference and the story. What they open comes
+/* EXTRAS — off the title: medals, the reference and the story. What they open comes
    back here (gearFrom does that for every screen it names). */
 $('btnExtras').onclick=()=>show('extras');
 $('btnExtrasBack').onclick=()=>{ refreshMenu(); show('menu'); };
@@ -11517,7 +11517,7 @@ $('extCodex').onclick=()=>{ gearFrom='extras'; codexTab='hostiles'; codexSel=0; 
 $('extCells').onclick=()=>{ gearFrom='extras'; codexTab='cells'; codexSel=0; buildCodex(); show('codex'); };
 $('extControls').onclick=()=>{ gearFrom='extras'; codexTab='controls'; codexSel=0; buildCodex(); show('codex'); };
 $('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
-$('btnMedals').onclick=()=>{ gearFrom=null; buildMedals(); show('medals'); };
+$('extMedals').onclick=()=>{ gearFrom='extras'; buildMedals(); show('medals'); };
 $('gearCode').onclick=()=>gearGo(openCode);
 $('btnMedalsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
