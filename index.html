@@ -137,15 +137,8 @@
   button.hot{background:#ffb44d; color:#05060d}
   button.hot:hover{box-shadow:0 6px 26px rgba(255,180,77,.5)}
 
-  /* ---- tabbed reference ---- */
+  /* ---- the reference screen ---- */
   #codex{justify-content:flex-start; padding:3% 4%}
-  .tabs{display:flex; gap:6px; margin:16px 0 4px; flex-wrap:wrap}
-  .tab{font-family:inherit; font-size:clamp(9.5px,1.15vw,12px); letter-spacing:.18em;
-    padding:9px 20px; margin:0; border:1px solid #33456d;
-    clip-path:polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
-    background:rgba(17,24,41,.6); color:#8ea0c8; cursor:pointer; font-weight:400}
-  .tab:hover{color:#dfe9ff; border-color:#4d9dff; transform:none; box-shadow:none}
-  .tab.on{background:#0d1a30; border-color:#4d9dff; color:#dfe9ff}
 
   /* ---- pause ---- */
   #pause{background:rgba(5,6,13,.72)}
@@ -253,6 +246,8 @@
     margin-top:clamp(36px,6vw,72px); width:min(100%,360px);
   }
   #menuBtns button{margin:0; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
+  #extrasBtns{display:flex; flex-direction:column; align-items:stretch; gap:14px; margin-top:28px; width:min(90vw,360px)}
+  #extrasBtns button{margin:0; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
   #demoKeys{
     display:flex; flex-wrap:wrap; justify-content:center; gap:10px 38px; margin-top:clamp(30px,5vw,58px);
     font-size:clamp(15px,2.3vw,24px); letter-spacing:.16em; color:#a3b2d3;
@@ -392,6 +387,29 @@
     margin:0 0 10px; font-size:clamp(8px,.92vw,10px); font-weight:400;
     letter-spacing:.3em; color:#4d9dff; border-bottom:1px solid #16203a; padding-bottom:9px;
   }
+  /* medals: a pip each, gold once held, and a flash on the one just earned */
+  .md{display:flex; align-items:center; gap:10px; padding:7px 0; font-size:clamp(9px,1vw,11px); letter-spacing:.06em; color:#7d8bb0}
+  .md + .md{border-top:1px solid rgba(27,37,64,.6)}
+  .md i{flex:0 0 auto; width:11px; height:11px; border-radius:50%; border:1.5px solid #3a4568}
+  .md span{flex:1 1 auto}
+  .md em{display:block; font-style:normal; letter-spacing:.16em; color:#a9bad9; margin-bottom:2px}
+  .md.got em{color:#ffd24d}
+  .mdNote{font-size:clamp(7.5px,.86vw,9px); letter-spacing:.2em; color:#ff8a99; padding:2px 0 8px}
+  .md b{flex:0 0 auto; font-weight:400; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.2em; color:#8a7433}
+  .md.got{color:#dfe9ff}
+  .md.got i{background:#ffd24d; border-color:#ffd24d; box-shadow:0 0 10px rgba(255,210,77,.6)}
+  .md.new b{color:#ffd24d}
+  .md.new i{animation:mdNew 1.4s ease-out 2}
+  @keyframes mdNew{0%{transform:scale(2.2); box-shadow:0 0 26px rgba(255,210,77,1)} 100%{transform:scale(1)}}
+  #doneStats .lpanel.medals, #launchStats .lpanel.medals{border-color:#3a3220}
+  .lpanel.medals h3{color:#ffd24d}
+  #medalGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,90vw),1fr)); gap:14px;
+    width:min(94vw,1100px); margin-top:16px; max-height:72vh; overflow-y:auto; text-align:left; padding-right:6px}
+  .mdSys.lock{opacity:.55}
+  .mdLock{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    min-height:150px; font-size:22px; color:#5d6c8f}
+  .mdLock span{font-size:clamp(8px,.92vw,10px); letter-spacing:.3em}
+  .mdSys h4{margin:0 0 6px; font-weight:400; font-size:clamp(9px,1vw,11px); letter-spacing:.28em; color:#5d6c8f}
   .lr{display:flex; align-items:baseline; gap:10px; padding:7px 0}
   .lr + .lr{border-top:1px solid rgba(27,37,64,.6)}
   .lr span{
@@ -756,10 +774,7 @@
     <div class="diff" id="diffGear"></div>
     <div id="gearBtns">
       <button id="gearQuit" class="ghost">QUIT LEVEL</button>
-      <button id="gearCodex" class="ghost">BESTIARY</button>
-      <button id="gearControls" class="ghost">CONTROLS</button>
       <button id="gearCode" class="ghost">SAVE CODE</button>
-      <button id="gearStory" class="ghost">READ THE STORY</button>
       <button id="gearWipe" class="ghost danger">WIPE ALL PROGRESS</button>
     </div>
     <div id="gearClose">CLOSE — ESC</div>
@@ -779,6 +794,8 @@
       <button id="btnStart">LAUNCH</button>
       <button id="btnTreeMenu" class="ghost">SKILL TREE</button>
       <button id="btnGarage" class="hot">GARAGE</button>
+      <button id="btnMedals" class="ghost">MEDALS</button>
+      <button id="btnExtras" class="ghost">EXTRAS</button>
     </div>
     <div id="demoKeys">
       <span><b>WASD</b> THRUST</span><span><b>MOUSE</b> AIM</span>
@@ -791,10 +808,9 @@
   <div id="codex" class="overlay">
     <button id="btnCodexBack" class="ghost back">BACK — ESC</button>
     <div class="treeHead">
-      <h1 style="font-size:clamp(20px,3.2vw,34px)">BESTIARY</h1>
+      <h1 id="codexTitle" style="font-size:clamp(20px,3.2vw,34px)">BESTIARY</h1>
       <span id="codexSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
     </div>
-    <div class="tabs" id="codexTabs"></div>
     <div id="codexWrap">
       <div id="codexList"></div>
       <div id="assess"></div>
@@ -898,13 +914,33 @@
     <input id="codeOut" readonly>
     <div class="row" style="margin-top:12px"><button id="btnCopy">COPY</button></div>
     <p style="margin-top:24px">Load a code</p>
-    <input id="codeIn" placeholder="MF7-...">
+    <input id="codeIn" placeholder="MF8-...">
     <div class="row" style="margin-top:12px">
       <button id="btnLoadCode">LOAD</button>
     </div>
     <p id="codeMsg"></p>
   </div>
 
+
+  <div id="extras" class="overlay">
+    <button id="btnExtrasBack" class="ghost back">BACK — ESC</button>
+    <h1 style="font-size:clamp(20px,3.2vw,34px)">EXTRAS</h1>
+    <div id="extrasBtns">
+      <button id="extCodex" class="ghost">BESTIARY</button>
+      <button id="extCells" class="ghost">CELLS</button>
+      <button id="extControls" class="ghost">CONTROLS</button>
+      <button id="extStory" class="ghost">READ THE STORY</button>
+    </div>
+  </div>
+
+  <div id="medals" class="overlay">
+    <button id="btnMedalsBack" class="ghost back">BACK — ESC</button>
+    <div class="treeHead">
+      <h1 style="font-size:clamp(20px,3.2vw,34px)">MEDALS</h1>
+      <span id="medalsSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
+    </div>
+    <div id="medalGrid"></div>
+  </div>
 
   <div id="story" class="overlay">
     <button id="btnStoryBack" class="ghost back">BACK</button>
@@ -1930,7 +1966,7 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
   if(e.code==='Space'){e.preventDefault();}
-  if(e.code==='KeyP'&&state==='play') setPause(!paused);
+  if(e.code==='KeyP'&&state==='play'&&!gearIsOpen()) setPause(!paused);
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
   if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
@@ -1981,6 +2017,7 @@ let relaunch=null;
 function newBranch(kind,i){
   if(!save.flown){ save.flown=true; persist(); }
   relaunch=()=>newBranch(kind,i);
+  MR=null;
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
@@ -2006,6 +2043,7 @@ function newRun(){
   branchSortie=false; runCr=0;
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
   bossTries=0;
+  MR=medalRun();
   MUS.crit=false;
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   // straight into the fight: no readout in front of it, on any run
@@ -2144,7 +2182,7 @@ function openLaunch(kind,i){
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
   $('launchStats').innerHTML = kind
     ? '<div class="lopt">OPTIONAL \u00b7 NOT NEEDED TO REACH THE NEXT SYSTEM</div>'+branchOverview(kind,i)
-    : sysOverview(i);
+    : sysOverview(i)+medalsPanel(i);
   if(!portalOpen(portalPick)) portalPick=0;
   if(kind==='boss') buildPortalPick(); else $('launchPick').classList.remove('on');
   const txt = kind ? LAUNCH_TEXT[kind] : LAUNCH_TEXT.sys[i];
@@ -2182,6 +2220,95 @@ const SYS_CLEAR_TEXT=[
   'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
 ];
 
+/* ══════════════════════ MEDALS ══════════════════════
+   Three a system. The first is for holding it; the other two are that
+   system's own goals, from MEDALS below. All three are judged when the
+   system is held, on what happened in that flight.
+
+   `MR` is the flight's record: every hit taken (wave, who, and `tag` for the
+   attacks a goal names: 'strike' a boss's phase change, 'slam' Proteus's
+   AOE, 'haz' the arena), whether you dashed, whether you froze, how long the
+   boss fight ran, and the lowest setting flown at. A boss fight is all of
+   wave 5: on Icarus that is the Ruler and what comes through behind it.
+   A flight that bought a boss retry earns no medals at all (`retried`).
+   save.medals is keyed by system name, so a system going in ahead of
+   another never moves anyone's medals. Nothing is paid for them yet;
+   medalCount() is there for when something is. */
+let MR=null, hitTag='';
+const medalRun=()=>({hits:[], dashed:0, froze:0, bossT:0, diffMin:save.diff|0, retried:0});
+function medalHit(){
+  if(!MR||mission) return;
+  MR.hits.push({w:wave, n:killer, tag:hitTag});
+}
+function medalTick(dt){
+  if(!MR||mission) return;
+  MR.diffMin=Math.min(MR.diffMin,save.diff|0);
+  if(wave>=5&&!entrance&&!phaseCut&&enemies.some(e=>e.t==='boss'&&!e.hidden)) MR.bossT+=dt;
+}
+const mBoss=()=>MR.hits.filter(h=>h.w>=5);
+const mBy=(list,n)=>list.some(h=>h.n===n);
+const uName=t=>unitName({t});
+const MEDALS=[
+  /* EARTH */   [['Beat Iteration 3296 without getting hit', ()=>!mBoss().length],
+                 ['Beat the system without getting hit',     ()=>!MR.hits.length]],
+  /* VENUS */   [['Never get hit by a Tracker',              ()=>!mBy(MR.hits,uName('tracker'))],
+                 ['Beat the Hive Mind in less than 30 seconds', ()=>MR.bossT<30]],
+  /* JUPITER */ [['Never get hit by the phase change attack', ()=>!mBoss().some(h=>h.tag==='strike')],
+                 ['Beat the system without getting hit by anything', ()=>!MR.hits.length]],
+  /* SATURN */  [['Never get hit by ring debris',            ()=>!mBy(MR.hits,HAZ_KILL.rings)],
+                 ['Never get hit by the boss',               ()=>!mBy(mBoss(),BOSS(3).n)]],
+  /* LUNA */    [['Beat the system without using dash',      ()=>!MR.dashed],
+                 ['Take no damage from any enemy during waves 1-4', ()=>!MR.hits.some(h=>h.w<5&&h.tag!=='haz')]],
+  /* NEPTUNE */ [["Never get hit by Proteus's AOE attack",   ()=>!mBoss().some(h=>h.tag==='slam')],
+                 ['Never get hit by Triton',                 ()=>!mBy(mBoss(),TRITON.n)]],
+  /* EUROPA */  [['Never get frozen',                        ()=>!MR.froze],
+                 ['Never get hit by a Cloner',               ()=>!mBy(MR.hits,uName('cloner'))]],
+  /* SOL */     [['Never get hit by a Corona',               ()=>!mBy(MR.hits,uName('corona'))],
+                 ["Don't get hit on Omega",                  ()=>!mBoss().length]],
+  /* ICARUS */  [['Beat Icarus on Starfarer',                ()=>MR.diffMin>=2],
+                 ['Beat the Ruler without getting hit',      ()=>!mBoss().length]],
+];
+/* PROSE — each medal's name, three a system: holding it, then its two goals. */
+const MEDAL_NAMES=[
+  /* EARTH   */ ['«WRITE: name for: Beat Earth»', '«WRITE: name for: Beat Iteration 3296 without getting hit»', '«WRITE: name for: Beat the system without getting hit»'],
+  /* VENUS   */ ['«WRITE: name for: Beat Venus»', '«WRITE: name for: Never get hit by a Tracker»', '«WRITE: name for: Beat the Hive Mind in under 30s»'],
+  /* JUPITER */ ['«WRITE: name for: Beat Jupiter»', '«WRITE: name for: Never get hit by the phase change attack»', '«WRITE: name for: Beat the system without getting hit»'],
+  /* SATURN  */ ['«WRITE: name for: Beat Saturn»', '«WRITE: name for: Never get hit by ring debris»', '«WRITE: name for: Never get hit by the boss»'],
+  /* LUNA    */ ['«WRITE: name for: Beat Luna»', '«WRITE: name for: Beat the system without dash»', '«WRITE: name for: No enemy damage in waves 1-4»'],
+  /* NEPTUNE */ ['«WRITE: name for: Beat Neptune»', '«WRITE: name for: Never get hit by Proteus\'s AOE»', '«WRITE: name for: Never get hit by Triton»'],
+  /* EUROPA  */ ['«WRITE: name for: Beat Europa»', '«WRITE: name for: Never get frozen»', '«WRITE: name for: Never get hit by a Cloner»'],
+  /* SOL     */ ['«WRITE: name for: Beat Sol»', '«WRITE: name for: Never get hit by a Corona»', '«WRITE: name for: Don\'t get hit on Omega»'],
+  /* ICARUS  */ ['«WRITE: name for: Beat Icarus»', '«WRITE: name for: Beat Icarus on Starfarer»', '«WRITE: name for: Beat the Ruler without getting hit»'],
+];
+const medalGoals=i=>['Beat '+SYSTEMS[i].name[0]+SYSTEMS[i].name.slice(1).toLowerCase()]
+  .concat((MEDALS[i]||[]).map(m=>m[0]));
+const medalsOf=i=>(save.medals&&save.medals[SYSTEMS[i].name])||[0,0,0];
+const medalCount=()=>SYSTEMS.reduce((n,sy,i)=>n+medalsOf(i).filter(Boolean).length,0);
+// the system was just held: judge this flight, keep what it earned, say which are new
+function medalsAward(i){
+  if(!MR||MR.retried) return [];
+  const had=medalsOf(i), got=[1].concat((MEDALS[i]||[]).map(m=>m[1]()?1:0));
+  const now=had.map((h,k)=>h||got[k]?1:0), fresh=now.map((v,k)=>v&&!had[k]?1:0);
+  save.medals=save.medals||{}; save.medals[SYSTEMS[i].name]=now;
+  return fresh;
+}
+// three rows, one a medal: the goal, and whether you hold it
+function medalsPanel(i,fresh,note){
+  const have=medalsOf(i);
+  return lpanel('MEDALS  '+have.filter(Boolean).length+' / 3',
+    (note?'<div class="mdNote">'+note+'</div>':'')+
+    medalGoals(i).map((g,k)=>
+    '<div class="md'+(have[k]?' got':'')+(fresh&&fresh[k]?' new':'')+'"><i></i><span><em>'+MEDAL_NAMES[i][k]+'</em>'+g+'</span>'+
+    '<b>'+(fresh&&fresh[k]?'EARNED':have[k]?'HELD':'')+'</b></div>').join(''), 'medals');
+}
+function buildMedals(){
+  $('medalsSub').textContent=medalCount()+' / '+SYSTEMS.length*3;
+  $('medalGrid').innerHTML=SYSTEMS.map((sy,i)=> sysReached(i)
+    ? '<div class="mdSys"><h4>'+String(i+1).padStart(2,'0')+'  '+sy.name+'</h4>'+medalsPanel(i)+'</div>'
+    : '<div class="mdSys lock"><h4>'+String(i+1).padStart(2,'0')+'</h4><section class="lpanel medals">'+
+      '<div class="mdLock">\u{1F512}<span>LOCKED</span></div></section></div>').join('');
+}
+
 /* Clearing a system is where the flight ends. It does not roll into the next
    one: you get the result, and then the chart, and you choose again. */
 function systemCleared(){
@@ -2190,6 +2317,7 @@ function systemCleared(){
      it tells first, so nothing here counts yet: Icarus is only held once the
      thing behind it is down too, and dying to that leaves it unheld. */
   const fake=finaleArmed;
+  const fresh=fake?null:medalsAward(i);
   save.unlocked=true;
   save.best=Math.max(save.best,score);
   if(!fake) save.deepestSys=Math.max(save.deepestSys,i+1);
@@ -2202,7 +2330,7 @@ function systemCleared(){
     lrow('CREDITS EARNED','+'+runCr+' CR','good')+
     lrow('CREDITS BANKED', save.credits)+
     lrow('SCORE', score)+
-    lrow('BEST', save.best));
+    lrow('BEST', save.best))+(fake?'':medalsPanel(i,fresh,MR&&MR.retried?'NO MEDALS THIS FLIGHT \u00b7 BOSS RETRIED':''));
   const t=SYS_CLEAR_TEXT[i];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
   doneTreeBtn();
@@ -2659,7 +2787,7 @@ function levLay(C){
 function levHurt(e,dmg,x,y){
   const P=player;
   if(P.inv>0||buffs.shield>0) return;
-  P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=e.bn;
+  P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=e.bn; pilotHurt();
   burst(P.x,P.y,'#ff4d5e',12,240);
   const a=Math.atan2(P.y-y,P.x-x); P.vx+=Math.cos(a)*220; P.vy+=Math.sin(a)*220;
 }
@@ -3594,7 +3722,7 @@ function actHammer(e,dt,dx,dy,T){
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y) < rr*rr && P.inv<=0 && buffs.shield<=0){
       P.hp-=heavyDmg(e,55)*DIFF().dmgIn*P.st.armour;
-      P.inv=.5; pilotHurt(); killer=unitName(e);
+      P.inv=.5; killer=unitName(e); pilotHurt();
       burst(P.x,P.y,ink(e,'#ff2233'),20,320);
     }
     shock(m.x,m.y,ink(e,'#ff2233'),m.r*.3,m.r*1.25,.45,8);
@@ -3746,7 +3874,7 @@ function actBeam(e,dt,dx,dy,T){
       const ox=P.x-m.x, oy=P.y-m.y, al=ox*cx+oy*cy, off=Math.abs(ox*cy-oy*cx);
       if(al>-20&&off<hw+12&&P.inv<=0&&buffs.shield<=0){
         P.hp-=BEAM_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
-        P.inv=.5; pilotHurt(); killer=unitName(e);
+        P.inv=.5; killer=unitName(e); pilotHurt();
         // thrown out of the lane, to whichever side of it you were on
         const side=Math.sign(oy*cx-ox*cy)||1;
         P.vx+=-cy*side*260; P.vy+=cx*side*260;
@@ -3838,7 +3966,7 @@ function tetherStep(e){
   const u=clamp(((P.x-e.x)*sx+(P.y-e.y)*sy)/L2,0,1);
   const qx=e.x+sx*u-P.x, qy=e.y+sy*u-P.y;
   if(qx*qx+qy*qy<(TETHER_W+13)*(TETHER_W+13)){
-    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
+    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt();
     // thrown off the line, to whichever side of it you were on
     const L=Math.sqrt(L2), side=Math.sign(sx*(P.y-e.y)-sy*(P.x-e.x))||1;
     P.vx+=-sy/L*side*280; P.vy+=sx/L*side*280;
@@ -3902,14 +4030,14 @@ function actSlam(e,dt,dx,dy,T){
     m.hit=1;
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y)<rr*rr && P.inv<=0 && buffs.shield<=0){
-      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
+      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); hitTag='slam'; pilotHurt();
       burst(P.x,P.y,ink(e,'#9fd8ff'),20,320);
     }
     shock(m.x,m.y,e.col,m.r*.3,m.r*1.3,.45,8); burst(m.x,m.y,ink(e,'#dff4ff'),30,380);
     SFX.crack(); shake=Math.max(shake,20);
     const n=16+DIFF().dense*2;
     for(let i=0;i<n;i++){ const a=i/n*TAU;
-      ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*210,vy:Math.sin(a)*210,r:6,dmg:9*BOSS_DMG,col:ink(e,'#7f9cff')}); }
+      ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*210,vy:Math.sin(a)*210,r:6,dmg:9*BOSS_DMG,col:ink(e,'#7f9cff'),tag:'slam'}); }
   }
   if(m.t>SLAM_TEL+.3){ e.act=null; e.cool=bossRest(T); }
 }
@@ -4655,6 +4783,7 @@ function hurtDraw(){
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 }
 function pilotHurt(){
+  medalHit(); hitTag='';
   SFX.hurt(); hurtT=HURT_T;
   for(const e of enemies) if(e.t==='boss') e.marked=1;
 }
@@ -5119,7 +5248,7 @@ function strikeHurt(e,dmg){
   if(P.inv>0||buffs.shield>0||P.hp<=0) return;
   P.hp-= dmg>=ONE_SHOT ? ONE_SHOT
         : dmg*(e.strike&&e.strike.hard?STRIKE_HARD:1)*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
-  P.inv=.5; pilotHurt(); killer=unitName(e);
+  P.inv=.5; killer=unitName(e); hitTag='strike'; pilotHurt();
   burst(P.x,P.y,e.col,16,280);
 }
 function strikesDraw(){
@@ -6112,6 +6241,7 @@ function update(dt){
   P.inv=Math.max(0,P.inv-dt);
   if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)&&!(P.frz>0)){
     P.dashCd=st.dashCd; P.dashT=st.dashLen; P.dx=ax; P.dy=ay;
+    if(MR) MR.dashed=1;
     P.vx=ax*st.speed*3.1; P.vy=ay*st.speed*3.1;
     if(st.iframe)P.inv=Math.max(.4,st.dashLen+.05);
     SFX.dash();
@@ -6295,7 +6425,7 @@ function update(dt){
           const ox=P.x-e.x, oy=P.y-e.y, al=clamp(ox*cx+oy*cy,e.r,GLAC_LEN);
           const qx=e.x+cx*al-P.x, qy=e.y+cy*al-P.y;
           if(qx*qx+qy*qy<(GLAC_W+13)*(GLAC_W+13)){
-            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; pilotHurt(); killer=unitName(e);
+            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt();
             // knocked off the arm, the way it is sweeping
             const sd=Math.sign(e.armV)||1; P.vx+=-cy*sd*240; P.vy+=cx*sd*240;
             burst(P.x,P.y,'#dff4ff',14,240);
@@ -6677,9 +6807,9 @@ function update(dt){
     const rr=b.r+13;
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
-      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12; pilotHurt();
+      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12;
+      killer=b.src?unitName(b.src):'ENEMY FIRE'; hitTag=b.tag||''; pilotHurt();
       if(b.rkt&&mission&&mission.k==='hunt') mission.rh++;
-      killer=b.src?unitName(b.src):'ENEMY FIRE';
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
     }
@@ -6694,7 +6824,7 @@ function update(dt){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
               :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:e.t==='cloner'?24:e.t==='corona'?18:10)
                *DIFF().dmgIn*P.st.armour*WV().dmg;
-        pilotHurt(); killer=unitName(e);
+        killer=unitName(e); pilotHurt();
         P.inv=.5;
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
@@ -6705,6 +6835,7 @@ function update(dt){
 
   /* --- the arena itself --- */
   if(world) worldStep(dt);
+  medalTick(dt);
 
   /* --- end conditions --- */
   // the gauntlet: any damage at all, from anything, is the end of it
@@ -6744,6 +6875,7 @@ let retryOk=false;          // set at the moment of death: was it a boss a retry
 function retryBoss(){
   const c=retryCost(); if(c===undefined||save.credits<c) return;
   save.credits-=c; bossTries++; persist();
+  if(MR) MR.retried=1;
   const st=stats();
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
@@ -6763,7 +6895,7 @@ function retryButton(){
   if(!retryOk||c===undefined){ b.style.display='none'; return; }
   b.style.display='';
   const can=save.credits>=c;
-  b.textContent = can ? 'RETRY BOSS? COSTS '+c+' CR' : 'RETRY BOSS? OBTAIN'+c+' CR';
+  b.textContent = (can ? 'RETRY BOSS? COSTS '+c+' CR' : 'RETRY BOSS? OBTAIN '+c+' CR')+' \u00b7 NO MEDALS';
   b.disabled=!can; b.style.opacity=can?'':'.4';
 }
 
@@ -7617,8 +7749,8 @@ function hazHurt(dmg,x,y,col,kick){
   const P=player;
   if(P.inv>0||buffs.shield>0) return false;
   P.hp-=dmg*HAZ_DMG()*P.st.armour;
-  P.inv=.5; pilotHurt();
-  killer=HAZ_KILL[world&&world.h]||'THE HAZARD';
+  P.inv=.5;
+  killer=HAZ_KILL[world&&world.h]||'THE HAZARD'; hitTag='haz'; pilotHurt();
   burst(P.x,P.y,col,14,260);
   if(kick){ const a=Math.atan2(P.y-y,P.x-x);
     P.vx+=Math.cos(a)*kick; P.vy+=Math.sin(a)*kick; }
@@ -7831,7 +7963,7 @@ function worldStep(dt){
       // it does not hurt: it takes your ship away from you for a moment
       const rr=r+11;
       if(!(P.frz>0)&&!(P.thaw>0)&&P.inv<=0&&buffs.shield<=0&&!levBusy()&&dist2(g,P)<rr*rr){
-        P.frz=GEY_FRZ;
+        P.frz=GEY_FRZ; if(MR) MR.froze=1;
         const a=Math.atan2(P.y-g.y,P.x-g.x)||rand(0,TAU);
         P.vx+=Math.cos(a)*GEY_KICK; P.vy+=Math.sin(a)*GEY_KICK;
         burst(P.x,P.y,'#dff4ff',22,260); SFX.crack();
@@ -10004,14 +10136,20 @@ function demoArt(dt){
    screen. It remembers which screen it was opened over so BACK out of the
    bestiary or the save code returns there rather than dumping you at the menu. */
 let gearFrom=null;
+/* Reading the settings is not a thing you should have to survive, so the
+   flight holds while they are open — quietly, without the pause menu in
+   front of them (`gearHeld`), and it runs again when they close. */
+let gearHeld=false;
 function gearOpen(){
-  // reading the settings is not a thing you should have to survive
-  if(state==='play'&&!paused) setPause(true);
+  if(state==='play'&&!paused){ paused=true; gearHeld=true; }
   $('gearQuit').style.display = (state==='play'||state==='dying'||paused) ? '' : 'none';
   buildSound(); buildDiff(); resetWipeLink();
   $('gearPanel').classList.add('on');
 }
-function gearClose(){ $('gearPanel').classList.remove('on'); }
+function gearClose(){
+  $('gearPanel').classList.remove('on');
+  if(gearHeld){ gearHeld=false; if(state==='play'&&paused&&!openOverlay()) paused=false; }
+}
 /* The gear lives top right on a menu and top centre in a level, because in a
    level the top right is the readout. Driven off the frame rather than off
    every place state changes, so it can never be left in the wrong home;
@@ -10027,13 +10165,14 @@ const gearIsOpen=()=>$('gearPanel').classList.contains('on');
 // where to come back to when a gear destination is closed
 function gearGo(fn){
   gearFrom = openOverlay() || (state==='play'?'play':null);
-  gearClose();
-  if(state==='play'&&!paused) setPause(true);
+  $('gearPanel').classList.remove('on');     // the flight stays held behind it
+  if(state==='play'&&!paused){ paused=true; gearHeld=true; }
   fn();
 }
 function gearBack(){
   const f=gearFrom; gearFrom=null;
-  if(f==='play'){ show(''); setPause(true); show('pause'); return; }
+  // back into a flight: the settings again, still held, not the pause menu
+  if(f==='play'){ show(''); gearOpen(); return; }
   if(f&&f!=='codex'&&f!=='code'){ show(f); return; }
   refreshMenu(); show('menu');
 }
@@ -10041,7 +10180,7 @@ function gearBack(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -10792,15 +10931,11 @@ const asMet=r=>codexTab!=='hostiles'||save.deepestSys>=r.sys;
 // a name you have not earned yet, rendered as the block characters it is
 const scramble=n=>n.replace(/[^ ]/g,'\u2593');
 
+// one section a visit: each has its own way in, so there is no tab row
+const CODEX_TITLE={hostiles:'BESTIARY', cells:'CELLS', controls:'CONTROLS'};
 function buildCodex(){
-  const tabs=$('codexTabs'); tabs.innerHTML='';
-  for(const k in CODEX){
-    const b=document.createElement('button');
-    b.className='tab'+(k===codexTab?' on':''); b.textContent=CODEX[k].label;
-    b.onclick=()=>{ codexTab=k; codexSel=0; buildCodex(); };
-    tabs.appendChild(b);
-  }
   const sec=CODEX[codexTab];
+  $('codexTitle').textContent=CODEX_TITLE[codexTab]||sec.label;
   $('codexSub').textContent=sec.sub;
   const rows=asRows(sec);
   codexSel=Math.min(codexSel,rows.length-1);
@@ -11175,10 +11310,14 @@ function buildStory(){
   }
   el.innerHTML=html;
 }
-/* ---- save codes: MF7-<base64 payload>-<checksum> ----
-   MF7 is the whole save, every field of it, as JSON: whatever the save
-   learns to hold, a code carries without this ever changing.
-   MF6 to MF1 are the older packed payload, still read. The prefix changes whenever a system goes
+/* ---- save codes: MF8-<base64 payload>-<checksum> ----
+   MF8 is the whole save, packed (packSave): the lists that are really sets of
+   known things go as one number each, a hull's upgrades as one number, and
+   the fields every current save has the same value in are left out and put
+   back on the way in. Anything it does not know rides along as it is, so
+   whatever the save learns to hold, a code still carries.
+   MF7 is the same save as plain JSON, still read. MF6 to MF1 are the older
+   packed payload, still read. The prefix changes whenever a system goes
    in ahead of Icarus — Saturn for MF2, Luna for MF3, Neptune for MF4, Europa for MF5, Sol for MF6 — so an older code's
    system count is read on the route it was made on. */
 function checksum(raw){
@@ -11195,10 +11334,90 @@ function hupUnpack(i,n,h){
     if(lv){ h[i]=h[i]||{}; h[i][key]=lv; }
   });
 }
+/* What a number in an MF8 code means. APPEND ONLY: a code made today has to
+   mean the same thing to every later build, so a new skill, mission or
+   stat goes on the end of its list and nothing is ever moved or removed. */
+const CODE_SKILLS=['dmg1','dmg2','pierce','punish','rate1','rate2','spread','spread2','hull1','hull2',
+                   'regen','armour','spd1','dash','shield','dash2'];
+const CODE_TOKS=['bounty','hold','run','gauntlet','echo','eye','mirror','hunt','boss','s3295','archive'];
+const CODE_HUP=['hp','dmg','rate','spd','grip'];
+// fields every save carries at these values, whatever build made it. The
+// route and swap marks are NOT here: they change when systems go in, and a
+// code has to say which world it was made in
+const CODE_FIXED={owned:[], unlocked:true};
+// a list of known names as one base-36 bitmask, and whatever it did not know as-is
+function packSet(list,known){
+  let m=0n; const x=[];
+  for(const v of list||[]){ const k=known.indexOf(v); if(k<0) x.push(v); else m|=1n<<BigInt(k); }
+  return x.length?[m.toString(36),x]:m.toString(36);
+}
+function unpackSet(v,known){
+  const [m,x]=Array.isArray(v)?v:[v,[]];
+  let n=0n; for(const ch of String(m)) n=n*36n+BigInt(parseInt(ch,36));
+  return known.filter((k,i)=>(n>>BigInt(i))&1n).concat(x);
+}
+// a side mission's key is its system's index, which SECRETS already knows
+const branchTok=b=> b==='boss'?b : b.split(':')[0];
+const tokBranch=k=> k==='boss'?k : k+':'+SECRETS.findIndex(x=>x.k===k);
+function packSave(sv){
+  const o={}, x={};
+  for(const k of Object.keys(sv)){
+    const v=sv[k];
+    if(k in CODE_FIXED && JSON.stringify(v)===JSON.stringify(CODE_FIXED[k])) continue;
+    if(k==='trees') o.t=(v||[]).map(t=>packSet(t,CODE_SKILLS));
+    else if(k==='ships') o.h=(v||[]).reduce((m,i)=>m|(1<<i),0);
+    else if(k==='seen') o.n=packSet(v,CODE_TOKS);
+    else if(k==='beaten') o.z=packSet(v,CODE_TOKS);
+    else if(k==='branches'){
+      const ok=(v||[]).filter(b=>tokBranch(branchTok(b))===b);
+      o.m=packSet(ok.map(branchTok),CODE_TOKS);
+      const odd=(v||[]).filter(b=>!ok.includes(b)); if(odd.length) x.branchesOdd=odd;
+    }
+    else if(k==='hup'){
+      o.u={}; for(const hull in v||{}){
+        let n=0, m=1; const extra={};
+        for(const st in v[hull]){ const q=CODE_HUP.indexOf(st), lv=v[hull][st];
+          if(q>=0&&lv>=0&&lv<8) n+=lv*Math.pow(8,q); else extra[st]=lv; }
+        o.u[hull]=Object.keys(extra).length?[n.toString(36),extra]:n.toString(36);
+      }
+    }
+    else if(k==='medals'){ o.d={}; for(const nm in v||{}) o.d[nm]=(v[nm]||[]).reduce((m,b,i)=>m|(b?1<<i:0),0); }
+    else{
+      const short={points:'p',credits:'c',best:'b',deepest:'e',deepestSys:'s',ship:'i',vol:'v',sound:'o',
+                   diff:'f',flown:'l',runBest:'r',route:'q',swapHR:'w',swapRB:'y'}[k];
+      if(short) o[short]=typeof v==='boolean'?(v?1:0):v; else x[k]=v;
+    }
+  }
+  if(Object.keys(x).length) o.x=x;
+  return o;
+}
+function unpackSave(o){
+  const sv=JSON.parse(JSON.stringify(CODE_FIXED));
+  const long={p:'points',c:'credits',b:'best',e:'deepest',s:'deepestSys',i:'ship',v:'vol',f:'diff',r:'runBest',
+              q:'route',w:'swapHR',y:'swapRB'};
+  for(const k in long) if(k in o) sv[long[k]]=o[k];
+  if('o' in o) sv.sound=!!o.o;
+  if('l' in o) sv.flown=!!o.l;
+  if(o.t) sv.trees=o.t.map(t=>unpackSet(t,CODE_SKILLS));
+  if('h' in o) sv.ships=SHIPS.map((sh,i)=>i).filter(i=>o.h&(1<<i));
+  if(o.n) sv.seen=unpackSet(o.n,CODE_TOKS);
+  if(o.z) sv.beaten=unpackSet(o.z,CODE_TOKS);
+  if(o.m) sv.branches=unpackSet(o.m,CODE_TOKS).map(tokBranch);
+  if(o.u){ sv.hup={}; for(const hull in o.u){
+    const [n36,extra]=Array.isArray(o.u[hull])?o.u[hull]:[o.u[hull],{}];
+    let n=parseInt(n36,36); const h={};
+    CODE_HUP.forEach(st=>{ const lv=n%8; n=Math.floor(n/8); if(lv) h[st]=lv; });
+    sv.hup[hull]=Object.assign(h,extra); } }
+  if(o.d){ sv.medals={}; for(const nm in o.d) sv.medals[nm]=[0,1,2].map(i=>o.d[nm]&(1<<i)?1:0); }
+  const x=o.x||{};
+  for(const k in x) if(k!=='branchesOdd') sv[k]=x[k];
+  if(x.branchesOdd) sv.branches=(sv.branches||[]).concat(x.branchesOdd);
+  return sv;
+}
 function makeCode(){
-  const raw=JSON.stringify(save);
+  const raw=JSON.stringify(packSave(save));
   const b64=btoa(unescape(encodeURIComponent(raw))).split('=').join('').split('+').join('-').split('/').join('_');
-  return 'MF7-'+b64+'-'+checksum(raw);
+  return 'MF8-'+b64+'-'+checksum(raw);
 }
 // a whole save out of an MF7 code, over a blank one so nothing old leaks through
 function loadWhole(raw){
@@ -11216,17 +11435,23 @@ function loadWhole(raw){
   return null;
 }
 function loadCode(code){
-  code=(code||'').trim();
+  // a long code pasted out of a chat or a note can come back broken over lines
+  code=(code||'').replace(/\s+/g,'');
   const ver=code.slice(0,4).toUpperCase();
-  if(!['MF1-','MF2-','MF3-','MF4-','MF5-','MF6-','MF7-'].includes(ver)) return 'Codes start with MF7-';
+  if(!['MF1-','MF2-','MF3-','MF4-','MF5-','MF6-','MF7-','MF8-'].includes(ver)) return 'Codes start with MF8-';
   const body=code.slice(4), cut=body.lastIndexOf('-');
   if(cut<1) return 'That code is incomplete.';
   let raw;
   try{ raw=atob(body.slice(0,cut).split('-').join('+').split('_').join('/'));
-       if(ver==='MF7-') raw=decodeURIComponent(escape(raw)); }
+       if(ver==='MF7-'||ver==='MF8-') raw=decodeURIComponent(escape(raw)); }
   catch(err){ return 'That code could not be read.'; }
   if(checksum(raw)!==body.slice(cut+1).toUpperCase()) return 'Checksum failed — the code is damaged.';
   if(ver==='MF7-') return loadWhole(raw);
+  if(ver==='MF8-'){
+    let o; try{ o=JSON.parse(raw); }catch(err){ return 'That code could not be read.'; }
+    if(!o||typeof o!=='object'||Array.isArray(o)) return 'That code could not be read.';
+    try{ return loadWhole(JSON.stringify(unpackSave(o))); }catch(err){ return 'That code could not be read.'; }
+  }
   const f=raw.split('.').map(Number);
   if(f.length<5||f.length>7+2*SHIPS.length||f.some(v=>!isFinite(v)||v<0)) return 'That code could not be read.';
   // an MF6 code can say every system is held; an older one is read on its own route
@@ -11264,7 +11489,8 @@ function openCode(){
 
 $('btnCodeBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('btnCopy').onclick=()=>{
-  const el=$('codeOut'); el.select(); el.setSelectionRange(0,999);
+  // the whole code: an MF7 carries the whole save and runs well past a thousand characters
+  const el=$('codeOut'); el.select(); el.setSelectionRange(0,el.value.length);
   let done=false;
   try{ done=document.execCommand('copy'); }catch(err){}
   if(!done&&navigator.clipboard) navigator.clipboard.writeText(el.value).then(()=>{
@@ -11280,12 +11506,20 @@ $('btnLoadCode').onclick=()=>{
   if(!err){ $('codeOut').value=makeCode(); refreshMenu(); }
 };
 
-$('gearStory').onclick=()=>gearGo(()=>{ buildStory(); show('story'); });
+
 $('gearBtn').onclick=()=>{ gearIsOpen()?gearClose():gearOpen(); };
 $('gearClose').onclick=gearClose;
-$('gearCodex').onclick=()=>gearGo(()=>{ buildCodex(); show('codex'); });
-$('gearControls').onclick=()=>gearGo(()=>{ codexTab='controls'; codexSel=0; buildCodex(); show('codex'); });
+/* EXTRAS — off the title: the reference and the story. What they open comes
+   back here (gearFrom does that for every screen it names). */
+$('btnExtras').onclick=()=>show('extras');
+$('btnExtrasBack').onclick=()=>{ refreshMenu(); show('menu'); };
+$('extCodex').onclick=()=>{ gearFrom='extras'; codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
+$('extCells').onclick=()=>{ gearFrom='extras'; codexTab='cells'; codexSel=0; buildCodex(); show('codex'); };
+$('extControls').onclick=()=>{ gearFrom='extras'; codexTab='controls'; codexSel=0; buildCodex(); show('codex'); };
+$('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
+$('btnMedals').onclick=()=>{ gearFrom=null; buildMedals(); show('medals'); };
 $('gearCode').onclick=()=>gearGo(openCode);
+$('btnMedalsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
 
 $('btnStoryBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
@@ -11328,7 +11562,7 @@ function doneTreeBtn(){ $('btnDoneTree').style.display = skillReady()?'':'none';
 /* ---- getting around fast ----
    ESC always goes back one step (and pauses a run); ENTER always presses the
    main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','launch','done','code','codex','pause','garage','hullup','map']
+const openOverlay=()=>['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']
   .find(o=>$(o).classList.contains('on'));
 
 function onEscape(){
@@ -11344,7 +11578,7 @@ function onEscape(){
   if(o==='done'&&finaleArmed) return;         // the finale is about to break this card
   // screens with a BACK of their own go back the way it does — the Bestiary
   // opened from pause returns to pause, one opened from the gear to the gear
-  const back={codex:'btnCodexBack',code:'btnCodeBack',story:'btnStoryBack',map:'btnMapBack'}[o];
+  const back={codex:'btnCodexBack',code:'btnCodeBack',story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',map:'btnMapBack'}[o];
   if(back){ $(back).onclick(); return; }
   // anything else lands on the title, and the game has to know it is there
   if(o){ state='menu'; refreshMenu(); show('menu'); }
@@ -11353,7 +11587,7 @@ function onEnter(){
   const o=openOverlay();
   const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnOverMenu':'btnRelaunch',pause:'btnResume',
               skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',hullup:'btnHullBack',
-              story:'btnStoryBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
+              story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
   if(!main) return;
   const b=$(main);
   if(b && b.style.display!=='none' && b.onclick) b.onclick();
@@ -11362,7 +11596,7 @@ function onEnter(){
 /* ---- pause menu ---- */
 $('btnResume').onclick=()=>setPause(false);
 $('btnQuit').onclick=quitRun;
-$('btnPauseCodex').onclick=()=>{ buildCodex(); show('codex'); };
+$('btnPauseCodex').onclick=()=>{ codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
 
 /* ---- bestiary ---- */
 
