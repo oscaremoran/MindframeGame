@@ -18,9 +18,7 @@ A Mac app is also available ([download](MindframeGame-app/Mindframe-mac.zip)).
 | Mouse | Aim |
 | Click | Fire (hold to keep firing) |
 | `Shift` | Dash *(needs the Dash Drive skill)* |
-| `P` | Pause |
-| `Esc` | Back one screen; pauses a run |
-| `Enter` | Presses the main button on the current screen |
+| `P` or `Esc` | Pause |
 
 ## How a session goes
 

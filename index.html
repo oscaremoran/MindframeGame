@@ -45,7 +45,7 @@
   .row{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
   /* every screen's way back lives in the same place: the top left corner */
   .overlay>button.back{position:absolute; top:min(2.2vw,3.2vh); left:min(2.2vw,3.2vh); z-index:6;
-    margin:0; padding:8px 18px; font-size:clamp(10px,1.15vw,12px)}
+    margin:0; padding:8px 18px; font-size:calc(clamp(10px,1.15vw,12px) + 2px)}
   .overlay>button.back:hover{transform:none}
 
   /* ══════════ the hi-tech kit ══════════
@@ -74,20 +74,20 @@
   .hcnr.d{bottom:7px;right:7px;border-left:0;border-top:0}
   /* a labelled hairline, the way every readout on this ship is titled */
   .hrule{display:flex; align-items:center; gap:10px; width:100%;
-    font-size:9.5px; letter-spacing:.24em; color:#6b7ba0; margin:0}
+    font-size:12.5px; letter-spacing:.24em; color:#6b7ba0; margin:0}
   .hrule::after{content:''; flex:1; height:1px; background:#2c3a5c}
   /* a value in a box: the only way this game states a number */
   .chip{display:inline-flex; flex-direction:column; gap:3px; padding:7px 15px;
     border:1px solid #2c3a5c; background:rgba(17,24,41,.8); text-align:left;
     clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));}
-  .chip b{font-weight:400; font-size:8.5px; letter-spacing:.2em; color:#66748f}
+  .chip b{font-weight:400; font-size:11.5px; letter-spacing:.2em; color:#66748f}
   .chip span{font-size:clamp(11px,1.4vw,15px); letter-spacing:.12em; color:#dfe9ff}
   .chip.g span{color:#46e39b}
 
   /* ---- the volume control, wherever it appears ---- */
   .snd{display:flex; align-items:center; gap:11px; margin-top:20px;
-    font-size:9.5px; letter-spacing:.2em; color:#6b7ba0}
-  .snd button{margin:0; padding:7px 14px; font-size:10px; letter-spacing:.16em}
+    font-size:12.5px; letter-spacing:.2em; color:#6b7ba0}
+  .snd button{margin:0; padding:7px 14px; font-size:13px; letter-spacing:.16em}
   .snd input[type=range]{
     -webkit-appearance:none; appearance:none; width:150px; height:6px; margin:0;
     background:#1d2740; border:1px solid #33456d; border-radius:0; cursor:pointer}
@@ -98,22 +98,22 @@
     width:12px; height:16px; background:#4d9dff; border:0; cursor:pointer}
   .snd .vnum{width:34px; color:#aebcd8}
   /* the difficulty row: three segments of one control, not three buttons */
-  .diff{margin-top:14px; font-size:9.5px; letter-spacing:.2em; color:#6b7ba0}
+  .diff{margin-top:14px; font-size:12.5px; letter-spacing:.2em; color:#6b7ba0}
   .diff .lab{display:block; margin-bottom:7px}
   .diff .seg{display:flex; gap:0; border:1px solid #33456d; width:max-content; max-width:100%}
   .diff .seg button{
     margin:0; border:0; border-right:1px solid #33456d; border-radius:0;
-    padding:7px 15px; font-size:10px; letter-spacing:.16em;
+    padding:7px 15px; font-size:13px; letter-spacing:.16em;
     background:#111a2d; color:#6b7ba0; cursor:pointer}
   .diff .seg button:last-child{border-right:0}
   .diff .seg button.on{background:#4d9dff; color:#050a14;
     box-shadow:0 0 12px rgba(77,157,255,.55)}
   .diff .why{display:block; margin-top:8px; color:#5d6c8f; letter-spacing:.1em;
-    line-height:1.5; max-width:330px; text-transform:none; font-size:9.5px}
+    line-height:1.5; max-width:330px; text-transform:none; font-size:12.5px}
 
   .prose{max-width:74ch; text-align:left; overflow-y:auto; flex:1; min-height:0;
     padding:4px 18px 4px 0; margin-top:14px; color:#9aa8c8; line-height:1.95;
-    font-size:clamp(10.5px,1.28vw,13.5px);}
+    font-size:calc(clamp(10.5px,1.28vw,13.5px) + 2px);}
   .prose::-webkit-scrollbar{width:8px}
   .prose::-webkit-scrollbar-thumb{background:#263050; border-radius:4px}
   .prose h3{color:#4d9dff; letter-spacing:.22em; font-size:1em; font-weight:600; margin:0 0 4px}
@@ -121,7 +121,7 @@
   .prose p{color:inherit; font-size:inherit; margin:0 0 17px; max-width:none; line-height:inherit}
   .prose .rep{color:#46e39b; letter-spacing:.16em}
   a.storylink{color:#7d8bb0; text-decoration:none; border-bottom:1px solid #263050;
-    letter-spacing:.16em; font-size:clamp(10px,1.2vw,12.5px); cursor:pointer; margin-top:20px;
+    letter-spacing:.16em; font-size:calc(clamp(10px,1.2vw,12.5px) + 2px); cursor:pointer; margin-top:20px;
     display:inline-block; transition:color .15s, border-color .15s}
   a.storylink:hover{color:#4d9dff; border-color:#4d9dff}
   .links{display:flex; gap:26px; flex-wrap:wrap; justify-content:center}
@@ -130,15 +130,41 @@
     padding:11px 14px; width:min(580px,84vw); text-align:center; margin-top:12px;}
   input:focus{outline:none; border-color:#4d9dff}
   #codeMsg{min-height:1.7em}
-  .legend{display:flex; gap:26px; margin-top:22px; flex-wrap:wrap; justify-content:center; font-size:clamp(10px,1.2vw,12.5px)}
+  .legend{display:flex; gap:26px; margin-top:22px; flex-wrap:wrap; justify-content:center; font-size:calc(clamp(10px,1.2vw,12.5px) + 2px)}
   .legend div{display:flex; align-items:center; gap:9px; color:#7d8bb0}
 
   /* ---- highlighted (attention) buttons ---- */
   button.hot{background:#ffb44d; color:#05060d}
+  button.danger{background:#ff4d5e; color:#14040a}
+  button.danger:hover{box-shadow:0 6px 26px rgba(255,77,94,.5)}
+  /* a yes/no that costs something, over the screen it was asked from */
+  #retryAsk{display:none; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
+  #retryAsk.on{display:flex}
+  .askBox{width:min(92vw,470px); padding:20px 22px; border:1px solid #8d3a55; background:rgba(14,10,20,.97); text-align:left}
+  .askQ{font-size:calc(clamp(12px,1.4vw,15px) + 3px); letter-spacing:.18em; color:#ffd9e4; margin-bottom:12px}
+  .askRow{display:flex; justify-content:space-between; padding:5px 0; letter-spacing:.16em; color:#a3b2d3;
+    font-size:calc(clamp(10px,1.15vw,12.5px) + 3px); border-bottom:1px solid #22192e}
+  .askRow b{font-weight:400; color:#dfe9ff} .askRow.tot b{color:#ff8a99}
+  .askSub{margin:16px 0 4px; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.28em; color:#ffd24d}
+  .askRow b.bad{color:#ff8a99}
+  #raMiss{margin-top:8px}
+  #raMiss .mm{display:flex; gap:10px; align-items:baseline; padding:4px 0; color:#7d8bb0;
+    font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.06em}
+  #raMiss .mm s{color:#ff8a99; text-decoration:none; letter-spacing:.16em; flex:none}
+  #raMiss .mm em{font-style:normal; color:#a9bad9}
+  .askNote{margin-top:10px; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.2em; color:#ff8a99}
+  .askBox .row{margin-top:6px; justify-content:stretch} .askBox .row button{flex:1}
   button.hot:hover{box-shadow:0 6px 26px rgba(255,180,77,.5)}
 
   /* ---- the reference screen ---- */
   #codex{justify-content:flex-start; padding:3% 4%}
+  /* one row of tabs, for screens that hold more than one list */
+  .tabs{display:flex; gap:0; border:1px solid #33456d; margin-top:14px; width:max-content; max-width:100%}
+  .tabs button{margin:0; clip-path:none; border-radius:0; box-shadow:none; background:transparent; color:#8b9ac0;
+    border:0; border-right:1px solid #33456d; padding:10px 22px; font-size:clamp(12px,1.3vw,14px); letter-spacing:.18em}
+  .tabs button:last-child{border-right:0}
+  .tabs button:hover{transform:none; box-shadow:none; color:#dfe9ff}
+  .tabs button.on{background:#4d9dff; color:#050a14}
 
   /* ---- pause ---- */
   #pause{background:rgba(5,6,13,.72)}
@@ -156,12 +182,12 @@
     font-size:11.5px; letter-spacing:.2em; color:#8b9ac0; border-bottom:1px solid #22304d;
     padding-bottom:6px; margin-bottom:4px}
   /* the art keeps its own shape whatever width the card is: fit, never stretch */
-  .ship canvas{width:100%; height:74px; display:block; object-fit:contain}
+  .ship canvas{width:100%; height:clamp(96px,18vh,170px); display:block; object-fit:contain}
   .ship .sn{letter-spacing:.2em; color:#dfe9ff; font-size:calc(clamp(10px,1.25vw,14px) + 3px); margin-top:6px}
   .ship .sc{letter-spacing:.12em; color:#8b9ac0; font-size:calc(clamp(8px,.95vw,10.5px) + 3px); margin:3px 0 11px}
   .ship .st{display:flex; align-items:center; gap:7px; margin:5px 0;
     font-size:calc(clamp(8px,.92vw,10.5px) + 3px); letter-spacing:.1em}
-  .ship .lbl{color:#8b9ac0; width:4.4em; flex:none}
+  .ship .lbl{color:#8b9ac0; width:6.6em; flex:none; white-space:nowrap; letter-spacing:.06em}
   .ship .gr{width:1em; flex:none; text-align:center; font-weight:700}
   /* segmented, the way a readout meters something rather than a smooth fill */
   .ship .bar{flex:1; height:8px; display:flex; gap:2px}
@@ -178,7 +204,7 @@
   #hullStats{flex:1; min-width:0; display:flex; flex-direction:column; gap:10px}
   .hrow{display:flex; align-items:center; gap:16px; border:1px solid #33456d; padding:12px 16px;
     background:linear-gradient(165deg,#141d33 0%,#0b1121 74%); font-size:calc(clamp(9px,1vw,12px) + 3px)}
-  .hrow .hl{width:5.5em; flex:none; letter-spacing:.16em; color:#dfe9ff; font-weight:700}
+  .hrow .hl{width:7.6em; white-space:nowrap; flex:none; letter-spacing:.16em; color:#dfe9ff; font-weight:700}
   .hrow .gr{width:1.2em; flex:none; text-align:center; font-weight:700; font-size:1.15em}
   .hrow .meter{flex:1; min-width:0; height:14px; position:relative; background:#141b2e; border:1px solid #1d2740}
   .hrow .meter b{position:absolute; top:0; bottom:0; left:0}
@@ -189,7 +215,7 @@
   .hrow .hk{display:flex; gap:5px; flex:none; width:87px}
   .hrow .hk i{width:18px; height:18px; border:1px solid #ffd24d; background:#0b1121}
   .hrow .hk i.on{background:#ffd24d; box-shadow:0 0 9px rgba(255,210,77,.55)}
-  .hrow .hb{flex:none; width:12.5em; padding:10px 6px; font-size:1em; letter-spacing:.1em}
+  .hrow .hb{flex:none; width:12.5em; padding:10px 6px; margin:0; font-size:1em; letter-spacing:.1em}
   .hrow .hb:disabled{cursor:default; transform:none; box-shadow:none}
   .hrow .hb.ghost{color:#63739a; border-color:#33456d}
   .hrow .hb.max{background:#2a2410; color:#ffd24d; border:1px solid #8a7433}
@@ -219,8 +245,24 @@
      top to bottom: the name, the buttons, the controls. */
   #menu{justify-content:flex-start; align-items:center; text-align:center;
     flex-direction:column; padding:5% 5% 4%; background:#05070f; backdrop-filter:none}
-  #menuTop,#menuBtns,#demoKeys,#linkApp{position:relative; z-index:1}
-  #linkApp{margin-top:clamp(18px,3vw,34px); font-size:clamp(10px,1.25vw,13px)}
+  #menuTop,#menuBtns,#demoKeys{position:relative; z-index:1}
+  /* the death screen's payout, the biggest thing on it after the title */
+  #overCr{margin:18px 0 4px; font-size:clamp(20px,3vw,32px); letter-spacing:.08em; color:#ffd24d;
+    text-shadow:0 0 18px rgba(255,210,77,.45); line-height:1.4}
+  #overCr small{display:block; font-size:.6em; color:#dfe9ff; text-shadow:none; letter-spacing:.12em}
+  #overCr:empty{display:none}
+  /* the death screen, in two steps */
+  .overStep{display:flex; flex-direction:column; align-items:center}
+  .overStep.off{display:none}
+  #overWhy{font-size:calc(clamp(11px,1.35vw,14px) + 4px); letter-spacing:.14em; color:#dfe9ff; margin-top:18px}
+  #overWhy:empty{display:none}
+  #overTip{display:flex; gap:14px; align-items:baseline; max-width:min(90vw,560px); margin-top:20px; text-align:left;
+    padding:12px 16px; border:1px solid #3a3220; background:rgba(48,38,12,.3)}
+  #overTip b{color:#ffd24d; letter-spacing:.24em; font-weight:700; flex:none}
+  #overTip span{color:#dfe9ff; line-height:1.55}
+  #overTip.none{display:none}
+  #overMeta{font-size:calc(clamp(11px,1.35vw,14px) - 1px)}
+  #overMeta:empty{display:none}
   #menuTop{display:flex; flex-direction:column; align-items:center}
   #menu h1{
     position:relative;
@@ -242,10 +284,11 @@
     font-size:clamp(13px,2.1vw,21px); letter-spacing:.44em; margin:0 0 0 .44em; color:#9fceff;
   }
   #menuBtns{
-    display:flex; flex-direction:column; align-items:stretch; gap:14px;
-    margin-top:clamp(36px,6vw,72px); width:min(100%,360px);
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    margin-top:clamp(16px,2.6vw,32px); width:min(100%,440px);
   }
-  #menuBtns button{margin:0; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
+  #menuBtns button{margin:0; width:78%; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
+  #menuBtns #btnStart{width:100%; font-size:clamp(22px,3.4vw,34px); padding:24px 34px; letter-spacing:.24em}
   #extrasBtns{display:flex; flex-direction:column; align-items:stretch; gap:14px; margin-top:28px; width:min(90vw,360px)}
   #extrasBtns button{margin:0; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
   #demoKeys{
@@ -284,15 +327,15 @@
        pixel is only a CSS pixel at full size — a fixed px offset that clears
        the HUD on a large screen rides straight over it on a small one,
        because the HUD shrinks with the canvas while the button does not.
-       min(Xvw, Yvh) tracks the canvas at every size; 7.2vw/10.6vh is a 72px
+       min(Xvw, Yvh) tracks the canvas at every size; 5vw/7.4vh is a 50px
        square at full size. */
     position:absolute;
     top:min(1.2vw,1.8vh); right:min(1.6vw,2.35vh); z-index:30; margin:0;
-    height:min(7.2vw,10.6vh); padding:0 min(1.6vw,2.35vh) 0 min(1.1vw,1.6vh); gap:min(.8vw,1.2vh);
+    height:min(5vw,7.4vh); padding:0 min(1.2vw,1.8vh) 0 min(.8vw,1.2vh); gap:min(.6vw,.9vh);
     /* flex rather than line-height: the gear glyph's own metrics do not centre
        it in its box, and a box this size shows the drift */
     display:flex; align-items:center; justify-content:center;
-    line-height:1; letter-spacing:.2em; font-size:clamp(10px,1.4vw,15px);
+    line-height:1; letter-spacing:.2em; font-size:clamp(9px,1.05vw,12px);
     clip-path:none; border-radius:3px;
     background:rgba(10,16,30,.85); border:1px solid #2c3a5c; color:#8fb6e6;
   }
@@ -317,13 +360,13 @@
 
   #launchPick{display:none; margin:14px auto 0; max-width:520px}
   #launchPick.on{display:block}
-  #launchPick .pl{font-size:9.5px; letter-spacing:.2em; color:#5d6c8f; margin-bottom:8px}
+  #launchPick .pl{font-size:12.5px; letter-spacing:.2em; color:#5d6c8f; margin-bottom:8px}
   #launchPick .row{gap:10px}
-  #launchPick button{margin:0; font-size:10.5px; padding:10px 14px; letter-spacing:.14em}
+  #launchPick button{margin:0; font-size:13.5px; padding:10px 14px; letter-spacing:.14em}
   #launchPick button.sel{background:#c78dff; color:#0a0714}
   #launchPick button.lock{opacity:.4; cursor:not-allowed}
-  #launchPick .pw{margin-top:8px; font-size:9px; letter-spacing:.12em; color:#6b7ca3}
-  #gearBtn svg{display:block; flex:none; width:min(4.2vw,6.1vh); height:min(4.2vw,6.1vh);
+  #launchPick .pw{margin-top:8px; font-size:12px; letter-spacing:.12em; color:#6b7ca3}
+  #gearBtn svg{display:block; flex:none; width:min(2.9vw,4.3vh); height:min(2.9vw,4.3vh);
     transition:transform .09s cubic-bezier(.2,.9,.3,1)}
   /* in a level: top centre, out of the readout's way */
   #gearBtn.mid{right:auto; left:50%; transform:translateX(-50%)}
@@ -331,35 +374,38 @@
   #gearBtn:hover svg{transform:rotate(90deg)}
   #gearBtn:active svg{transform:rotate(90deg) scale(.92)}
   #gearBtn.mid:hover{transform:translateX(-50%)}
+  /* in a wave there is no gear at all; P opens the pause menu */
+  #gearBtn.gone{display:none}
   #gearBtn{transition:transform .09s cubic-bezier(.2,.9,.3,1),
                       border-color .09s, color .09s}
   #gearPanel{
     /* directly under the button: its top + its height, in the same units */
     display:none; position:absolute;
-    top:min(9.2vw,13.4vh); right:min(1.6vw,2.35vh); z-index:31;
-    width:min(86vw,268px); padding:16px; text-align:left;
+    top:min(7vw,10.4vh); right:min(1.6vw,2.35vh); z-index:31;
+    width:min(86vw,400px); padding:20px; text-align:left;
     background:rgba(8,12,24,.97); border:1px solid #2c3a5c;
     clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   }
   #gearPanel.on{display:block}
   #gearPanel.mid{right:auto; left:50%; transform:translateX(-50%)}
   #gearHead{
-    font-size:9px; letter-spacing:.3em; color:#4d9dff;
+    font-size:15px; letter-spacing:.3em; color:#4d9dff;
     border-bottom:1px solid #1b2540; padding-bottom:10px; margin-bottom:12px;
   }
-  #gearPanel .snd{margin:0 0 14px; flex-wrap:wrap; gap:8px}
-  #gearPanel .snd button{font-size:10px; padding:7px 11px; margin:0}
+  #gearPanel .snd{margin:0 0 16px; flex-wrap:wrap; gap:8px; font-size:15px}
+  #gearPanel .snd button{font-size:15px; padding:9px 14px; margin:0}
   #gearPanel .snd input[type=range]{flex:1 1 100%; min-width:0; order:3}
-  #gearPanel .diff{margin:0 0 14px}
+  #gearPanel .diff{margin:0 0 16px; font-size:15px}
   #gearPanel .diff .seg{width:100%}
-  #gearPanel .diff .seg button{flex:1 1 0; padding:7px 4px; font-size:9px}
-  #gearPanel .diff .why{max-width:none}
+  #gearPanel .diff .seg button{flex:1 1 0; padding:9px 4px; font-size:14px}
+  #gearPanel .diff .why{max-width:none; font-size:14.5px}
+  #gearPanel .snd .vnum{font-size:15px}
   #gearPanel .snd .vnum{min-width:26px; text-align:right}
   #gearBtns{display:flex; flex-direction:column; gap:7px}
-  #gearBtns button{margin:0; width:100%; text-align:left; font-size:10.5px; padding:9px 13px}
+  #gearBtns button{margin:0; width:100%; text-align:left; font-size:16px; padding:11px 15px}
   #gearBtns button.danger{border-color:#3a2030; color:#c98a9e}
   #gearBtns button.danger:hover{border-color:#8d3a55; color:#ffd9e4; background:rgba(120,30,55,.2)}
-  #gearClose{margin-top:12px; font-size:8.5px; letter-spacing:.2em; color:#3d4a66}
+  #gearClose{margin-top:14px; font-size:14px; letter-spacing:.2em; color:#3d4a66}
 
   /* ---- the launching screen ----
      What you are about to fly, in numbers, above whatever story goes with it.
@@ -367,11 +413,11 @@
      are taking into it on the right. */
   #launchKind{
     margin:0 0 6px; color:#4d9dff; letter-spacing:.42em;
-    font-size:clamp(8px,.95vw,10px);
+    font-size:calc(clamp(8px,.95vw,10px) + 3px);
   }
   #launchText,#doneText{max-width:min(92vw,560px); margin-top:4px; flex:0 0 auto; text-align:center}
-  #doneKind{margin:0 0 6px; color:#46e39b; letter-spacing:.42em; font-size:clamp(8px,.95vw,10px)}
-  #doneStats{
+  #doneKind{margin:0 0 6px; color:#46e39b; letter-spacing:.42em; font-size:calc(clamp(8px,.95vw,10px) + 3px)}
+  #doneStats,#overStats{
     display:grid; grid-template-columns:1fr; gap:14px;
     width:min(92vw,440px); margin:22px 0 4px; text-align:left;
   }
@@ -380,22 +426,55 @@
     width:min(92vw,470px); margin:22px 0 4px; text-align:left;
   }
   .lpanel{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:14px 16px 12px}
+  #launch.sys #launchKind{order:1} #launch.sys #launchTitle{order:2} #launch.sys #launchText{order:3}
+  #launch.sys #launchStats{order:4; width:min(94vw,760px)} #launch.sys #launchPick{order:5} #launch.sys .row{order:6}
+  #launch.sys #launchStats{width:min(94vw,600px); gap:12px}
+  #launch.sys #launchText p{color:#dfe9ff; font-size:clamp(15px,1.7vw,19px); line-height:1.5}
+  /* the system launch card: big, bright, no leaders */
+  .lcard{border:1px solid #33456d; background:rgba(12,18,34,.92); padding:6px 22px}
+  .lcRow{display:flex; align-items:center; justify-content:space-between; gap:18px; padding:11px 0;
+    border-bottom:1px solid #223050}
+  .lcRow:last-child{border-bottom:0}
+  .lcRow .k{font-size:clamp(13px,1.45vw,16px); letter-spacing:.2em; color:#c3cee6}
+  .lcRow .v{font-size:clamp(16px,1.9vw,21px); letter-spacing:.1em; color:#ffffff; text-align:right;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end}
+  .lcRow em{font-style:normal; font-weight:700}
+  .lcRow em.g{color:#46e39b} .lcRow em.w{color:#ffd24d}
+  .lcRow small{font-size:.62em; letter-spacing:.18em; color:#c3cee6}
+  /* a sentence under its label, left to right, rather than squeezed to the side */
+  .lcRow.col{flex-direction:column; align-items:flex-start; gap:6px}
+  .lcRow.col .v{text-align:left; justify-content:flex-start; letter-spacing:.03em; line-height:1.45;
+    font-size:clamp(15px,1.7vw,19px)}
+  .lcRow .meter{display:flex; gap:4px}
+  .lcRow .meter i{width:16px; height:16px; border:1px solid #4a5f8c; background:#141b2e}
+  .lcRow .meter i.on{background:#ffd24d; border-color:#ffd24d}
+  .lcRow .dw{font-weight:700} .lcRow .dw.lv0{color:#46e39b} .lcRow .dw.lv1{color:#9fd0ff}
+  .lcRow .dw.lv2{color:#ffd24d} .lcRow .dw.lv3{color:#ffb44d} .lcRow .dw.lv4{color:#ff6b8a}
+  .lmeds{border:1px solid #4a3f22; background:rgba(22,18,10,.9); padding:10px 22px 8px; text-align:left}
+  .lmeds .mh{font-size:clamp(13px,1.45vw,16px); letter-spacing:.24em; color:#ffd24d; padding-bottom:6px}
+  .lmeds .mh b{color:#fff; margin-left:8px}
+  .lm{display:flex; align-items:center; gap:12px; padding:7px 0; border-top:1px solid #2e2818}
+  .lm i{flex:none; width:14px; height:14px; border-radius:50%; border:2px solid #8a7433}
+  .lm.on i{background:#ffd24d; border-color:#ffd24d; box-shadow:0 0 9px rgba(255,210,77,.6)}
+  .lm span{flex:1; font-size:clamp(14px,1.5vw,16px); color:#dfe9ff; line-height:1.35}
+  .lm em{font-style:normal; color:#ffe29a; margin-right:10px; letter-spacing:.06em}
+  .lm b{font-weight:400; font-size:clamp(12px,1.25vw,14px); letter-spacing:.2em; color:#ffd24d}
   /* a side mission's launch screen leads with the fact that it is one */
-  .lopt{text-align:center; font-size:clamp(9px,1.05vw,11px); letter-spacing:.24em; color:#ffd24d;
+  .lopt{text-align:center; font-size:calc(clamp(9px,1.05vw,11px) + 3px); letter-spacing:.24em; color:#ffd24d;
     border:1px dashed rgba(255,210,77,.55); padding:9px 12px; background:rgba(48,38,12,.35)}
   .lpanel h3{
-    margin:0 0 10px; font-size:clamp(8px,.92vw,10px); font-weight:400;
+    margin:0 0 10px; font-size:calc(clamp(8px,.92vw,10px) + 3px); font-weight:400;
     letter-spacing:.3em; color:#4d9dff; border-bottom:1px solid #16203a; padding-bottom:9px;
   }
   /* medals: a pip each, gold once held, and a flash on the one just earned */
-  .md{display:flex; align-items:center; gap:10px; padding:7px 0; font-size:clamp(9px,1vw,11px); letter-spacing:.06em; color:#7d8bb0}
+  .md{display:flex; align-items:center; gap:10px; padding:7px 0; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.06em; color:#7d8bb0}
   .md + .md{border-top:1px solid rgba(27,37,64,.6)}
   .md i{flex:0 0 auto; width:11px; height:11px; border-radius:50%; border:1.5px solid #3a4568}
   .md span{flex:1 1 auto}
   .md em{display:block; font-style:normal; letter-spacing:.16em; color:#a9bad9; margin-bottom:2px}
   .md.got em{color:#ffd24d}
-  .mdNote{font-size:clamp(7.5px,.86vw,9px); letter-spacing:.2em; color:#ff8a99; padding:2px 0 8px}
-  .md b{flex:0 0 auto; font-weight:400; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.2em; color:#8a7433}
+  .mdNote{font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.2em; color:#ff8a99; padding:2px 0 8px}
+  .md b{flex:0 0 auto; font-weight:400; font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.2em; color:#8a7433}
   .md.got{color:#dfe9ff}
   .md.got i{background:#ffd24d; border-color:#ffd24d; box-shadow:0 0 10px rgba(255,210,77,.6)}
   .md.new b{color:#ffd24d}
@@ -403,16 +482,30 @@
   @keyframes mdNew{0%{transform:scale(2.2); box-shadow:0 0 26px rgba(255,210,77,1)} 100%{transform:scale(1)}}
   #doneStats .lpanel.medals, #launchStats .lpanel.medals{border-color:#3a3220}
   .lpanel.medals h3{color:#ffd24d}
-  #medalScroll{width:min(94vw,1100px); margin-top:16px; max-height:74vh; overflow-y:auto; padding-right:6px; text-align:left}
-  #medalGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,90vw),1fr)); gap:14px; margin-top:16px}
-  #rewardGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,90vw),1fr)); gap:14px;
-    width:min(94vw,1000px); margin-top:20px; max-height:74vh; overflow-y:auto; text-align:left}
+  /* one row a system, its three medals across, so all nine fit on one screen */
+  #medals{justify-content:flex-start; padding:3% 4%}
+  #medalScroll{width:min(96vw,1180px); margin-top:12px; flex:1 1 auto; min-height:0; overflow-y:auto; text-align:left}
+  #medalGrid{display:grid; grid-template-columns:max-content repeat(3,minmax(0,1fr)); gap:0;
+    border:1px solid #1b2540; background:rgba(8,12,24,.8)}
+  #medalGrid .mr{display:contents}
+  #medalGrid .mr > *{border-bottom:1px solid #16203a; padding:5px 12px; min-width:0}
+  #medalGrid .mr:last-child > *{border-bottom:0}
+  #medalGrid .ms{font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.24em; color:#8b9ac0; display:flex; align-items:center; white-space:nowrap}
+  #medalGrid .ms b{font-weight:400; color:#ffd24d; margin-left:12px; letter-spacing:.1em}
+  #medalGrid .md{padding:5px 12px; font-size:clamp(11px,1.15vw,13px); line-height:1.25}
+  #medalGrid .md + .md{border-top:0; border-left:1px solid rgba(27,37,64,.6)}
+  #medalGrid .md em{margin-bottom:1px}
+  #medalGrid .lockrow{grid-column:2 / -1; color:#4a5878; letter-spacing:.24em; font-size:calc(clamp(9px,1vw,11px) + 3px);
+    display:flex; align-items:center}
+  #medalGrid .mr.lock .ms{opacity:.55}
+  #rewardGrid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;
+    width:min(96vw,1100px); margin-top:14px; flex:1 1 auto; min-height:0; overflow-y:auto; text-align:left; align-content:start}
   /* a reward opening: a card from the top that says what and where, then goes */
   #rwToast{position:fixed; top:18px; left:50%; transform:translateX(-50%); z-index:60; display:flex;
     flex-direction:column; gap:8px; pointer-events:none}
   .rwT{border:1px solid #ffd24d; background:rgba(30,24,8,.96); padding:12px 22px; text-align:center;
     box-shadow:0 0 26px rgba(255,210,77,.35); animation:rwT 4.6s ease-out both}
-  .rwT small{display:block; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.3em; color:#8a7433}
+  .rwT small{display:block; font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.3em; color:#8a7433}
   .rwT b{display:block; font-weight:400; font-size:clamp(13px,1.6vw,17px); letter-spacing:.18em; color:#ffd24d; margin:5px 0}
   @keyframes rwT{0%{opacity:0; transform:translateY(-14px)} 8%{opacity:1; transform:none} 85%{opacity:1} 100%{opacity:0}}
   .rw{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:18px 20px 20px; opacity:.6}
@@ -420,34 +513,34 @@
   .rw h5{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:0 0 10px;
     font-weight:400; border-bottom:1px solid #16203a; padding-bottom:10px}
   .rw h5 span{font-size:clamp(12px,1.5vw,16px); letter-spacing:.2em; color:#ffd24d}
-  .rw h5 em{font-style:normal; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.22em; color:#8a7433}
-  .rwDesc{margin:0 0 14px; font-size:clamp(10px,1.1vw,12px); line-height:1.6; color:#a9bad9; letter-spacing:.03em}
+  .rw h5 em{font-style:normal; font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.22em; color:#8a7433}
+  .rwDesc{margin:0 0 14px; font-size:calc(clamp(10px,1.1vw,12px) + 2px); line-height:1.6; color:#a9bad9; letter-spacing:.03em}
   .rw button{margin:0; font-size:clamp(11px,1.25vw,13px); padding:10px 22px}
   .rwOpts{display:flex; flex-wrap:wrap; gap:8px}
-  .rwOpts button{display:flex; align-items:center; gap:9px; padding:9px 14px; font-size:clamp(10px,1.1vw,12px)}
+  .rwOpts button{display:flex; align-items:center; gap:9px; padding:9px 14px; font-size:calc(clamp(10px,1.1vw,12px) + 2px)}
   .rwOpts i{width:13px; height:13px; border-radius:50%; display:inline-block; box-shadow:0 0 8px currentColor}
   .rwLock{display:flex; align-items:center; gap:10px; color:#7d8bb0; font-size:16px}
-  .rwLock span{font-size:clamp(10px,1.1vw,12px); letter-spacing:.06em}
-  .rwBest{margin-top:10px; font-size:clamp(9px,1vw,11px); letter-spacing:.2em; color:#7d8bb0}
+  .rwLock span{font-size:calc(clamp(10px,1.1vw,12px) + 2px); letter-spacing:.06em}
+  .rwBest{margin-top:10px; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.2em; color:#7d8bb0}
   .mdSys.lock{opacity:.55}
   .mdLock{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
     min-height:150px; font-size:22px; color:#5d6c8f}
-  .mdLock span{font-size:clamp(8px,.92vw,10px); letter-spacing:.3em}
-  .mdSys h4{margin:0 0 6px; font-weight:400; font-size:clamp(9px,1vw,11px); letter-spacing:.28em; color:#5d6c8f}
+  .mdLock span{font-size:calc(clamp(8px,.92vw,10px) + 3px); letter-spacing:.3em}
+  .mdSys h4{margin:0 0 6px; font-weight:400; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.28em; color:#5d6c8f}
   .lr{display:flex; align-items:baseline; gap:10px; padding:7px 0}
   .lr + .lr{border-top:1px solid rgba(27,37,64,.6)}
   .lr span{
-    flex:0 0 auto; font-size:clamp(7.5px,.86vw,9px); letter-spacing:.2em; color:#5d6c8f;
+    flex:0 0 auto; font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.2em; color:#5d6c8f;
   }
   .lr i{flex:1 1 auto; border-bottom:1px dotted #1b2540; transform:translateY(-3px)}
   .lr b{
-    flex:0 0 auto; font-weight:400; font-size:clamp(10px,1.25vw,13px);
+    flex:0 0 auto; font-weight:400; font-size:calc(clamp(10px,1.25vw,13px) + 2px);
     letter-spacing:.08em; color:#cfe0f8; text-align:right;
   }
   .lr b.warn{color:#ffd24d} .lr b.good{color:#46e39b} .lr b.bad{color:#ff6b8a}
   /* a row whose value is a sentence rather than a figure */
   .lr.col{flex-direction:column; align-items:stretch; gap:5px; padding:9px 0}
-  .lr.col b{text-align:left; line-height:1.65; font-size:clamp(10px,1.15vw,12.5px)}
+  .lr.col b{text-align:left; line-height:1.65; font-size:calc(clamp(10px,1.15vw,12.5px) + 2px)}
 
 
   /* ══════════ space map ══════════
@@ -459,7 +552,7 @@
   #mapKey{position:absolute; left:2.2%; bottom:3%; z-index:3; pointer-events:none;
     display:flex; flex-direction:column; gap:7px; padding:9px 12px;
     background:rgba(8,12,24,.78); border:1px solid #1e2a46;
-    font-size:clamp(7.5px,.86vw,9.5px); letter-spacing:.2em; color:#8b9ac0}
+    font-size:calc(clamp(7.5px,.86vw,9.5px) + 3px); letter-spacing:.2em; color:#8b9ac0}
   #mapKey div{display:flex; align-items:center; gap:10px}
   #mapKey i{display:block; width:30px; height:0; border-top:3px solid #4d9dff}
   #mapKey i.side{border-top:3px dashed #ffd24d}
@@ -488,13 +581,13 @@
     clip-path:polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 11px 100%, 0 calc(100% - 11px));
     transition:border-color .15s, box-shadow .15s;
   }
-  .mnode .mi{position:absolute; top:8px; left:11px; font-size:9.5px; letter-spacing:.16em; color:#5d6c8f}
+  .mnode .mi{position:absolute; top:8px; left:11px; font-size:12.5px; letter-spacing:.16em; color:#5d6c8f}
   .mnode .id{font-size:clamp(13px,1.85vw,22px); letter-spacing:.13em; color:#b6c4de}
   .mnode:not(.secret) .id{white-space:nowrap}
-  .mnode .st{font-size:clamp(9px,1.1vw,12px); letter-spacing:.2em; color:#6b7ca3; margin-top:8px}
+  .mnode .st{font-size:calc(clamp(9px,1.1vw,12px) + 3px); letter-spacing:.2em; color:#6b7ca3; margin-top:8px}
   .mnode .mx{
     margin-top:6px; padding-top:5px; border-top:1px solid #18213a;
-    font-size:clamp(6.5px,.8vw,9px); letter-spacing:.06em; color:#7182a8; line-height:1.55;
+    font-size:calc(clamp(6.5px,.8vw,9px) + 3px); letter-spacing:.06em; color:#7182a8; line-height:1.55;
   }
   .mnode .mx b{font-weight:400; color:#a9bad9}
   .mnode.held{border-color:#46e39b; background:rgba(16,45,36,.94)}
@@ -512,13 +605,14 @@
   .mnode.locked{opacity:.52}
   .mnode.locked.ph{opacity:.42; border-style:dashed}
   /* a side card is smaller and quieter than a system: it is off the route */
-  .mnode.secret{width:15%; padding:25px 9px 11px; border-style:dashed; opacity:.62}
+  /* sized to its name, on one line: the space right of the route is free */
+  .mnode.secret{width:auto; min-width:15%; white-space:nowrap; padding:25px 14px 11px; border-style:dashed; opacity:.62}
   .mnode.secret .mi{left:50%; transform:translateX(-50%); white-space:nowrap; top:7px;
-    font-size:clamp(7px,.82vw,9px); letter-spacing:.24em; color:#8a7433}
+    font-size:calc(clamp(7px,.82vw,9px) + 3px); letter-spacing:.24em; color:#8a7433}
   .mnode.secret.open .mi{color:#ffd24d}
   .mnode.portal .mi{color:#57447e} .mnode.portal.open .mi{color:#c78dff}
-  .mnode.secret .id{font-size:clamp(10px,1.3vw,14px); line-height:1.35}
-  .mnode.secret .st{margin-top:7px; font-size:clamp(8px,.95vw,10.5px)}
+  .mnode.secret .id{font-size:calc(clamp(10px,1.3vw,14px) + 2px); line-height:1.35}
+  .mnode.secret .st{margin-top:7px; font-size:calc(clamp(8px,.95vw,10.5px) + 3px)}
   .mnode.secret.open{opacity:1; border-color:#ffd24d; border-style:solid;
     background:rgba(48,38,12,.95); cursor:pointer;
     animation:mapSecret 3s ease-in-out infinite}
@@ -540,7 +634,9 @@
   .mnode.secret.open.won .id{color:#6bf3b4} .mnode.secret.open.won .st{color:#46e39b} .mnode.secret.open.won .mi{color:#46e39b}
   .mnode.secret.open.won.sel{box-shadow:0 0 0 3px rgba(70,227,155,.16),0 0 26px rgba(70,227,155,.3)}
   /* the portal: the only violet thing on the chart, and it turns */
-  .mnode.portal{width:15%; border-color:#3b2b57; border-style:solid}
+  /* the Portal hangs off the left edge, so it grows rightward from there, never off the chart */
+  .mnode.portal{width:auto; min-width:15%; left:1.5% !important; transform:translate(0,-50%); border-color:#3b2b57; border-style:solid}
+  .mnode.secret.portal.open:hover{transform:translate(0,-50%) scale(1.06)}
   .mnode.portal .id{color:#7a5fa8}
   .mnode.portal.open{border-color:#c78dff; background:rgba(38,22,58,.95);
     animation:mapPortal 1.9s ease-in-out infinite}
@@ -555,7 +651,7 @@
   #mapRegBar button:disabled{opacity:.25; cursor:default; transform:none; box-shadow:none}
   #mapRegName{min-width:13em; font-size:clamp(12px,1.6vw,18px); letter-spacing:.2em; color:#dfe9ff}
   #mapRegName.lock{color:#6b7ca3}
-  #mapRegNum{margin-top:3px; font-size:clamp(8px,.9vw,10px); letter-spacing:.2em; color:#4a5878}
+  #mapRegNum{margin-top:3px; font-size:calc(clamp(8px,.9vw,10px) + 3px); letter-spacing:.2em; color:#4a5878}
   #mlines line.flow{stroke-dasharray:10 8; animation:mapFlow .9s linear infinite}
   @keyframes mapFlow{ to{stroke-dashoffset:-18} }
 
@@ -567,7 +663,7 @@
   #skills>p,#garage>p{font-size:calc(clamp(11px,1.35vw,14px) + 3px)}
   #skills button.ghost,#garage button.ghost{font-size:calc(clamp(10px,1.15vw,12px) + 3px)}
   #tree{
-    position:relative; width:100%; flex:1; margin-top:14px; min-height:0; overflow:hidden;
+    position:relative; width:100%; flex:1; margin-top:4px; min-height:0; overflow:hidden;
     border:1px solid #2c3d61; background:linear-gradient(165deg,#111a2e 0%,#0a1020 72%);
     clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
   }
@@ -583,7 +679,19 @@
     background:rgba(21,28,48,.94); cursor:pointer; transition:all .14s; text-align:center;
     clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
   }
-  .node .tr{position:absolute; top:4px; left:7px; font-size:10.5px; letter-spacing:.14em; color:#8b9ac0}
+  /* each branch's tint: a band down its column, and a wash and top edge on its nodes */
+  #treeHeads{position:relative; width:100%; height:30px; margin-top:12px; flex:none}
+  #treeHeads .bh{position:absolute; top:0; transform:translateX(-50%); white-space:nowrap;
+    font-size:clamp(13px,1.45vw,16px); letter-spacing:.26em; font-weight:700; color:rgb(var(--bc));
+    text-shadow:0 0 14px rgba(var(--bc),.45); padding-bottom:4px; border-bottom:2px solid rgba(var(--bc),.6)}
+  #tree .band{position:absolute; top:0; bottom:0; width:21%; transform:translateX(-50%); z-index:0; pointer-events:none;
+    background:linear-gradient(180deg,rgba(var(--bc),.10),rgba(var(--bc),.04));
+    border-left:1px solid rgba(var(--bc),.16); border-right:1px solid rgba(var(--bc),.16)}
+  .node::before{content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background:linear-gradient(180deg,rgba(var(--bc),.22),rgba(var(--bc),.06));
+    border-top:3px solid rgba(var(--bc),.85)}
+  .node .nm,.node .cost,.node .tr{position:relative; z-index:1}
+  .node .tr{position:absolute; top:4px; left:7px; font-size:13.5px; letter-spacing:.14em; color:#8b9ac0}
   .node .nm{font-size:calc(clamp(8.5px,1.02vw,11.5px) + 3px); letter-spacing:.04em; color:#d3ddf0; line-height:1.2}
   .node .cost{font-size:calc(clamp(8px,.92vw,10px) + 3px); color:#a3b2d3; margin-top:3px}
   .node.can{border-color:#6fb2ff; background:rgba(20,40,73,.96);
@@ -607,13 +715,16 @@
      different skill never reflows the card or nudges the tree above it.
      Anything that does not fit scrolls inside it. */
   #skillInfo{
-    flex:0 0 auto; display:grid; grid-template-columns:minmax(0,1fr); gap:0 22px;
+    flex:0 0 auto; display:grid; grid-template-columns:max-content minmax(0,1fr); gap:0 28px;
     align-self:stretch; width:100%;
     margin-top:10px; padding:12px 16px; height:clamp(170px,26vh,220px); box-sizing:border-box;
     text-align:left; border:1px solid #33456d; background:rgba(8,12,24,.92);
   }
-  #skillInfo .si-l{min-width:0; min-height:0; overflow-y:auto}
-  #skillInfo .si-t{font-size:10.5px; letter-spacing:.2em; color:#8b9ac0}
+  /* left: what it is and what it costs, each on one line; right: what it does */
+  #skillInfo .si-l{min-width:0; min-height:0; white-space:nowrap}
+  #skillInfo .si-r{min-width:0; min-height:0; overflow-y:auto; border-left:1px solid #22304d; padding-left:28px}
+  #skillInfo .si-r p{margin-top:0; max-width:none}
+  #skillInfo .si-t{font-size:13.5px; letter-spacing:.2em; color:#8b9ac0}
   #skillInfo .si-n{font-size:calc(clamp(12px,1.5vw,16px) + 3px); letter-spacing:.12em; color:#dfe9ff; margin:3px 0 6px}
   #skillInfo .si-s{font-size:calc(clamp(8px,.92vw,10px) + 3px); letter-spacing:.18em; color:#a3b2d3}
   #skillInfo .si-s.own{color:#46e39b} #skillInfo .si-s.can{color:#6fb2ff} #skillInfo .si-s.no{color:#ff6b8a}
@@ -638,6 +749,15 @@
     0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
     75%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-50%) scale(1)}
   }
+  #skillInfo .si-d span{color:#a3b2d3; letter-spacing:.14em; font-size:.72em; margin-right:6px}
+  #skillInfo .si-ask{max-width:340px}
+  #skillInfo .si-q{font-size:calc(clamp(10px,1.15vw,12.5px) + 3px); letter-spacing:.14em; color:#dfe9ff; margin-bottom:6px; white-space:nowrap}
+  #skillInfo .si-row{display:flex; justify-content:space-between; padding:3px 0; font-size:calc(clamp(10px,1.15vw,12.5px) + 2px);
+    letter-spacing:.16em; color:#a3b2d3; border-bottom:1px solid #16203a}
+  #skillInfo .si-row b{font-weight:400; color:#dfe9ff}
+  #skillInfo .si-row.tot b{color:#ffd24d}
+  #skillInfo .si-btns{display:flex; gap:10px}
+  #skillInfo .si-btns button{flex:1}
   #skillInfo button{margin-top:10px; font-size:calc(clamp(12px,1.5vw,15px) + 3px)}
 
   /* ══════════ ASSESS — the bestiary readout ══════════
@@ -659,8 +779,8 @@
   }
   .rosterRow:hover{background:#18223a; border-color:#41527b}
   .rosterRow .rk{width:3px; align-self:stretch; background:currentColor; box-shadow:0 0 9px currentColor}
-  .rosterRow .rn{font-size:clamp(9px,1.05vw,11.5px); letter-spacing:.13em; color:#aebcd8}
-  .rosterRow .ri{margin-left:auto; font-size:9px; color:#66748f; letter-spacing:.1em}
+  .rosterRow .rn{font-size:calc(clamp(9px,1.05vw,11.5px) + 3px); letter-spacing:.13em; color:#aebcd8}
+  .rosterRow .ri{margin-left:auto; font-size:12px; color:#66748f; letter-spacing:.1em}
   .rosterRow.on{background:#1b2c4c; border-color:#6fb2ff}
   .rosterRow.on .rn{color:#dfe9ff}
   .rosterRow.dark .rn{color:#5b6684; font-family:Menlo,monospace}
@@ -687,9 +807,9 @@
 
   .asHead{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
     border-bottom:1px solid #33456d; padding-bottom:11px}
-  .asIdx{font-size:10px; letter-spacing:.22em; color:#66748f}
+  .asIdx{font-size:13px; letter-spacing:.22em; color:#66748f}
   .asName{font-size:clamp(16px,2.5vw,27px); letter-spacing:.2em; color:#dfe9ff; line-height:1}
-  .asTag{margin-left:auto; font-size:9.5px; letter-spacing:.18em; padding:4px 9px;
+  .asTag{margin-left:auto; font-size:12.5px; letter-spacing:.18em; padding:4px 9px;
     border:1px solid currentColor; opacity:.9}
 
   .asMain{display:flex; gap:20px; align-items:flex-start}
@@ -704,8 +824,8 @@
 
   .asStats{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px}
   .asBar{display:grid; grid-template-columns:74px 1fr 58px; align-items:center; gap:10px}
-  .asBar b{font-weight:400; font-size:9.5px; letter-spacing:.17em; color:#8b9ac0}
-  .asBar i{font-style:normal; font-size:10px; letter-spacing:.1em; color:#c3d0e8; text-align:right}
+  .asBar b{font-weight:400; font-size:12.5px; letter-spacing:.17em; color:#8b9ac0}
+  .asBar i{font-style:normal; font-size:13px; letter-spacing:.1em; color:#c3d0e8; text-align:right}
   .asTrack{height:9px; background:#161f36; border:1px solid #33456d; position:relative; overflow:hidden}
   .asFill{position:absolute; inset:0 auto 0 0; background:currentColor;
     box-shadow:0 0 11px currentColor; animation:asGrow .5s cubic-bezier(.2,.9,.3,1) both}
@@ -713,8 +833,8 @@
   .asTrack .tick{position:absolute; top:0; bottom:0; width:1px; background:#3a4a70}
 
   .asBlock{border-left:2px solid #3d5078; padding:2px 0 2px 12px}
-  .asBlock h4{margin:0 0 5px; font-size:9.5px; letter-spacing:.22em; color:#4d9dff; font-weight:400}
-  .asBlock p{margin:0; font-size:clamp(10.5px,1.15vw,12.5px); line-height:1.65; color:#b3c0dc}
+  .asBlock h4{margin:0 0 5px; font-size:12.5px; letter-spacing:.22em; color:#4d9dff; font-weight:400}
+  .asBlock p{margin:0; font-size:calc(clamp(10.5px,1.15vw,12.5px) + 2px); line-height:1.65; color:#b3c0dc}
   .asBlock.ctr{border-left-color:#46e39b}
   .asBlock.ctr h4{color:#46e39b}
   .asBlock.ctr p{color:#cfe8dc}
@@ -727,7 +847,7 @@
   .lockwrap .lockover{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     flex-direction:column; gap:5px; background:rgba(8,12,22,.72); z-index:4;
-    font-size:9px; letter-spacing:.2em; color:#6b7ba0;
+    font-size:12px; letter-spacing:.2em; color:#6b7ba0;
   }
   .lockwrap .lockover b{font-size:22px; font-weight:400; line-height:1; color:#4a5878}
   .ship.locked .sn, .ship.locked .sc{filter:blur(3.5px); opacity:.5}
@@ -801,7 +921,7 @@
       <button id="gearCode" class="ghost">SAVE CODE</button>
       <button id="gearWipe" class="ghost danger">WIPE ALL PROGRESS</button>
     </div>
-    <div id="gearClose">CLOSE — ESC</div>
+    <div id="gearClose">CLOSE</div>
   </div>
 
 
@@ -824,15 +944,16 @@
       <span><b>WASD</b> THRUST</span><span><b>MOUSE</b> AIM</span>
       <span><b>CLICK</b> FIRE</span><span><b>P</b> PAUSE</span>
     </div>
-    <!-- browser only: the Mac app is a GitHub download; the app itself hides this -->
-    <a class="storylink" id="linkApp" href="https://github.com/oscaremoran/MindframeGame/raw/main/MindframeGame-app/Mindframe-mac.zip">DOWNLOAD THE MAC APP &rsaquo;</a>
   </div>
 
   <div id="codex" class="overlay">
-    <button id="btnCodexBack" class="ghost back">BACK — ESC</button>
+    <button id="btnCodexBack" class="ghost back">&larr; BACK</button>
     <div class="treeHead">
       <h1 id="codexTitle" style="font-size:clamp(20px,3.2vw,34px)">BESTIARY</h1>
       <span id="codexSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
+    </div>
+    <div class="tabs" id="codexTabs">
+      <button data-tab="hostiles">BESTIARY</button><button data-tab="cells">CELLS</button><button data-tab="controls">CONTROLS</button>
     </div>
     <div id="codexWrap">
       <div id="codexList"></div>
@@ -841,13 +962,13 @@
   </div>
 
   <div id="map" class="overlay">
-    <button id="btnMapBack" class="ghost back">BACK — ESC</button>
+    <button id="btnMapBack" class="ghost back">&larr; BACK</button>
     <div class="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">SPACE MAP</h1>
       <span id="mapPts">0 CREDITS</span>
     </div>
     <p style="margin:6px 0 0">The path to the Icarus, the enemy battleship and center of command.</p>
-    <p id="mapBest" style="margin:2px 0 0; color:#4a5878; letter-spacing:.14em; font-size:clamp(9px,1vw,11px)"></p>
+    <p id="mapBest" style="margin:2px 0 0; color:#4a5878; letter-spacing:.14em; font-size:calc(clamp(9px,1vw,11px) + 3px)"></p>
     <div id="mapRegBar">
       <button id="btnRegPrev" class="ghost" aria-label="Previous region">&#9664;</button>
       <div><div id="mapRegName">SOLAR SYSTEM 1</div><div id="mapRegNum">REGION 1 / 3</div></div>
@@ -874,7 +995,7 @@
   </div>
 
   <div id="garage" class="overlay">
-    <button id="btnGarageBack" class="ghost back">BACK</button>
+    <button id="btnGarageBack" class="ghost back">&larr; BACK</button>
     <div class="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">GARAGE</h1>
       <span id="garagePts">0 CREDITS</span>
@@ -884,7 +1005,7 @@
   </div>
 
   <div id="hullup" class="overlay">
-    <button id="btnHullBack" class="ghost back">BACK</button>
+    <button id="btnHullBack" class="ghost back">&larr; BACK</button>
     <div class="treeHead">
       <h1 id="hullTitle" style="font-size:clamp(20px,3.2vw,34px)">UPGRADE</h1>
       <span id="hullPts">0 CREDITS</span>
@@ -893,14 +1014,14 @@
       <button id="btnHupRespec" class="ghost">RESPEC</button>
     </div>
     <div id="hullBody">
-      <div id="hullCard"><canvas id="hullArt" width="300" height="172"></canvas>
+      <div id="hullCard"><canvas id="hullArt" width="300" height="230"></canvas>
         <div class="sn" id="hullName"></div><div class="sc" id="hullCls"></div></div>
       <div id="hullStats"></div>
     </div>
   </div>
 
   <div id="launch" class="overlay">
-    <button id="btnLaunchBack" class="ghost back">BACK — ESC</button>
+    <button id="btnLaunchBack" class="ghost back">&larr; BACK</button>
     <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     <p id="launchKind">LAUNCHING</p>
     <h1 id="launchTitle" style="font-size:clamp(22px,3.6vw,40px)">EARTH</h1>
@@ -930,7 +1051,7 @@
   </div>
 
   <div id="code" class="overlay">
-    <button id="btnCodeBack" class="ghost back">BACK</button>
+    <button id="btnCodeBack" class="ghost back">&larr; BACK</button>
     <h1 style="font-size:clamp(20px,3.2vw,34px)">SAVE CODE</h1>
     <p>Copy this to carry your credits, skills and records to another browser or
        machine. Loading a code replaces whatever is saved here.</p>
@@ -946,58 +1067,74 @@
 
 
   <div id="extras" class="overlay">
-    <button id="btnExtrasBack" class="ghost back">BACK — ESC</button>
+    <button id="btnExtrasBack" class="ghost back">&larr; BACK</button>
     <h1 style="font-size:clamp(20px,3.2vw,34px)">EXTRAS</h1>
     <div id="extrasBtns">
-      <button id="extMedals" class="ghost">MEDALS</button>
-      <button id="extRewards" class="ghost">REWARDS</button>
-      <button id="extCodex" class="ghost">BESTIARY</button>
-      <button id="extCells" class="ghost">CELLS</button>
-      <button id="extControls" class="ghost">CONTROLS</button>
+      <button id="extMedals" class="ghost">MEDALS &amp; REWARDS</button>
+      <button id="extCodex" class="ghost">BESTIARY &amp; CONTROLS</button>
       <button id="extStory" class="ghost">READ THE STORY</button>
     </div>
   </div>
 
   <div id="medals" class="overlay">
-    <button id="btnMedalsBack" class="ghost back">BACK — ESC</button>
+    <button id="btnMedalsBack" class="ghost back">&larr; BACK</button>
     <div class="treeHead">
       <h1 style="font-size:clamp(20px,3.2vw,34px)">MEDALS</h1>
       <span id="medalsSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
     </div>
+    <div class="tabs" id="medalTabs">
+      <button data-tab="medals">MEDALS</button><button data-tab="rewards">REWARDS</button>
+    </div>
     <div id="medalScroll">
       <div id="medalGrid"></div>
-    </div>
-  </div>
-
-  <div id="rwToast"></div>
-
-  <div id="rewards" class="overlay">
-    <button id="btnRewardsBack" class="ghost back">BACK — ESC</button>
-    <div class="treeHead">
-      <h1 style="font-size:clamp(20px,3.2vw,34px)">REWARDS</h1>
-      <span id="rewardsSub" style="color:#7d8bb0; letter-spacing:.15em"></span>
     </div>
     <div id="rewardGrid"></div>
   </div>
 
+  <div id="rwToast"></div>
+
   <div id="story" class="overlay">
-    <button id="btnStoryBack" class="ghost back">BACK</button>
+    <button id="btnStoryBack" class="ghost back">&larr; BACK</button>
     <div class="prose" id="prose"></div>
   </div>
 
   <div id="over" class="overlay">
     <h1 id="overTitle">SYSTEM LOST</h1>
-    <h2 id="overSub">WAVE 1</h2>
-    <p id="overMeta"></p>
-    <div class="row">
-      <button id="btnRetry">RETRY BOSS</button>
-      <button id="btnRelaunch">RELAUNCH</button>
-      <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
+    <!-- step 1: what killed you, where, and one tip -->
+    <div id="overS1" class="overStep">
+      <h2 id="overSub">WAVE 1</h2>
+      <p id="overWhy"></p>
+      <div id="overTip"><b>TIP</b><span></span></div>
+      <div class="row"><button id="btnOverNext">CONTINUE</button></div>
+    </div>
+    <!-- paying for a boss retry asks first -->
+    <div id="retryAsk"><div class="askBox">
+      <div class="askQ">RETRY THE BOSS?</div>
+      <div class="askRow"><span>CREDITS</span><b id="raHave"></b></div>
+      <div class="askRow"><span>COST</span><b id="raCost"></b></div>
+      <div class="askRow tot"><span>AFTER</span><b id="raAfter"></b></div>
+      <div class="askSub">MEDALS</div>
+      <div class="askRow"><span>THIS FLIGHT</span><b class="bad">NONE CAN BE EARNED</b></div>
+      <div class="askRow"><span>MEDALS YOU HOLD</span><b>KEPT</b></div>
+      <div class="askRow"><span>TO EARN MEDALS</span><b>RELAUNCH INSTEAD</b></div>
+      <div id="raMiss"></div>
+      <div class="row"><button id="btnRetryYes" class="danger">PAY AND RETRY</button><button id="btnRetryNo" class="ghost">CANCEL</button></div>
+    </div></div>
+    <!-- step 2: what the flight came to, and where to go from here -->
+    <div id="overS2" class="overStep">
+      <div id="overCr"></div>
+      <div id="overStats"></div>
+      <p id="overMeta"></p>
+      <div class="row">
+        <button id="btnRetry" class="danger">RETRY BOSS</button>
+        <button id="btnRelaunch">RELAUNCH</button>
+        <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
+      </div>
     </div>
   </div>
 
   <div id="skills" class="overlay">
-    <button id="btnTreeBack" class="ghost back">BACK</button>
+    <button id="btnTreeBack" class="ghost back">&larr; BACK</button>
     <div class="treeHead">
       <h1 style="font-size:clamp(18px,3.2vw,34px)">SKILL TREE</h1>
       <span id="pts">0 CREDITS</span>
@@ -1007,6 +1144,7 @@
     <div class="row" style="margin:10px 0 0; justify-content:flex-start">
       <button id="btnRespec" class="ghost">RESPEC</button>
     </div>
+    <div id="treeHeads"></div>
     <div id="tree">
       <canvas id="treeArt"></canvas><svg id="lines"></svg>
       <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
@@ -1179,7 +1317,9 @@ const SND={
     // everything musical leaves through here, so CRITICAL can close it
     this.musLP=this.ctx.createBiquadFilter();
     this.musLP.type='lowpass'; this.musLP.frequency.value=18000; this.musLP.Q.value=.9;
-    this.musBus.connect(this.musLP); this.musLP.connect(this.master);
+    // the title screen's theme is lifted above the rest of the score
+    this.musLift=this.ctx.createGain(); this.musLift.gain.value=1;
+    this.musBus.connect(this.musLP); this.musLP.connect(this.musLift); this.musLift.connect(this.master);
 
     /* A driven bus. Clean oscillators sound like a synthesiser; the same
        oscillators through a hard curve and a lowpass sound like an amplifier,
@@ -1311,7 +1451,7 @@ const SFX={
    and lead timbre, so they are recognisably the same music and unmistakably
    not the same piece.
 
-     menu    the campaign theme at its quietest, on the title screen
+     menu    the campaign theme, thinly arranged but lifted (MENU_LIFT), on the title screen
      garage  slower, cleaner, mechanical: the only cue in the game with no drums
      intro   the cold open. A chromatic climb that arrives exactly on LAUNCH.
      run     the campaign theme
@@ -1324,6 +1464,8 @@ const SFX={
    And under all of it, CRITICAL: below 30% hull the whole score is dragged
    under a closing filter, a heartbeat comes up beneath it and a tritone drone
    sits on top. You should be able to hear that you are dying.               */
+// how much louder the theme plays on the title screen than in a run
+const MENU_LIFT=1.9;
 const MUS={
   step:0, next:0, on:false, cur:'', crit:false,
   ROOTS:[220,233.1,246.9,261.6],
@@ -1405,6 +1547,63 @@ const MUS={
       [[0,5,8],[8,4,8]],
       [[0,1,4],[4,0,4],[8,4,8]],
     ],
+    /* ---- the systems' own themes (SYS_PROGS) ---- */
+    // Venus — frantic: sixteenths that never get to breathe
+    frantic:[
+      [[0,4,1],[1,5,1],[2,4,1],[3,1,1],[4,4,1],[5,5,1],[6,7,1],[7,5,1],[8,4,2],[10,1,2],[12,0,2],[14,1,2]],
+      [[0,7,1],[1,8,1],[2,7,1],[3,5,1],[4,4,1],[5,5,1],[6,4,1],[7,1,1],[8,0,2],[10,1,2],[12,4,4]],
+      [[0,1,1],[1,4,1],[2,5,1],[3,4,1],[4,1,1],[5,0,1],[6,1,1],[7,4,1],[8,5,2],[10,7,2],[12,8,4]],
+      [[0,8,1],[1,7,1],[2,5,1],[3,4,1],[4,5,1],[5,4,1],[6,1,1],[7,0,1],[8,-2,4],[12,0,4]],
+    ],
+    // Jupiter — pensive: few notes, held, and room between them
+    pensive:[
+      [[0,4,6],[6,3,2],[8,1,8]],
+      [[0,0,8],[8,-2,8]],
+      [[0,4,4],[4,5,4],[8,4,8]],
+      [[0,1,6],[6,0,2],[8,-3,8]],
+    ],
+    // Saturn — off the beat and bright, like something going round
+    rings:[
+      [[0,0,3],[3,4,3],[6,7,2],[8,8,3],[11,7,3],[14,4,2]],
+      [[0,7,3],[3,8,3],[6,9,2],[8,7,3],[11,4,3],[14,5,2]],
+      [[0,4,3],[3,5,3],[6,7,2],[8,11,3],[11,9,3],[14,7,2]],
+      [[0,8,3],[3,7,3],[6,4,2],[8,1,4],[12,0,4]],
+    ],
+    // Luna — drifting: high, slow, and each note comes back fainter
+    ghost:[
+      [[0,7,6],[6,5,2],[8,4,8]],
+      [[0,8,4],[4,7,4],[8,4,8]],
+      [[0,4,8],[8,1,8]],
+      [[0,5,6],[6,4,2],[8,0,8]],
+    ],
+    // Neptune — the chords do the talking; the line only rises over them
+    swell:[
+      [[0,4,8],[8,7,8]],
+      [[0,5,8],[8,4,8]],
+      [[0,7,8],[8,8,8]],
+      [[0,4,4],[4,5,4],[8,1,8]],
+    ],
+    // Europa — short bursts, then nothing
+    bursts:[
+      [[0,4,1],[1,5,1],[2,7,1],[3,8,2],[8,1,1],[9,4,1],[10,5,2]],
+      [[0,8,1],[1,7,1],[2,5,1],[3,4,2],[8,7,1],[9,5,1],[10,4,2]],
+      [[0,0,1],[1,1,1],[2,4,1],[3,5,2],[8,4,1],[9,5,1],[10,7,2]],
+      [[0,7,1],[1,8,1],[2,11,1],[3,8,2],[8,7,4]],
+    ],
+    // Sol — it does not let up
+    sol:[
+      [[0,4,2],[2,4,2],[4,5,2],[6,7,2],[8,8,4],[12,7,4]],
+      [[0,7,2],[2,8,2],[4,7,2],[6,5,2],[8,4,4],[12,5,4]],
+      [[0,4,2],[2,5,2],[4,7,2],[6,8,2],[8,11,4],[12,8,4]],
+      [[0,8,2],[2,7,2],[4,5,2],[6,4,2],[8,1,4],[12,0,4]],
+    ],
+    // the Icarus — in threes against the bar, so it never sits right
+    icarus:[
+      [[0,0,3],[3,1,3],[6,4,3],[9,6,3],[12,5,4]],
+      [[0,6,3],[3,5,3],[6,4,3],[9,1,3],[12,0,4]],
+      [[0,1,3],[3,4,3],[6,6,3],[9,8,3],[12,7,4]],
+      [[0,7,3],[3,6,3],[6,4,3],[9,1,3],[12,-1,4]],
+    ],
     // the Garage — a work tune. Confident, unbothered, no threat in it.
     garage:[
       [[0,0,4],[4,3,2],[6,4,2],[8,7,6],[14,4,2]],
@@ -1422,6 +1621,41 @@ const MUS={
     run:   {bpm:140, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
             ost:[0,0,1,0, 0,1,0,1], hook:'main', lead:'sawtooth'},
   },
+  /* Each system past Earth has its own theme. Earth plays PROGRAMS.run.
+     Flags the engine reads beyond the shared ones:
+       I        how much of the arrangement plays (1 sparse … 4 everything)
+       root     the key, in Hz        leadAll  the hook plays in every section
+       half     half-time kick        kicks    a kick pattern of its own
+       nodrums  no kit at all         ostEvery the bass every N sixteenths
+       sparkle  a bright arpeggio     ghost    a soft lead that echoes
+       stabs    chords on the beat    bursts   short runs, then silence     */
+  SYS_PROGS:[
+    null,                                                     // EARTH: the campaign theme
+    /* VENUS — frantic */
+    {bpm:172, I:3, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,0,0, 1,1,0,0],
+     ost:[0,12,0,12, 0,12,1,13], hook:'frantic', lead:'sawtooth', ride:1, swarm:1, root:233.1},
+    /* JUPITER — pensive */
+    {bpm:92, I:2, prog:[0,0,8,8, 5,5,3,3], qual:[0,0,1,1, 0,0,1,1],
+     ost:[0,0,0,0, 7,0,0,0], ostEvery:4, hook:'pensive', lead:'triangle', half:1, leadAll:1, shimmer:1, root:196},
+    /* SATURN — exciting, and its own thing */
+    {bpm:150, I:3, prog:[0,0,4,4, 8,8,6,6], qual:[1,1,1,1, 0,0,1,1],
+     ost:[0,0,7,0, 0,12,0,7], hook:'rings', lead:'square', sparkle:1, root:246.9},
+    /* LUNA — drifting, a ghost of a tune */
+    {bpm:84, I:2, sec:3, prog:[0,0,8,8, 3,3,1,1], qual:[0,0,1,1, 1,1,0,0],
+     ost:[0,0,0,0, 0,0,0,0], hook:'ghost', lead:'sine', nodrums:1, ghost:1, leadAll:1, shimmer:1, choirUp:1, root:220},
+    /* NEPTUNE — chords */
+    {bpm:120, I:3, prog:[0,0,5,5, 3,3,8,8], qual:[0,0,1,1, 1,1,1,1],
+     ost:[0,0,0,0, 0,0,0,0], ostEvery:8, hook:'swell', lead:'triangle', stabs:1, choirUp:1, root:207.7},
+    /* EUROPA — bursts */
+    {bpm:140, I:3, prog:[0,0,1,1, 4,4,8,8], qual:[0,0,1,1, 1,1,1,1],
+     ost:[0,0,12,0, 0,0,0,0], hook:'bursts', lead:'sawtooth', bursts:1, kicks:[0,3,6], root:220},
+    /* SOL — constant excitement */
+    {bpm:162, I:4, sec:2, prog:[0,0,8,8, 4,4,1,1], qual:[1,1,1,1, 1,1,1,1],
+     ost:[0,12,0,12, 0,12,0,12], hook:'sol', lead:'sawtooth', ride:1, swarm:1, root:261.6},
+    /* ICARUS — its own */
+    {bpm:126, I:3, prog:[0,0,6,6, 1,1,11,11], qual:[0,0,0,0, 0,0,0,0],
+     ost:[0,0,6,0, 0,6,0,1], hook:'icarus', lead:'square', kicks:[0,6,12], bells:1, shimmer:1, root:207.7},
+  ],
   // 0 intro · 1 build · 2 DROP · 3 break
   FORM:[0,0,0,0, 1,1,1,1,  2,2,2,2, 2,2,2,2,
         3,3,3,3, 1,1,1,1,  2,2,2,2, 2,2,2,2],
@@ -1437,6 +1671,8 @@ const MUS={
     if(!inRun) return ['menu',this.PROGRAMS.menu,0,1];
     const b=enemies.find(e=>e.t==='boss'&&!e.hidden);
     if(b&&b.B.mus) return ['boss:'+(b.B.duoPart?'titans':b.k), b.B.mus, Math.min(sysIdx,3), 4];
+    const SP=this.SYS_PROGS[sysIdx];
+    if(SP) return ['sys'+sysIdx, SP, Math.min(sysIdx,3), SP.I];
     return ['run',this.PROGRAMS.run, Math.min(sysIdx,3), Math.min(3,1+Math.min(sysIdx,3))];
   },
 
@@ -1526,6 +1762,8 @@ const MUS={
     if(!this.on||!SND.ctx) return;
     const c=SND.ctx;
     const [id,P,depth,I] = this.want();
+    const lift=id==='menu'?MENU_LIFT:1;
+    if(this.lift!==lift){ this.lift=lift; SND.musLift.gain.setTargetAtTime(lift,c.currentTime,.25); }
 
     /* ---- critical hull ----
        Below 30% the score is dragged under a closing filter, a heartbeat comes
@@ -1544,7 +1782,7 @@ const MUS={
     }
 
     const bpm=(P.bpm+depth*4)*(this.crit?.94:1), spb=60/bpm/4;
-    const root=this.ROOTS[depth]*(P.climb?1:1);
+    const root=P.root||this.ROOTS[depth];
     const HOOK=this.HOOKS[P.hook];
 
     if(this.next < c.currentTime-.3) this.next=c.currentTime+.05;
@@ -1557,13 +1795,14 @@ const MUS={
       const f0=root*Math.pow(2,rOff/12);
       const SEC = P.sec!==undefined ? P.sec : I<=1 ? 3 : this.FORM[bar32];
       const DROP=SEC===2, BUILD=SEC===1, BREAK=SEC===3;
-      const drums = !P.calm && I>=2;
+      const drums = !P.calm && !P.nodrums && I>=2;
+      const KICKS = P.kicks || (P.half ? [0,8] : [0,4,8,12]);
 
       // ── drums ────────────────────────────────────────────────────────
-      if(drums && !BREAK && (b===0||b===4||b===8||b===12)){
+      if(drums && !BREAK && KICKS.includes(b)){
         this.drum(t,'kick',.5); this.duck(t,spb);
       }
-      if(drums && !BREAK && b===14) this.drum(t,'kick',.34);
+      if(drums && !BREAK && b===14 && !P.half && !P.kicks) this.drum(t,'kick',.34);
       if(drums && (DROP||BUILD)){
         if(b===8)   this.drum(t,'hit',.2);
         if(b%2===0) this.drum(t,'ride',.026);
@@ -1575,7 +1814,7 @@ const MUS={
       if(this.crit && (b===0||b===3)) this.drum(t,'timp',b?.16:.3);
 
       // ── the ostinato ─────────────────────────────────────────────────
-      if(I>=2 && !BREAK && b%2===0){
+      if(I>=2 && !BREAK && b%(P.ostEvery||2)===0 && !(P.bursts&&b>=8)){
         const n=P.ost[b/2];
         this.v(f0/4*Math.pow(2,n/12), t, 'sawtooth', spb*1.6, P.calm?.08:.115, 0, SND.pump);
         if(I>=3 && DROP) this.v(f0/8*Math.pow(2,n/12), t, 'square', spb*1.4, .05, 0, SND.pump);
@@ -1605,15 +1844,33 @@ const MUS={
       // 2117 shimmers, the Archive tolls
       if(P.shimmer && b%4===0) this.v(f0*4, t, 'sine', spb*3, .014, 6);
       if(P.bells && b===0) this.bell(f0*2, t, spb*10, .035);
+      // Saturn: a bright figure going round two octaves up
+      if(P.sparkle && !BREAK){
+        const sh=[0,7,12,15,19,24,19,15], n=sh[s%8];
+        this.v(f0*Math.pow(2,n/12), t, 'triangle', spb*1.2, .016);
+      }
+      // Neptune: the chords on the beat, and a push before the next
+      if(P.stabs && !BREAK && (b%4===0||b===6||b===14))
+        this.chord(f0/2, t, spb*(b%4===0?2.6:1.2), b%4===0?.05:.03, minor);
+      // Europa: a burst every other bar, then nothing
+      if(P.bursts && !BREAK && bar32%2===0 && b<6){
+        const sh=[0,3,7,12,7,3];
+        this.saw(f0*Math.pow(2,sh[b]/12), t, spb*.6, .03, SND.sweep, false);
+        if(b===0) this.drum(t,'hit',.24);
+      }
 
       // ── the hook ─────────────────────────────────────────────────────
-      const leadOn = P.calm || P.climb || DROP || (BREAK && I>=3);
+      const leadOn = P.calm || P.climb || P.leadAll || DROP || (BREAK && I>=3);
       if(HOOK && leadOn){
         for(const [at,d,len] of HOOK[phr%HOOK.length]) if(b===at){
           const semi=this.PHRY[((d%7)+7)%7]+12*Math.floor(d/7);
           const f=root*Math.pow(2,semi/12);
           const pk = P.calm?.045 : P.quiet?.04 : BREAK?.05 : .085;
-          this.saw(f, t, spb*len*1.08, pk, null, P.calm||BREAK, P.lead);
+          // Luna's lead is a soft sine that comes back twice, fainter
+          if(P.ghost){ this.v(f, t, 'sine', spb*len*1.3, pk*.9, 0, null, true, 16);
+                       this.v(f, t+spb*3, 'sine', spb*len, pk*.35, 0, null, true, 16);
+                       this.v(f*2, t+spb*6, 'sine', spb*len*.8, pk*.15, 0, null, true, 16); }
+          else this.saw(f, t, spb*len*1.08, pk, null, P.calm||BREAK, P.lead);
           if(DROP&&I>=4) this.v(f/2, t, 'square', spb*len*.9, .022);
         }
       }
@@ -1823,7 +2080,7 @@ const SKILLS=[
   {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:40, req:'dmg2',
    info:'Shots pass through enemies.'},
   {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d74', cost:70, x:11, y:13, req:'pierce',
-   info:'When a boss is exposed, deal 4x damage instead of the regular 2x.'},
+   info:'When a boss is exposed, deal 4x damage instead of the regular 2x. A boss is exposed after each attack combo: It usually doubles your damage if you survive the combo with no hits. After one hit, you only get half the time. After two, only a third of the time, and after three or more, you get no punish window.'},
 
   {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:88, req:null,
    info:'Fire 18% faster.'},
@@ -1907,7 +2164,7 @@ const SHIPS=[
   {n:'WORLDBREAKER', cls:'SIEGE PLATFORM', hp:1.28, dmg:1.45, rate:1.45, spd:0.81, grip:0.55,
    cost:120, sys:3, gate:'archive', up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
 ];
-const STATS=[['HULL','hp'],['POWER','dmg'],['RATE','rate'],['SPEED','spd'],['GRIP','grip']];
+const STATS=[['HEALTH','hp'],['DAMAGE','dmg'],['FIRE RATE','rate'],['SPEED','spd'],['HANDLING','grip']];
 const grade=v=> v>=1.3?'A' : v>=1.12?'B' : v>=.95?'C' : v>=.8?'D' : 'E';
 // full at the best a stat can be with every upgrade on it (1.45 + 4 steps)
 const barPc=v=> clamp((v-.55)/1.14,.06,1)*100;
@@ -2004,11 +2261,10 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
   if(e.code==='Space'){e.preventDefault();}
-  if(e.code==='KeyP'&&state==='play'&&!gearIsOpen()) setPause(!paused);
+  if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()) launchSkip();
+  if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()){ e.preventDefault(); setPause(!paused); }
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
-  if(e.code==='Escape'){ e.preventDefault(); onEscape(); }
-  if(e.code==='Enter'){ e.preventDefault(); onEnter(); }
 });
 addEventListener('keyup',e=>keys[e.code]=false);
 function ptr(e){
@@ -2126,8 +2382,53 @@ function unitName(e){
   const r=CODEX.hostiles.rows.find(r=>r.u===e.t);
   return r ? r.n : String(e.t).toUpperCase();
 }
-const recap=()=> killer ? 'BROUGHT DOWN BY <span class="key">'+killer+'</span><br><br>' : '';
+const recap=()=> killer ? 'BROUGHT DOWN BY <span class="key">'+killer+'</span>' : '';
+/* The death screen comes in two steps: first what happened (the cause, where,
+   one tip), then CONTINUE to what it came to (credits, how far, score) and the
+   ways on. A win has nothing to explain and opens straight on the second. */
+function overStep1(why,tip){
+  $('overWhy').innerHTML=why||'';
+  $('overTip').classList.toggle('none',!tip);
+  $('overTip').querySelector('span').textContent=tip||'';
+}
+function overStep(n){
+  $('retryAsk').classList.remove('on');
+  $('overS1').classList.toggle('off',n!==1);
+  $('overS2').classList.toggle('off',n!==2);
+}
 
+/* The launching screen for a system. Big, bright and plain: a difficulty
+   meter instead of a multiplier, names in their own colours, the reward in
+   credits, and all three medals, one line each. */
+const DIFF_WORDS=['EASY','NORMAL','HARD','VERY HARD','BRUTAL'];
+// 0..4: how hard a system is, read off how much tougher its enemies are than Earth's
+const sysLevel=i=>clamp(Math.round((SYSTEMS[i].hp-1)/1.3*4),0,4);
+// each side mission's rating, set by hand: 0 EASY · 1 NORMAL · 2 HARD · 3 VERY HARD · 4 BRUTAL
+const SIDE_LEVEL={bounty:0, hold:1, run:0, gauntlet:3, echo:2, eye:3, mirror:2, hunt:2, boss:4};
+const sideLevel=(k,i)=>SIDE_LEVEL[k]!==undefined ? SIDE_LEVEL[k] : sysLevel(i);
+const diffMeter=lv=>'<span class="meter">'+[0,1,2,3,4].map(q=>'<i'+(q<=lv?' class="on"':'')+'></i>').join('')+'</span>'+
+  '<span class="dw lv'+lv+'">'+DIFF_WORDS[lv]+'</span>';
+function launchCard(i){
+  const sy=SYSTEMS[i], b=BOSS(i), pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
+  const unit=t=>{ const r=CODEX.hostiles.rows.find(r=>r.u===t); return '<em style="color:'+(r?r.c:'#dfe9ff')+'">'+unitName({t})+'</em>'; };
+  const roster = i>0&&rosterOf(i)!==rosterOf(i-1);
+  const row=(k,v)=>'<div class="lcRow"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';
+  const have=medalsOf(i);
+  return '<div class="lcard">'+
+      row('DIFFICULTY', diffMeter(sysLevel(i)))+
+      // a change of enemy set: new the first time it turns up, returning after that
+      (roster ? row(SYSTEMS.slice(0,i-1).some((x,j)=>rosterOf(j)===rosterOf(i)) ? 'RETURNING ENEMIES' : 'NEW ENEMIES',
+                    Object.values(ROSTERS[rosterOf(i)]).filter(v=>typeof v==='string').map(unit).join(', ')) : '')+
+      (sy.adds ? row('NEW ENEMY', unit(sy.adds)) : '')+
+      (sy.haz ? row('HAZARD', HAZ_NAME[sy.haz]) : '')+
+      row('BOSS', '<em style="color:'+b.col+'">'+b.n+'</em>')+
+      row('REWARD', '<em class="g">+'+pay+' CREDITS</em>')+
+    '</div>'+
+    '<div class="lmeds"><div class="mh">MEDALS <b>'+have.filter(Boolean).length+' / 3</b></div>'+
+      medalGoals(i).map((g,k)=>'<div class="lm'+(have[k]?' on':'')+'"><i></i><span><em>'+MEDAL_NAMES[i][k]+'</em>'+g+'</span>'+
+        (have[k]?'<b>HELD</b>':'')+'</div>').join('')+
+    '</div>';
+}
 function sysOverview(i){
   const sy=SYSTEMS[i], b=BOSS(i);
   const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
@@ -2158,15 +2459,18 @@ function branchOverview(k,i){
            hunt:    ['Defeat 12 Coronas within a strict time limit.', 'Swarms of Coronas with Solar Flares.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
-  return lpanel('ENEMY FORCE DETAILS',
-           lrow('THE RUN', M[0], '', 1)+
-           lrow('OPPOSITION', M[1], k==='run'?'':'bad', 1)+
-           (best?lrow('BEST TIME', best.toFixed(1)+'s','good'):'')+
-           (branchBanked(i,k)
-              ? lrow('PAYOUT','+'+Math.max(1,Math.round(SECRET_PAY(i,k)*BRANCH_REPEAT))+
-                              ' CR  (REFLOWN)','warn')
-              : lrow('PAYOUT','+'+SECRET_PAY(i,k)+' CR','good'))+
-           lrow('IF YOU FAIL','LOSE THE MONEY','warn'));
+  // the same big, bright card a system gets; the two sentences stack under their labels
+  const row=(lab,v,col)=>'<div class="lcRow'+(col?' col':'')+'"><span class="k">'+lab+'</span><span class="v">'+v+'</span></div>';
+  const won=branchBanked(i,k);
+  return '<div class="lopt">OPTIONAL \u00b7 NOT NEEDED TO REACH THE NEXT SYSTEM</div>'+
+      '<div class="lcard">'+
+        row('DIFFICULTY', diffMeter(sideLevel(k,i)))+
+        row(k==='run'?'THE RUN':'THE MISSION', M[0], 1)+
+        row(k==='run'?'IN THE WAY':'ENEMIES', M[1], 1)+
+        (best?row('BEST TIME','<em class="g">'+best.toFixed(1)+'s</em>'):'')+
+        row('REWARD', won ? '<em class="w">+'+Math.max(1,Math.round(SECRET_PAY(i,k)*BRANCH_REPEAT))+' CREDITS</em><small>ALREADY WON \u00b7 REDUCED</small>'
+                          : '<em class="g">+'+SECRET_PAY(i,k)+' CREDITS</em>')+
+      '</div>';
 }
 
 /* ---- the launching screen ----
@@ -2218,9 +2522,9 @@ function buildPortalPick(){
 function openLaunch(kind,i){
   $('launchKind').textContent = kind==='boss' ? 'LAUNCHING A SIDE BOSS' : kind ? 'LAUNCHING A SIDE MISSION' : 'LAUNCHING';
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
-  $('launchStats').innerHTML = kind
-    ? '<div class="lopt">OPTIONAL \u00b7 NOT NEEDED TO REACH THE NEXT SYSTEM</div>'+branchOverview(kind,i)
-    : sysOverview(i)+medalsPanel(i);
+  $('launchStats').innerHTML = kind ? branchOverview(kind,i) : launchCard(i);
+  // every launching screen reads top to bottom: its name, its line, the card
+  $('launch').classList.add('sys');
   if(!portalOpen(portalPick)) portalPick=0;
   if(kind==='boss') buildPortalPick(); else $('launchPick').classList.remove('on');
   const txt = kind ? LAUNCH_TEXT[kind] : LAUNCH_TEXT.sys[i];
@@ -2285,6 +2589,7 @@ function medalTick(dt){
 }
 const mBoss=()=>MR.hits.filter(h=>h.w>=5);
 const mBy=(list,n)=>list.some(h=>h.n===n);
+const mNum=(list,n)=>list.filter(h=>h.n===n).length;
 const uName=t=>unitName({t});
 const MEDALS=[
   /* EARTH */   [['Beat Iteration 3296 without getting hit', ()=>!mBoss().length],
@@ -2292,19 +2597,19 @@ const MEDALS=[
   /* VENUS */   [['Never get hit by a Tracker',              ()=>!mBy(MR.hits,uName('tracker'))],
                  ['Beat the Hive Mind in less than 30 seconds', ()=>MR.bossT<30]],
   /* JUPITER */ [['Never get hit by the phase change attack', ()=>!mBoss().some(h=>h.tag==='strike')],
-                 ['Beat the system without getting hit', ()=>!MR.hits.length]],
+                 ['Beat the system taking 3 hits or fewer', ()=>MR.hits.length<=3]],
   /* SATURN */  [['Never get hit by ring debris',            ()=>!mBy(MR.hits,HAZ_KILL.rings)],
-                 ['Never get hit by the Architect',               ()=>!mBy(mBoss(),BOSS(3).n)]],
+                 ['Get hit by the Architect 2 times or fewer',    ()=>mNum(mBoss(),BOSS(3).n)<=2]],
   /* LUNA */    [['Beat the system without using Dash',      ()=>!MR.dashed],
-                 ['Take no damage from any enemy during waves 1-4', ()=>!MR.hits.some(h=>h.w<5&&h.tag!=='haz')]],
-  /* NEPTUNE */ [["Never get hit by Proteus's AOE attack",   ()=>!mBoss().some(h=>h.tag==='slam')],
-                 ['Never get hit by Triton',                 ()=>!mBy(mBoss(),TRITON.n)]],
+                 ['Take 3 enemy hits or fewer during waves 1-4', ()=>MR.hits.filter(h=>h.w<5&&h.tag!=='haz').length<=3]],
+  /* NEPTUNE */ [["Get hit by Proteus's AOE attack 2 times or fewer", ()=>mBoss().filter(h=>h.tag==='slam').length<=2],
+                 ['Get hit by Triton 3 times or fewer',      ()=>mNum(mBoss(),TRITON.n)<=3]],
   /* EUROPA */  [['Never get frozen by a geyser',                        ()=>!MR.froze],
                  ['Never get hit by a Cloner',               ()=>!mBy(MR.hits,uName('cloner'))]],
   /* SOL */     [['Never get hit by a Corona',               ()=>!mBy(MR.hits,uName('corona'))],
-                 ["Don't get hit on Omega Space Station",                  ()=>!mBoss().length]],
+                 ['Get hit on Omega Space Station 3 times or fewer', ()=>mBoss().length<=3]],
   /* ICARUS */  [['Beat Icarus on Starfarer difficulty',                ()=>MR.diffMin>=2],
-                 ['Beat the Ruler without getting hit',      ()=>!mBoss().length]],
+                 ['Get hit by the Ruler 2 times or fewer',   ()=>mBoss().length<=2]],
 ];
 /* PROSE — each medal's name, three a system: holding it, then its two goals. */
 const MEDAL_NAMES=[
@@ -2350,7 +2655,6 @@ function medalsPanel(i,fresh,note){
 }
 function buildRewards(){
   const n=medalCount(), box=$('rewardGrid');
-  $('rewardsSub').textContent=n+' MEDALS';
   box.innerHTML=REWARDS.map(r=>{
     const open=n>=r.at;
     let body;
@@ -2371,15 +2675,27 @@ function buildRewards(){
     if(b.dataset.tog){ save.perk=save.perk||{}; save.perk[b.dataset.tog]=perkOn(b.dataset.tog)?0:1; }
     else if(b.dataset.cos){ save.cos=save.cos||{}; save.cos[b.dataset.cos]=+b.dataset.i; }
     else if(b.dataset.rush){ gearFrom=null; hideAll(); startRush(); return; }
-    persist(); buildRewards();
+    persist(); buildMedals();
   };
 }
+/* Medals and the rewards they open share one screen, a tab each. */
+let medalTab='medals';
 function buildMedals(){
-  $('medalsSub').textContent=medalCount()+' / '+SYSTEMS.length*3;
-  $('medalGrid').innerHTML=SYSTEMS.map((sy,i)=> sysReached(i)
-    ? '<div class="mdSys"><h4>'+String(i+1).padStart(2,'0')+'  '+sy.name+'</h4>'+medalsPanel(i)+'</div>'
-    : '<div class="mdSys lock"><h4>'+String(i+1).padStart(2,'0')+'</h4><section class="lpanel medals">'+
-      '<div class="mdLock">\u{1F512}<span>LOCKED</span></div></section></div>').join('');
+  const rw=medalTab==='rewards';
+  for(const b of $('medalTabs').children) b.classList.toggle('on', b.dataset.tab===medalTab);
+  $('medalScroll').style.display=rw?'none':'';
+  $('rewardGrid').style.display=rw?'':'none';
+  if(rw) buildRewards();
+  $('medalsSub').textContent=medalCount()+' / '+SYSTEMS.length*3+' MEDALS';
+  $('medalGrid').innerHTML=SYSTEMS.map((sy,i)=>{
+    const num=String(i+1).padStart(2,'0');
+    if(!sysReached(i)) return '<div class="mr lock"><div class="ms">'+num+'</div>'+
+      '<div class="lockrow">\u{1F512}&nbsp; LOCKED</div></div>';
+    const have=medalsOf(i);
+    return '<div class="mr"><div class="ms">'+num+'&nbsp; '+sy.name+'<b>'+have.filter(Boolean).length+'/3</b></div>'+
+      medalGoals(i).map((g,k)=>'<div class="md'+(have[k]?' got':'')+'"><i></i><span><em>'+MEDAL_NAMES[i][k]+'</em>'+g+'</span></div>').join('')+
+      '</div>';
+  }).join('');
 }
 
 /* ══════════════════════ MEDAL REWARDS ══════════════════════
@@ -2517,7 +2833,7 @@ function systemCleared(){
   $('doneSub').textContent = last?'VICTORY':'HELD';
   $('doneStats').innerHTML = lpanel('RESULT',
     lrow('CREDITS EARNED','+'+runCr+' CR','good')+
-    lrow('CREDITS BANKED', save.credits)+
+    lrow('TOTAL CREDITS', save.credits)+
     lrow('SCORE', score)+
     lrow('BEST', save.best))+(fake?'':medalsPanel(i,fresh,MR&&MR.retried?'NO MEDALS THIS FLIGHT \u00b7 BOSS RETRIED':''));
   const t=SYS_CLEAR_TEXT[i];
@@ -2660,7 +2976,7 @@ const ORB_R=250, ORB_LEAD=.35;
    its distance, kicks away hard when you close on it, fires seekers in a
    spread, and calls Trackers in to cover it — more of all of it once it is
    below half. QUARRY_HP is in Tracker hulls' units, before system scaling. */
-const QUARRY_HP=420, QUARRY_HELP=8, QUARRY_KICK=620;
+const QUARRY_HP=370, QUARRY_HELP=9, QUARRY_KICK=620;
 /* GLACIER — Neptune's addition. Slow and tanky, with frost arms standing out
    from it that sweep round like a lighthouse. The arms run for GLAC_ON, go
    dark for GLAC_OFF (the last GLAC_WARM of which they show faintly, coming
@@ -2736,7 +3052,7 @@ function spawn(type,at,def){
   // OVERSEER — rotating shield arc blocks shots from whatever side it faces
   if(type==='overseer') enemies.push({t:'overseer',x:p.x,y:p.y,vx:0,vy:0,r:22,
       hp:EHULL.overseer*sc,max:EHULL.overseer*sc,spd:62*vm,cool:rand(2,3.4)/cd,a:0,val:200,rof:1/cd,
-      sh:1.15,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
+      sh:.87,shA:rand(0,TAU),shSpin:(Math.random()<.5?-1:1)*.9});
   // ORBITER — circles the pilot at a fixed radius and fires inward
   if(type==='orbiter') enemies.push({t:'orbiter',x:p.x,y:p.y,vx:0,vy:0,r:18,
       hp:EHULL.orbiter*sc,max:EHULL.orbiter*sc,spd:215*vm,cool:rand(.9,1.6)/cd,a:0,val:220,rof:1/cd,
@@ -3299,7 +3615,7 @@ function levBar(C){
     ctx.strokeStyle=alive?LEV_COL:'rgba(127,216,255,.25)'; ctx.lineWidth=1;
     ctx.strokeRect(cx+.5,y+.5,cw,13);
   });
-  ctx.textAlign='center'; ctx.font='11px Menlo,monospace'; ctx.fillStyle=LEV_COL;
+  ctx.textAlign='center'; ctx.font='13px Menlo,monospace'; ctx.fillStyle=LEV_COL;
   ctx.fillText(C.segs[0].bn,W/2,y-8);
 }
 
@@ -3606,10 +3922,10 @@ function omegaBar(S){
     if(alive){ ctx.fillStyle=e.ward?'#4a4232':OM_COL; ctx.fillRect(cx,y,cw*clamp(e.hp/e.max,0,1),13);
       if(e.ward) barState(e,cx,y,cw,13); }
     ctx.strokeStyle=alive?OM_COL:'rgba(255,207,90,.25)'; ctx.lineWidth=1; ctx.strokeRect(cx+.5,y+.5,cw,13);
-    ctx.fillStyle=alive?OM_COL:'rgba(255,207,90,.3)'; ctx.font='10px Menlo,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=alive?OM_COL:'rgba(255,207,90,.3)'; ctx.font='12px Menlo,monospace'; ctx.textAlign='center';
     ctx.fillText(e.wing,cx+cw/2,y+27);
   });
-  ctx.textAlign='center'; ctx.font='11px Menlo,monospace'; ctx.fillStyle=OM_COL;
+  ctx.textAlign='center'; ctx.font='13px Menlo,monospace'; ctx.fillStyle=OM_COL;
   ctx.fillText(S.wings[0].bn,W/2,y-8);
 }
 
@@ -4438,7 +4754,7 @@ const STAGES={
       unitPath(ctx,'heavy',R,t*(1.2+n*.6),0); ctx.fill(); ctx.stroke();
       ctx.restore();
       if(t>1.0 && t<E.land){
-        ctx.textAlign='center'; ctx.font='600 11px Menlo,monospace';
+        ctx.textAlign='center'; ctx.font='600 13px Menlo,monospace';
         ctx.fillStyle='rgba(255,77,94,'+(.5+.5*Math.sin(t*14))+')';
         ctx.fillText('MINDFRAME OVERRUN  ·  '+n+' / 3',E.x,E.y+120);
         ctx.textAlign='left';
@@ -4515,7 +4831,7 @@ const STAGES={
         ctx.beginPath(); ctx.arc(E.x,E.y,E.b.r*1.35,E.fa-1.25*g,E.fa+1.25*g); ctx.stroke();
         ctx.restore();
       }
-      ctx.textAlign='center'; ctx.font='600 11px Menlo,monospace'; ctx.globalAlpha=fade;
+      ctx.textAlign='center'; ctx.font='600 13px Menlo,monospace'; ctx.globalAlpha=fade;
       ctx.fillStyle=t>this.scan?col:'rgba(63,216,224,'+(.5+.5*Math.sin(t*10))+')';
       ctx.fillText(t>this.scan?'CONTACT  ·  LOCKED':'SCANNING',E.x,E.y+125);
       ctx.textAlign='left'; ctx.globalAlpha=1; ctx.shadowBlur=0;
@@ -4543,7 +4859,7 @@ const STAGES={
         ctx.beginPath(); ctx.moveTo(E.x-r*2.6,E.y); ctx.lineTo(E.x+r*2.6,E.y);
         ctx.moveTo(E.x,E.y-r*2.6); ctx.lineTo(E.x,E.y+r*2.6); ctx.stroke(); ctx.setLineDash([]); }
       // the three forms, traced in the order it will take them
-      ctx.font='10px Menlo,monospace'; ctx.fillStyle=col; ctx.textAlign='left';
+      ctx.font='12px Menlo,monospace'; ctx.fillStyle=col; ctx.textAlign='left';
       [['FORM 01  SQUARE',1.0,2.0],['FORM 02  CIRCLE',1.4,1.7],['FORM 03  TRIANGLE',1.8,1.4]].forEach(([lab,at,sc],m)=>{
         const k=clamp((t-at)/.4,0,1); if(!k) return;
         ctx.save(); ctx.translate(E.x,E.y); ctx.globalAlpha=fade*.8;
@@ -4779,7 +5095,7 @@ const STAGES={
       ctx.globalAlpha=fade; ctx.fillStyle='rgba(5,6,13,.8)'; ctx.fillRect(bx-10,by-20,bw+20,38);
       ctx.fillStyle='rgba(199,141,255,.15)'; ctx.fillRect(bx,by,bw,8);
       ctx.fillStyle=col; ctx.fillRect(bx,by,bw*p/100,8);
-      ctx.font='600 11px Menlo,monospace'; ctx.textAlign='left'; ctx.fillStyle=col;
+      ctx.font='600 13px Menlo,monospace'; ctx.textAlign='left'; ctx.fillStyle=col;
       const stall=t>2.2&&t<2.95&&Math.floor(t*8)%2;
       ctx.fillText(p>=100?'RECALL READY':'LOADING STORED MINDS',bx,by-7);
       ctx.textAlign='right'; ctx.fillStyle=stall?'#ff4d5e':col;
@@ -4877,7 +5193,7 @@ function entranceDraw(){
   }
   ctx.shadowBlur=0; ctx.globalAlpha=1;
   if(t>.25){
-    ctx.textAlign='center'; ctx.font='11px Menlo,monospace';
+    ctx.textAlign='center'; ctx.font='13px Menlo,monospace';
     ctx.fillStyle='rgba(255,77,94,'+(.55+.45*Math.sin(t*7))+')';
     ctx.fillText('[ ARENA SEALED ]',W/2,m+26);
     ctx.textAlign='left';
@@ -4920,7 +5236,7 @@ function entranceDraw(){
     ctx.shadowColor=col; ctx.shadowBlur=28*k; ctx.fillStyle='#dfe9ff';
     ctx.fillText(b.bn,W/2,y);
     ctx.shadowBlur=0;
-    ctx.font='11px Menlo,monospace'; ctx.fillStyle=col;
+    ctx.font='13px Menlo,monospace'; ctx.fillStyle=col;
     ctx.fillText(codexTag(b.bn)||'CLASSIFIED',W/2,y+22);
     // the bar fills to the hull it actually arrived with
     const bw=Math.min(520,W*.5), bx=(W-bw)/2, by=y+38;
@@ -4930,7 +5246,7 @@ function entranceDraw(){
     ctx.fillRect(bx,by,bw*fk,9); ctx.shadowBlur=0;
     ctx.strokeStyle='rgba(223,233,255,.4)'; ctx.lineWidth=1;
     ctx.strokeRect(bx+.5,by+.5,bw,9);
-    ctx.font='10px Menlo,monospace'; ctx.fillStyle='#7d8bb0';
+    ctx.font='12px Menlo,monospace'; ctx.fillStyle='#7d8bb0';
     ctx.fillText(Math.round(b.max*fk)+' HULL',W/2,by+26);
     ctx.restore(); ctx.globalAlpha=1; ctx.textAlign='left';
   }
@@ -4946,9 +5262,11 @@ const OPENING=tier=> (tier===2?1.15 : tier===1?1.4 : 1.7) * DIFF().open;
    wall the system is named after and it should hit like one. */
 const BOSS_BUFF=1.15, BOSS_SPD=1.1, BOSS_DMG=1.4;
 const PUNISH_MULT=2;
-/* The window has to be earned. Any hit the pilot takes marks every boss on the
-   field, and a marked boss keeps its guard up when its line reaches a '|' —
-   so EXPOSED only ever opens at the end of a line you flew clean. */
+/* The window is earned by how cleanly you flew the combo. Every hit the pilot
+   takes adds a mark to every boss on the field; when its line reaches a '|'
+   the window is OPENING / (marks + 1): full for a clean combo, a half after
+   one hit, a third after two, and none at all after GUARD_MARKS. */
+const GUARD_MARKS=3;
 /* Getting hit is told by the edge of the screen, not by shaking it: a red
    pulse round the border for HURT_T seconds. Below a sixth of your hull it
    keeps coming on its own, a beat every HURT_BEAT seconds, until you are
@@ -4975,7 +5293,7 @@ function hurtDraw(){
 function pilotHurt(){
   medalHit(); hitTag='';
   SFX.hurt(); hurtT=HURT_T;
-  for(const e of enemies) if(e.t==='boss') e.marked=1;
+  for(const e of enemies) if(e.t==='boss') e.marked=(e.marked||0)+1;
 }
 const GUARD_HELD=.6;
 
@@ -5574,13 +5892,13 @@ const STRIKES={
      is to keep moving and cut across them. */
   hive:{
     dur:1.4,
-    init(s){ s.n=0; s.rings=s.hard?5:3; s.dur=s.rings*.5-.1; },
+    init(s){ s.n=0; s.rings=s.hard?4:3; s.dur=s.rings*.5-.1; },
     step(s,e){
       while(s.n<s.rings&&s.t>=s.n*.5){
-        const N=s.hard?22:16, o=s.n*Math.PI/N+rand(0,.2);
+        const N=s.hard?19:14, o=s.n*Math.PI/N+rand(0,.2);
         for(let i=0;i<N;i++){ const a=o+i*TAU/N, sp=s.hard?150:135;
           ebullets.push({x:e.x+Math.cos(a)*e.r,y:e.y+Math.sin(a)*e.r,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-            r:7,dmg:10*BOSS_DMG*(s.hard?STRIKE_HARD:1),col:'#46e39b',seek:s.hard?.85:.6,age:0,trail:'#46e39b',src:e}); }
+            r:7,dmg:10*BOSS_DMG*(s.hard?STRIKE_HARD:1),col:'#46e39b',seek:s.hard?.75:.52,age:0,trail:'#46e39b',src:e}); }
         burst(e.x,e.y,'#46e39b',24,300); SFX.tier(); s.n++;
       }
     },
@@ -6067,11 +6385,12 @@ function bossAI(e,dt,dx,dy,d){
   // '|' is the price of the line it just fired: it stops, drops its guard, and
   // for a moment every round you land on it counts double
   if(k==='|'){
-    if(e.marked){                             // you were hit: no window this line
-      e.marked=0; e.held=1.4; e.cool=GUARD_HELD;
+    const marks=e.marked||0; e.marked=0;
+    if(marks>=GUARD_MARKS){                   // hit too often this line: no window at all
+      e.held=1.4; e.cool=GUARD_HELD;
       return;
     }
-    e.open=e.openMax=OPENING(e.tier);
+    e.open=e.openMax=OPENING(e.tier)/(marks+1);
     e.cool=e.open; SFX.expose();
     shock(e.x,e.y,'#ffd24d',e.r,e.r*2.3,.5,4);
     return;
@@ -6198,6 +6517,8 @@ let waves=[], shards=[], slowT=0, slowMax=1, timers=[];
    plays — otherwise the arena is empty on the very next frame and the map
    takes the screen before the first detonation lands. */
 let sealing=false;
+// a won side mission flying out (winOut), and how far into it
+let winScene=null, winT=0;
 
 // an expanding ring that thins as it goes
 function shock(x,y,col,r0,r1,life,w){ waves.push({x,y,col,r0,r1,life,w:w||5,t:0}); }
@@ -6215,7 +6536,7 @@ function slow(sec){ if(sec>slowT){ slowT=sec; slowMax=sec; } }
 const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
+function fxClear(){ winScene=null; waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -6396,6 +6717,7 @@ function update(dt){
   while(spawnQ.length && !entrance && !phaseCut && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
 
   const P=player, st=P.st;
+  if(winScene){ winStep(dt); return; }      // a won side mission flying out
 
   /* --- player move --- */
   let ax=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
@@ -6685,7 +7007,7 @@ function update(dt){
       // seekers, in a spread
       e.cool-=dt;
       if(e.cool<=0){
-        e.cool=(hurt?1.3:1.8)*(e.rof||1);
+        e.cool=(hurt?1.5:2.05)*(e.rof||1);
         const n=hurt?6:4;
         for(let i=0;i<n;i++){ const a=e.a+(i-(n-1)/2)*.3;
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*190,vy:Math.sin(a)*190,
@@ -7047,13 +7369,20 @@ function update(dt){
 /* A side mission that fails — its goal lost, or the ship — gets the death
    screen, but in its own words: nothing about the system is lost, it just
    paid nothing. RELAUNCH flies the same mission again. */
+// what this flight paid, said big on the death screen
+const crWord=n=>n===1?'Credit':'Credits';
+const earnedLine=()=>runCr>0 ? 'Earned '+runCr+' '+crWord(runCr)+'!<small>You now have '+save.credits+'.</small>' : '';
 function sideFailText(M,why){
   retryOk=false; retryButton();            // a side mission has no boss to go back to
   $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';
-  $('overSub').textContent = (why||'SHIP DESTROYED')+' \u2014 '+(M.B?M.B.n:branchName(M.k));
-  $('overMeta').innerHTML = (why?'':recap())+'NO CREDITS EARNED &nbsp;\u00b7&nbsp; SCORE <span class="key">'+score+
-    '</span> &nbsp;\u00b7&nbsp; BEST <span class="key">'+save.best+'</span>';
+  $('overSub').textContent = M.B?M.B.n:branchName(M.k);
+  overStep1(why?why:recap(), why?'':deathTip());
+  $('overCr').innerHTML = earnedLine();
+  $('overStats').innerHTML = lpanel('RESULT', lrow('SCORE',score)+lrow('BEST',save.best));
+  $('overMeta').innerHTML = '';
   $('btnRelaunch').style.display = relaunch ? '' : 'none';
+  $('btnOverMenu').textContent='MAIN MENU';
+  overStep(1);
 }
 /* ---- the boss retry ----
    Dying on a system's wave 5 offers a way straight back into the boss fight,
@@ -7088,7 +7417,7 @@ function retryButton(){
   if(!retryOk||c===undefined){ b.style.display='none'; return; }
   b.style.display='';
   const can=save.credits>=c;
-  b.textContent = (can ? 'RETRY BOSS? COSTS '+c+' CR' : 'RETRY BOSS? OBTAIN '+c+' CR')+' \u00b7 NO MEDALS';
+  b.textContent = can ? 'RETRY BOSS \u2014 '+c+' CR' : 'RETRY BOSS \u2014 NEED '+c+' CR';
   b.disabled=!can; b.style.opacity=can?'':'.4';
 }
 
@@ -7129,19 +7458,25 @@ function endRun(win,why){
   document.getElementById('overTitle').textContent = win?'ALL SYSTEMS HELD':'SYSTEM LOST';
   document.getElementById('overSub').textContent   = win
     ? 'CAMPAIGN COMPLETE — '+SYSTEMS.length+' SYSTEMS'
-    : why ? why+' — '+SYS().name
+    : why ? SYS().name
     : R ? 'BOSS RUSH — FELL TO '+BOSS(sysIdx).n+'  ('+(R.i+1)+' / '+SYSTEMS.length+')'
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
-  const tip=win?'':deathTip();
-  document.getElementById('overMeta').innerHTML = (win?'':recap())+
-    (left?'<span class="key">'+left.n+'</span> — '+left.pc+'% BOSS HP LEFT<br><br>':'')+ 
-    (tip?tip+'<br><br>':'')+
-    'SCORE <span class="key">'+score+'</span> &nbsp;·&nbsp; BEST <span class="key">'+save.best+'</span>'+
-    (win?'':'<br><br>If your ship is destroyed, your progress in that system will be destroyed. '+
-            'You can re-launch to the system to try again.');
+  overStep1(win?'':why?why:recap(), win?'':deathTip());
+  // step 2: how far it got, in the same readout a held system gets
+  $('overStats').innerHTML = lpanel('RESULT',
+    (win?'' : R ? lrow('REACHED','BOSS '+(R.i+1)+' / '+SYSTEMS.length,'warn')
+               : lrow('REACHED', SYS().name+' \u00b7 WAVE '+Math.min(wave,5)+' / 5','warn'))+
+    (left?lrow('BOSS HP LEFT', left.n+' \u00b7 '+left.pc+'%','bad'):'')+
+    lrow('SCORE', score)+lrow('BEST', save.best));
+  document.getElementById('overMeta').innerHTML = win?'':
+    'If your ship is destroyed, your progress in that system will be destroyed. '+
+    'You can re-launch to the system to try again.';
+  $('overCr').innerHTML = win ? '' : earnedLine();
+  $('btnOverMenu').textContent='TITLE SCREEN';     // a side mission renames it below
   $('btnRelaunch').style.display = (win||!relaunch) ? 'none' : '';
   retryButton();
   if(M&&!win){ branchSortie=false; sideFailText(M,why); }
+  overStep(win?2:1);
   if(win){ state='over'; show('over'); return; }
   // a death is a scene, not a screen transition. Let it finish first.
   state='dying'; deathFx();
@@ -7474,12 +7809,29 @@ function launchStep(dt){
     player.vx=0; player.vy=-260*(1-k); player.a=-Math.PI/2;
   }
   if(t>=CUT_T){
+    launchWatched();
     player.x=L.tx; player.y=L.ty; player.vx=player.vy=0; player.inv=Math.max(player.inv,.6);
     launchCut=null;
   }
 }
-function launchDraw(){
-  const L=launchCut, t=L.t, G=cutGeo(), S=cutShip(L), cx=G.cx, cw=G.cw, half=cw/2;
+/* A system's launch plays in full the first time; once it has been watched to
+   the end, any key skips it from then on. Kept by system id in save.launched. */
+const launchSeen=()=>(save.launched||[]).includes(SYS().id);
+function launchWatched(){
+  const id=SYS().id; save.launched=save.launched||[];
+  if(!save.launched.includes(id)){ save.launched.push(id); persist(); }
+}
+// straight to the end of the launch: the arena up, the ship where it flies from
+function launchSkip(){
+  const L=launchCut; if(!L) return;
+  if(!L.out) sceneStart();
+  player.x=L.tx; player.y=L.ty; player.vx=player.vy=0; player.a=-Math.PI/2;
+  player.inv=Math.max(player.inv,.6);
+  shake=0; flash=0; parts.length=0;
+  launchCut=null;
+}
+function launchScene(){
+  const L=launchCut, HG=hangar(), t=L.t, G=cutGeo(), S=cutShip(L), cx=G.cx, cw=G.cw, half=cw/2;
   const dy=G.door+L.sc;                                    // the doorway, on screen
   // past the doors: streaking stars and a glow of whatever is out there
   if(L.v>0){
@@ -7491,38 +7843,38 @@ function launchDraw(){
   const od=eOut(clamp((t-CUT_DOOR)/.7,0,1));
   if(od>0 && dy>0){
     const gr=ctx.createRadialGradient(cx,dy,0,cx,dy,cw*1.2);
-    gr.addColorStop(0,'rgba(77,157,255,'+(.22*od)+')'); gr.addColorStop(1,'rgba(77,157,255,0)');
+    gr.addColorStop(0,'rgba('+HG.glow+','+(.22*od)+')'); gr.addColorStop(1,'rgba('+HG.glow+',0)');
     ctx.fillStyle=gr; ctx.fillRect(cx-cw*1.2,dy-cw*1.2,cw*2.4,cw*1.2);
   }
   if(dy<H){
     const top=Math.max(0,dy), wy=y=>y+L.sc;                // world y to screen
     // the structure either side of the bay, ribbed
-    ctx.fillStyle='#070a14'; ctx.fillRect(0,top,W,H-top);
-    ctx.fillStyle='#0b1120';
+    ctx.fillStyle=HG.base; ctx.fillRect(-W,top,W*3,H-top+H);
+    ctx.fillStyle=HG.rib;
     for(let y=G.door+40;wy(y)<H+40;y+=120){ const sy=wy(y); if(sy<top-40) continue;
-      ctx.fillRect(0,sy,cx-half-30,18); ctx.fillRect(cx+half+30,sy,W,18); }
+      ctx.fillRect(-W,sy,W+cx-half-30,18); ctx.fillRect(cx+half+30,sy,W*2,18); }
     // the floor, plated, with the rail up the middle
-    ctx.fillStyle='#0c1222'; ctx.fillRect(cx-half,top,cw,H-top);
-    ctx.strokeStyle='#151d33'; ctx.lineWidth=1; ctx.beginPath();
+    ctx.fillStyle=HG.floor; ctx.fillRect(cx-half,top,cw,H-top+H);
+    ctx.strokeStyle=HG.line; ctx.lineWidth=1; ctx.beginPath();
     for(let y=G.door;wy(y)<H;y+=48){ const sy=wy(y); if(sy<top) continue; ctx.moveTo(cx-half,sy); ctx.lineTo(cx+half,sy); }
     ctx.moveTo(cx-half*.5,top); ctx.lineTo(cx-half*.5,H); ctx.moveTo(cx+half*.5,top); ctx.lineTo(cx+half*.5,H);
     ctx.stroke();
-    ctx.strokeStyle='#2c3a5c'; ctx.lineWidth=3; ctx.beginPath();
+    ctx.strokeStyle=HG.edge; ctx.lineWidth=3; ctx.beginPath();
     ctx.moveTo(cx-16,top); ctx.lineTo(cx-16,H); ctx.moveTo(cx+16,top); ctx.lineTo(cx+16,H); ctx.stroke();
-    ctx.strokeStyle='rgba(255,180,77,.32)'; ctx.lineWidth=2; ctx.beginPath();
+    ctx.strokeStyle='rgba('+HG.beacon+',.32)'; ctx.lineWidth=2; ctx.beginPath();
     for(let y=G.door+20;wy(y)<H;y+=64){ const sy=wy(y); if(sy<top) continue;
       ctx.moveTo(cx-9,sy+8); ctx.lineTo(cx,sy); ctx.lineTo(cx+9,sy+8); }
     ctx.stroke();
     // the walls, and the light strips along them: dark, then chasing to the doors
-    ctx.fillStyle='#10182b'; ctx.fillRect(cx-half-26,top,26,H-top); ctx.fillRect(cx+half,top,26,H-top);
-    ctx.strokeStyle='#33456d'; ctx.lineWidth=1.5; ctx.beginPath();
+    ctx.fillStyle=HG.wall; ctx.fillRect(cx-half-26,top,26,H-top+H); ctx.fillRect(cx+half,top,26,H-top+H);
+    ctx.strokeStyle=HG.edge; ctx.lineWidth=1.5; ctx.beginPath();
     ctx.moveTo(cx-half,top); ctx.lineTo(cx-half,H); ctx.moveTo(cx+half,top); ctx.lineTo(cx+half,H); ctx.stroke();
     const streak=Math.min(140,L.v*.03);
     for(let y=G.door+30;wy(y)<H+20;y+=56){
       const sy=wy(y); if(sy<top-8) continue;
       const on=t>=CUT_SPOOL+(G.y0-y)/700;
-      ctx.fillStyle=on?'#9fd0ff':'#1a2236';
-      if(on){ ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=12; }
+      ctx.fillStyle=on?HG.strip:HG.rib;
+      if(on){ ctx.shadowColor=HG.strip; ctx.shadowBlur=12; }
       ctx.fillRect(cx-half-17,sy-4-streak,8,8+streak); ctx.fillRect(cx+half+9,sy-4-streak,8,8+streak);
       ctx.shadowBlur=0;
     }
@@ -7531,24 +7883,29 @@ function launchDraw(){
       const sy=wy(by); if(sy<top||sy>H) continue;
       for(const bx of [cx-half-13, cx+half+13]){
         const a=t*5.5+(bx<cx?0:Math.PI);
-        ctx.fillStyle='rgba(255,180,77,.16)'; ctx.beginPath(); ctx.moveTo(bx,sy);
+        ctx.fillStyle='rgba('+HG.beacon+',.16)'; ctx.beginPath(); ctx.moveTo(bx,sy);
         ctx.arc(bx,sy,140,a-.32,a+.32); ctx.closePath(); ctx.fill();
-        ctx.fillStyle='#ffb44d'; ctx.beginPath(); ctx.arc(bx,sy,5,0,TAU); ctx.fill();
+        ctx.fillStyle='rgb('+HG.beacon+')'; ctx.beginPath(); ctx.arc(bx,sy,5,0,TAU); ctx.fill();
       }
     }
     // the blast doors: the frame, and two halves sliding into the walls
     if(dy>-30){
-      ctx.fillStyle='#22304d'; ctx.fillRect(0,dy-16,cx-half,32); ctx.fillRect(cx+half,dy-16,W,32);
-      const dw=half*(1-od);
-      if(dw>0.5){
-        for(const [x0,sgn] of [[cx-half,1],[cx+half,-1]]){
-          const x1=x0+sgn*dw;
-          ctx.fillStyle='#1d2740'; ctx.fillRect(Math.min(x0,x1),dy-12,dw,24);
-          ctx.save(); ctx.beginPath(); ctx.rect(Math.min(x0,x1),dy-12,dw,24); ctx.clip();
-          ctx.strokeStyle='rgba(255,180,77,.55)'; ctx.lineWidth=6; ctx.beginPath();
-          for(let x=Math.min(x0,x1)-30;x<Math.max(x0,x1)+30;x+=22){ ctx.moveTo(x,dy+14); ctx.lineTo(x+24,dy-14); }
-          ctx.stroke(); ctx.restore();
-        }
+      ctx.fillStyle=HG.frame; ctx.fillRect(-W,dy-16,W+cx-half,32); ctx.fillRect(cx+half,dy-16,W*2,32);
+      // the panels still across the bay, by this hangar's kind of door
+      const panes=[];
+      if(HG.door==='slide'){ const dw=half*(1-od); if(dw>.5){ panes.push([cx-half,dy-12,dw,24]); panes.push([cx+half-dw,dy-12,dw,24]); } }
+      else if(HG.door==='single'){ const dw=cw*(1-od); if(dw>.5) panes.push([cx+half-dw,dy-12,dw,24]); }
+      else if(HG.door==='slats'){ const n=6, sw=cw/n;
+        for(let i=0;i<n;i++){ const k=clamp(od*1.8-Math.abs(i-(n-1)/2)*.16,0,1), hh=24*(1-k);
+          if(hh>.5) panes.push([cx-half+i*sw+1,dy-hh/2,sw-2,hh]); } }
+      else if(HG.door==='split'){ const g=od*30, hh=12*(1-od);
+        if(hh>.3){ panes.push([cx-half,dy-12-g,cw,hh]); panes.push([cx-half,dy+12-hh+g,cw,hh]); } }
+      for(const [px,py,pw,ph] of panes){
+        ctx.fillStyle=HG.panel; ctx.fillRect(px,py,pw,ph);
+        ctx.save(); ctx.beginPath(); ctx.rect(px,py,pw,ph); ctx.clip();
+        ctx.strokeStyle='rgba('+HG.beacon+',.55)'; ctx.lineWidth=6; ctx.beginPath();
+        for(let x=px-30;x<px+pw+30;x+=22){ ctx.moveTo(x,dy+14); ctx.lineTo(x+24,dy-14); }
+        ctx.stroke(); ctx.restore();
       }
       if(t>=CUT_DOOR-.4 && !L.passed && Math.floor(t*6)%2){
         ctx.fillStyle='#ff4d5e'; ctx.fillRect(cx-half-24,dy-5,10,10); ctx.fillRect(cx+half+14,dy-5,10,10);
@@ -7586,6 +7943,31 @@ function launchDraw(){
   shipPath(ctx,15,player.st.hull); ctx.fill(); ctx.stroke();
   ctx.restore(); ctx.shadowBlur=0;
 }
+function launchDraw(){ ctx.save(); launchScene(); ctx.restore(); }
+/* The bay a launch leaves from. Every system has its own: its light, its
+   warning colour and its door. Colours are hex for
+   fills, "r,g,b" where the drawing needs to set its own alpha. */
+const HANGARS=[
+  /* EARTH   */ {base:'#070a14',rib:'#0b1120',floor:'#0c1222',line:'#151d33',edge:'#2c3a5c',wall:'#10182b',frame:'#22304d',panel:'#1d2740',
+                 strip:'#9fd0ff',glow:'77,157,255', beacon:'255,180,77', door:'slide'},
+  /* VENUS   */ {base:'#0d0806',rib:'#1a100a',floor:'#160e0a',line:'#2a1a12',edge:'#5c3a22',wall:'#22140d',frame:'#4a2c1a',panel:'#331f14',
+                 strip:'#ffc27a',glow:'255,150,60', beacon:'255,106,60', door:'single'},
+  /* JUPITER */ {base:'#0c0a08',rib:'#17120d',floor:'#15110c',line:'#2a2118',edge:'#5a4630',wall:'#201912',frame:'#43352a',panel:'#30261c',
+                 strip:'#f0c890',glow:'230,170,110',beacon:'255,138,92', door:'slats'},
+  /* SATURN  */ {base:'#0b0a06',rib:'#17150b',floor:'#14120a',line:'#2a2614',edge:'#5e5326',wall:'#1f1c0f',frame:'#4a4220',panel:'#332e16',
+                 strip:'#ffe08a',glow:'232,200,114',beacon:'255,210,77', door:'split'},
+  /* LUNA    */ {base:'#08090c',rib:'#121418',floor:'#111317',line:'#1f2229',edge:'#4a4f5c',wall:'#181a20',frame:'#353944',panel:'#262a33',
+                 strip:'#e6ecf5',glow:'214,217,224',beacon:'169,184,255', door:'slide'},
+  /* NEPTUNE */ {base:'#050a12',rib:'#0a1626',floor:'#0a1424',line:'#12233a',edge:'#1f4a78',wall:'#0e1c32',frame:'#1a3a60',panel:'#132b48',
+                 strip:'#7fe3ff',glow:'47,168,255', beacon:'63,216,224', door:'slats'},
+  /* EUROPA  */ {base:'#060b0f',rib:'#0e1a22',floor:'#0d1820',line:'#172a36',edge:'#3a6a80',wall:'#13222c',frame:'#2a4c5c',panel:'#1d3642',
+                 strip:'#bff4ff',glow:'127,216,255',beacon:'159,232,255', door:'split'},
+  /* SOL     */ {base:'#0f0705',rib:'#1f0e08',floor:'#1a0c07',line:'#33170c',edge:'#7a3a18',wall:'#26110a',frame:'#5c2a12',panel:'#3f1d0e',
+                 strip:'#ffcf5a',glow:'255,140,40', beacon:'255,77,60', door:'single'},
+  /* ICARUS  */ {base:'#09060f',rib:'#140d1f',floor:'#120b1c',line:'#221636',edge:'#4e3478',wall:'#1a1029',frame:'#3a2558',panel:'#28193e',
+                 strip:'#c78dff',glow:'157,107,255',beacon:'255,77,94', door:'slats'},
+];
+const hangar=()=>HANGARS[clamp(sysIdx|0,0,HANGARS.length-1)];
 
 // a soft elliptical smear of one colour, for cloud, haze, land and storms
 function sceneBlob(g,x,y,rx,ry,rgb,a,rot){
@@ -8586,7 +8968,7 @@ const GLITCH_LINES=[
   'SHIP COMMS OFFLINE',
   'THE RULER HAS COME',
   'THE RULER HAS COME',
-  'HEY STOP READING THIS!! - OSCAR',
+  'HEY STOP READING THIS!!',
 ];
 
 /* The victory panel breaks like a pane of glass: a fan of wedges out of the
@@ -9250,7 +9632,39 @@ function missionEnd(win,why){
   player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*.15);
   save.best=Math.max(save.best,score); persist();
   branchSortie=false;
-  missionVictory(M);
+  winScene=M;
+  // a boss mission has already had its own death scene; the rest get one here
+  if(M.k==='boss'){ winScene=null; missionVictory(M); return; }
+  winOut();
+}
+/* ---- the side mission's way out ----
+   Winning used to cut straight to the result card. Now the arena is cleared
+   with a ring, the ship turns nose-up and burns off the top of the screen,
+   and the card waits for it to go. Nothing can hurt it while this plays. */
+const WIN_T=2.6;
+function winOut(){
+  const P=player;
+  winT=0; P.vx*=.3; P.vy*=.3; P.inv=WIN_T+1; P.dashT=0;
+  slow(.6); flash=.6; shake=10;
+  shock(P.x,P.y,'#46e39b',20,W*.8,.9,7);
+  shock(P.x,P.y,'#dfe9ff',10,W*.5,.6,4);
+  banner='MISSION COMPLETE'; bannerT=WIN_T;
+  SFX.branch();
+  // the beat runs on real time, so a pause mid-scene waits for the resume
+  const go=()=>{ if(paused){ after(.2,go); return; }
+    const M=winScene; winScene=null; if(M&&state==='play') missionVictory(M); };
+  after(WIN_T,go);
+}
+function winStep(dt){
+  const P=player; winT+=dt;
+  P.inv=Math.max(P.inv,.5);
+  // turn to face up, hang a beat, then burn hard for the top edge
+  let d=-Math.PI/2-P.a; d=Math.atan2(Math.sin(d),Math.cos(d));
+  P.a+=d*Math.min(1,dt*6);
+  if(winT>.7){ P.vy-=1900*dt; P.vx*=.9;
+    if(parts.length<PARTS_MAX) parts.push({x:P.x+rand(-4,4),y:P.y+14,vx:rand(-30,30),vy:rand(120,260),t:0,life:rand(.3,.6),col:'#9fd0ff',r:rand(1.6,3.2)}); }
+  else { P.vx*=.92; P.vy*=.92; }
+  P.x+=P.vx*dt; P.y+=P.vy*dt;
 }
 
 /* The result screen for a side branch: the same card a held system gets, with
@@ -9286,7 +9700,7 @@ function missionVictory(M){
   $('doneStats').innerHTML = lpanel('RESULT',
     extra+
     lrow('CREDITS EARNED','+'+M.pay+' CR'+(M.first?'':'  (REFLOWN)'),'good')+
-    lrow('CREDITS BANKED', save.credits)+
+    lrow('TOTAL CREDITS', save.credits)+
     lrow('SCORE', score));
   const t=SIDE_CLEAR_TEXT[M.k];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
@@ -9325,7 +9739,7 @@ function missionDraw(){
     ctx.beginPath();
     for(let n=M.gi;n<M.gates.length;n++){ const g=M.gates[n]; n===M.gi?ctx.moveTo(g.x,g.y):ctx.lineTo(g.x,g.y); }
     ctx.stroke(); ctx.setLineDash([]);
-    ctx.font='11px Menlo,monospace'; ctx.textAlign='center';
+    ctx.font='13px Menlo,monospace'; ctx.textAlign='center';
     for(let n=M.gates.length-1;n>=M.gi;n--){
       const g=M.gates[n], cur=n===M.gi, nxt=n===M.gi+1;
       ctx.globalAlpha=cur?1:nxt?.5:.18;
@@ -9934,7 +10348,6 @@ function draw(){
         ctx.strokeStyle='rgba(63,216,224,'+(buffs.shield<1.6?.35+.35*Math.sin(waveTimer*22):.8)+')';
         ctx.lineWidth=2; ctx.shadowColor='#3fd8e0'; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
       }
-      hpbar(P.x,P.y+22,44,P.hp/P.st.maxHp,'#46e39b');
     }
   }
   ctx.restore();
@@ -9990,21 +10403,21 @@ function duoBar(any){
   half(p0,p0.col,true); half(p1,p1.col,false);
   ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.moveTo(x+hw,y-3); ctx.lineTo(x+hw,y+16); ctx.stroke();
   ctx.globalAlpha=.35; ctx.strokeStyle='#9fd8ff'; ctx.strokeRect(x+.5,y+.5,w,13); ctx.globalAlpha=1;
-  ctx.textAlign='center'; ctx.font='11px Menlo,monospace';
+  ctx.textAlign='center'; ctx.font='13px Menlo,monospace';
   const p2=(alive(p0)&&p0.tier>=1)||(alive(p1)&&p1.tier>=1);
   ctx.fillStyle=p2?'#9fd8ff':'#b7a6ef';
   ctx.fillText(any.bn+(p2?' \u2014 PHASE 2':''),W/2,y-8);
-  ctx.font='10px Menlo,monospace';
+  ctx.font='12px Menlo,monospace';
   ctx.fillStyle=p0.col; ctx.textAlign='left'; ctx.fillText(p0.B.n,x,y+26);
   ctx.fillStyle=p1.col; ctx.textAlign='right'; ctx.fillText(p1.B.n,x+w,y+26);
   ctx.textAlign='center';
   const waiting=[p0,p1].find(e=>alive(e)&&e.ward);
   if(waiting&&waiting.twin){
-    ctx.fillStyle='#9fd8ff'; ctx.font='600 11px Menlo,monospace';
+    ctx.fillStyle='#9fd8ff'; ctx.font='600 13px Menlo,monospace';
     ctx.fillText(waiting.B.n+' SHIELDED \u00b7 BRING '+waiting.twin.B.n+' TO HALF',W/2,y-24);
   }else{
     const op=[p0,p1].find(e=>alive(e)&&e.open>0);
-    if(op){ ctx.fillStyle='#ffd24d'; ctx.font='600 11px Menlo,monospace';
+    if(op){ ctx.fillStyle='#ffd24d'; ctx.font='600 13px Menlo,monospace';
       ctx.fillText(op.B.n+' EXPOSED  \u00d7'+player.st.punish.toFixed(1),W/2,y-24); }
   }
 }
@@ -10035,7 +10448,7 @@ function missionClock(){
   ctx.font='600 '+Math.round(30+(hot?8*pu:0))+'px Menlo,monospace';
   ctx.fillStyle='rgba('+col+','+(.85+.15*pu)+')';
   ctx.fillText(left.toFixed(1),W/2,y-12);
-  ctx.font='10px Menlo,monospace'; ctx.fillStyle='rgba('+col+',.7)';
+  ctx.font='12px Menlo,monospace'; ctx.fillStyle='rgba('+col+',.7)';
   ctx.fillText(M.k==='hold'?'HOLD FOR':M.k==='bounty'?'TARGET ESCAPES IN':M.k==='eye'||M.k==='mirror'?'SURVIVE':'TIME LEFT',W/2,y-48);
   ctx.restore();
 }
@@ -10047,12 +10460,12 @@ function hud(){
   ctx.fillStyle= P.hp/st.maxHp<.3?'#ff4d5e':'#46e39b';
   ctx.fillRect(24,24,300*clamp(P.hp/st.maxHp,0,1),15);
   ctx.strokeStyle='rgba(223,233,255,.35)'; ctx.lineWidth=1; ctx.strokeRect(24.5,24.5,300,15);
-  ctx.font='11px Menlo,monospace'; ctx.fillStyle='#7d8bb0'; ctx.textAlign='left';
+  ctx.font='13px Menlo,monospace'; ctx.fillStyle='#7d8bb0'; ctx.textAlign='left';
   ctx.fillText('HULL  '+Math.ceil(P.hp)+' / '+Math.round(st.maxHp),24,54);
 
   ctx.textAlign='right'; ctx.font='13px Menlo,monospace'; ctx.fillStyle='#dfe9ff';
   ctx.fillText('SCORE '+score,W-24,32);
-  ctx.fillStyle='#7d8bb0'; ctx.font='11px Menlo,monospace';
+  ctx.fillStyle='#7d8bb0'; ctx.font='13px Menlo,monospace';
   if(rush){
     ctx.fillStyle='#ffd24d';
     ctx.fillText('BOSS RUSH — '+(rush.i+1)+' / '+SYSTEMS.length,W-24,52);
@@ -10098,17 +10511,17 @@ function hud(){
   let bx=24, by=st.dash?92:74;
   for(const k in buffs){
     if(buffs[k]<=0) continue;
-    const P0=PUPS[k], w=104;
+    const P0=PUPS[k], w=142, bh=18;
     ctx.globalAlpha = buffs[k]<2 && Math.floor(buffs[k]*6)%2 ? .35 : 1;
-    ctx.fillStyle='rgba(255,255,255,.09)'; ctx.fillRect(bx,by,w,13);
+    ctx.fillStyle='rgba(255,255,255,.09)'; ctx.fillRect(bx,by,w,bh);
     ctx.fillStyle=P0.col; ctx.globalAlpha*=.28;
-    ctx.fillRect(bx,by,w*clamp(buffs[k]/P0.time,0,1),13);
+    ctx.fillRect(bx,by,w*clamp(buffs[k]/P0.time,0,1),bh);
     ctx.globalAlpha = buffs[k]<2 && Math.floor(buffs[k]*6)%2 ? .35 : 1;
-    ctx.strokeStyle=P0.col; ctx.lineWidth=1; ctx.strokeRect(bx+.5,by+.5,w,13);
-    ctx.fillStyle=P0.col; ctx.font='10px Menlo,monospace'; ctx.textAlign='left';
-    ctx.fillText(P0.ch+'  '+P0.n,bx+6,by+10);
+    ctx.strokeStyle=P0.col; ctx.lineWidth=1; ctx.strokeRect(bx+.5,by+.5,w,bh);
+    ctx.fillStyle=P0.col; ctx.font='12px Menlo,monospace'; ctx.textAlign='left';
+    ctx.fillText(P0.ch+'  '+P0.n,bx+7,by+13);
     ctx.globalAlpha=1;
-    by+=17;
+    by+=bh+5;
   }
 
   // what you just picked up
@@ -10142,7 +10555,7 @@ function hud(){
       ctx.strokeStyle='rgba(230,220,255,.5)'; ctx.beginPath();
       ctx.moveTo(x+w*t,y); ctx.lineTo(x+w*t,y+13); ctx.stroke();
     }
-    ctx.textAlign='center'; ctx.font='11px Menlo,monospace';
+    ctx.textAlign='center'; ctx.font='13px Menlo,monospace';
     ctx.fillStyle=boss.tier?boss.col:'#b7a6ef';
     ctx.fillText(boss.tier?boss.B.tiers[boss.tier].n:boss.bn,W/2,y-8);
     // armour and openings both change what your rounds are worth: say so
@@ -10155,14 +10568,8 @@ function hud(){
       ctx.fillStyle='rgba(255,77,94,.25)'; ctx.fillRect(x,y-4,w,3);
       ctx.fillStyle='#ff4d5e'; ctx.fillRect(x,y-4,w*p,3);
     }else if(boss.open>0){
-      ctx.fillStyle='#ffd24d'; ctx.font='600 11px Menlo,monospace';
+      ctx.fillStyle='#ffd24d'; ctx.font='600 13px Menlo,monospace';
       ctx.fillText('EXPOSED  \u00d7'+P.st.punish.toFixed(1),W/2,y-24);
-    }else if(boss.held>0){
-      ctx.fillStyle='#8a93ad'; ctx.font='600 11px Menlo,monospace';
-      ctx.fillText('GUARD HELD \u00b7 YOU WERE HIT',W/2,y-24);
-    }else if(boss.marked){
-      ctx.fillStyle='#6b7390'; ctx.font='11px Menlo,monospace';
-      ctx.fillText('HIT TAKEN \u00b7 NO OPENING THIS LINE',W/2,y-24);
     }
   }
 
@@ -10367,6 +10774,9 @@ function gearHome(){
   const m=IN_LEVEL();
   $('gearBtn').classList.toggle('mid',m);
   $('gearPanel').classList.toggle('mid',m);
+  const gone=m&&!$('pause').classList.contains('on');
+  $('gearBtn').classList.toggle('gone',gone);
+  if(gone&&gearIsOpen()&&!gearHeld) gearClose();
 }
 const gearIsOpen=()=>$('gearPanel').classList.contains('on');
 // where to come back to when a gear destination is closed
@@ -10387,7 +10797,7 @@ function gearBack(){
 /* ================= UI ================= */
 const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','medals','extras','rewards','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -10646,10 +11056,10 @@ function mapArt(dt){
     g.fillStyle='rgba(226,198,255,'+(.45+.4*Math.sin(mapT*2.6))+')';
     g.fillRect(26,-7,15,14);
     g.restore();
-    g.font='10px Menlo,monospace'; g.textAlign='center';
+    g.font='12px Menlo,monospace'; g.textAlign='center';
     g.fillStyle='rgba(199,141,255,.75)';
     g.fillText('I C A R U S',cx,yl+bob+46*S);
-    g.font='8px Menlo,monospace'; g.fillStyle='rgba(140,110,190,.7)';
+    g.font='10px Menlo,monospace'; g.fillStyle='rgba(140,110,190,.7)';
     g.fillText('CENTER OF COMMAND',cx,yl+bob+59*S);
     g.textAlign='left';
   }
@@ -10847,9 +11257,24 @@ function treeArt(dt){
   g.globalAlpha=1; g.shadowBlur=0;
 }
 
+/* The four branches, left to right: a name over each column and a tint of its
+   own on the column and on every node in it. `c` is "r,g,b". */
+const BRANCHES=[
+  {x:11, n:'DAMAGE',              c:'255,77,94'},
+  {x:33, n:'ARSENAL',             c:'200,208,222'},
+  {x:56, n:'DEFENSIVE',           c:'70,227,155'},
+  {x:79, n:'SPEED',               c:'77,157,255'},
+];
+const branchAt=x=>BRANCHES.find(b=>b.x===x)||BRANCHES[0];
 function buildTree(){
   const t=$('tree'), svg=$('lines');
-  t.querySelectorAll('.node').forEach(n=>n.remove());
+  t.querySelectorAll('.node,.band').forEach(n=>n.remove());
+  $('treeHeads').innerHTML=BRANCHES.map(b=>
+    '<div class="bh" style="left:'+b.x+'%; --bc:'+b.c+'">'+b.n+'</div>').join('');
+  for(const b of BRANCHES){
+    const d=document.createElement('div'); d.className='band';
+    d.style.left=b.x+'%'; d.style.setProperty('--bc',b.c); t.appendChild(d);
+  }
   svg.innerHTML='';
   const ns='http://www.w3.org/2000/svg';
   for(const s of SKILLS){
@@ -10868,6 +11293,7 @@ function buildTree(){
     const d=document.createElement('div');
     d.className='node '+(has(s.id)?'own':canBuy(s)?'can':(!s.req||has(s.req))?'':'locked');
     d.style.left=s.x+'%'; d.style.top=s.y+'%';
+    d.style.setProperty('--bc',branchAt(s.x).c);
     const tier = tierOf(s.id);               // one definition, not two
     d.innerHTML='<div class="tr">T'+tier+'</div>'+
                 '<div class="nm">'+s.n.replace(/\n/g,'<br>')+'</div>'+
@@ -10876,10 +11302,9 @@ function buildTree(){
     if(s.id===treeFresh) d.classList.add('fresh');
     if(branchOf(s).every(k=>has(k.id))) d.classList.add('done');
     if(s.id===treeSel) d.classList.add('sel');
-    // the first click reads the skill; a second click on it (or BUY) buys it
+    // a click reads the skill; buying is BUY, then CONFIRM, in the card below
     d.onclick=()=>{
-      if(treeSel!==s.id){ treeSel=s.id; buildTree(); return; }
-      buySkill(s); buildTree();
+      if(treeSel!==s.id){ treeSel=s.id; buyAsk=null; buildTree(); }
     };
     t.appendChild(d);
   }
@@ -10902,24 +11327,61 @@ function buySkill(s){
   refreshMenu();
   setTimeout(()=>{ if(landed===s.id){ landed=null; buildTree(); } },950);
 }
+/* What a skill does to the ship, as numbers: every stat it moves, before and
+   after. Worked out from stats() itself, with and without the skill, so it
+   can never disagree with what the ship actually gets. */
+const SKILL_STATS=[
+  ['HEALTH',      s=>s.maxHp,                 v=>Math.round(v)],
+  ['DAMAGE',      s=>s.dmg,                   v=>+v.toFixed(1)],
+  ['FIRE RATE',   s=>1/s.delay,               v=>v.toFixed(1)+'/s'],
+  ['SHOTS',       s=>s.shots,                 v=>v],
+  ['PIERCE',      s=>s.pierce,                v=>v?v+' ENEMIES':'NONE'],
+  ['EXPOSED HITS',s=>s.punish,                v=>'\u00d7'+v],
+  ['REPAIR',      s=>s.regen,                 v=>v?v+' HP/s':'NONE'],
+  ['DAMAGE TAKEN',s=>s.armour,                v=>Math.round(v*100)+'%'],
+  ['SPEED',       s=>s.speed,                 v=>Math.round(v)],
+  ['DASH',        s=>s.dash?1:0,              v=>v?'YES':'NO'],
+  ['DASH SHIELD', s=>s.iframe?1:0,            v=>v?'YES':'NO'],
+  ['DASH LENGTH', s=>s.dashLen/DASH_LEN,      v=>'\u00d7'+(+v.toFixed(1))],
+];
+function skillDelta(sk){
+  const o=owned(), had=o.includes(sk.id);
+  if(had) o.splice(o.indexOf(sk.id),1);
+  const a=stats(); o.push(sk.id); const b=stats();
+  if(!had) o.pop();
+  return SKILL_STATS.filter(([,g])=>Math.abs(g(a)-g(b))>1e-6)
+    .map(([n,g,f])=>'<div class="si-d"><span>'+n+'</span> '+f(g(a))+' \u2192 '+f(g(b))+'</div>').join('');
+}
+let buyAsk=null;          // the skill whose purchase is waiting on CONFIRM
 function skillInfo(s){
   const box=$('skillInfo');
-  if(!s){ box.innerHTML='<span class="si-hint">CLICK A SKILL TO READ IT, AGAIN TO BUY</span>'; return; }
+  if(!s){ box.innerHTML='<span class="si-hint">CLICK A SKILL TO READ IT</span>'; return; }
   const own=has(s.id), ready=!s.req||has(s.req), cr=SKILL_CR(s);
   const status = own ? ['own','OWNED']
                : !ready ? ['no','NEEDS '+byId(s.req).n.replace(/\n/g,' ')]
                : save.credits<cr ? ['no',cr+' CR  \u00b7  NEED '+(cr-save.credits)+' MORE']
                : ['can',cr+' CR'];
+  // a skill behind one you do not own yet keeps what it does to itself
   box.innerHTML=
     '<div class="si-l"><div class="si-t">TIER '+tierOf(s.id)+'</div>'+
       '<div class="si-n">'+s.n.replace(/\n/g,' ')+'</div>'+
-      '<div class="si-d">'+s.d+'</div>'+
+      (ready?(skillDelta(s)||'<div class="si-d">'+s.d+'</div>'):'')+
       '<div class="si-s '+status[0]+'">'+status[1]+'</div>'+
-      '<p>'+s.info+'</p>'+
-      (canBuy(s)?'<button id="btnSkillBuy">BUY \u2014 '+cr+' CR</button>':'')+
+    '</div>'+
+    '<div class="si-r">'+
+      (buyAsk===s.id&&canBuy(s)
+        ? '<div class="si-ask"><div class="si-q">BUY '+s.n.replace(/\n/g,' ')+'?</div>'+
+            '<div class="si-row"><span>CREDITS</span><b>'+save.credits+'</b></div>'+
+            '<div class="si-row"><span>COST</span><b>\u2212'+cr+'</b></div>'+
+            '<div class="si-row tot"><span>AFTER</span><b>'+(save.credits-cr)+'</b></div>'+
+            '<div class="si-btns"><button id="btnSkillYes">CONFIRM</button><button id="btnSkillNo" class="ghost">CANCEL</button></div></div>'
+        : (ready?'<p>'+s.info+'</p>':'')+
+          (canBuy(s)?'<button id="btnSkillBuy">BUY \u2014 '+cr+' CR</button>':''))+
     '</div>';
-  const bb=$('btnSkillBuy');
-  if(bb) bb.onclick=()=>{ treeSel=s.id; buySkill(s); buildTree(); };
+  const bb=$('btnSkillBuy'), yes=$('btnSkillYes'), no=$('btnSkillNo');
+  if(bb)  bb.onclick=()=>{ buyAsk=s.id; SFX.ui(); skillInfo(s); };
+  if(no)  no.onclick=()=>{ buyAsk=null; skillInfo(s); };
+  if(yes) yes.onclick=()=>{ buyAsk=null; treeSel=s.id; buySkill(s); buildTree(); };
 }
 
 /* ---- respec ----
@@ -11001,25 +11463,21 @@ const CODEX={
      t:'Fires blue pulses. The basic enemy unit. It holds its distance, and orbits. '+
        'From Jupiter it shoots twice as fast.'},
     {c:'#46e39b', n:'WATCHER', tag:'EARTH  ·  RAM', sys:0,
-     u:'dart', a:[cxEnemy('dart',0),122,9,0,9], ctr:'Kill it at range, it costs nothing there.',
+     u:'dart', a:[cxEnemy('dart',0),122,9,0,9], ctr:'Kill it from far away.',
      t:'Fast but weak. Tries to ram you. '+
-       'Inside close range it accelerates. It '+
-       'dies on impact but it takes your ship with it.'},
+       'It speeds up when it gets close to you. Kill it before it can.'},
     {c:'#ff4d5e', n:'PRIMARY', tag:'EARTH  ·  HEAVY', sys:0,
-     u:'heavy', a:[cxEnemy('heavy',0),44,17,.37,20], ctr:'Slowest thing in the roster. Never fight it standing still.',
-     t:"The enemy's elite. Strong tanks that will fire large bombs at you. It never "+
-       'retreats, it leads its shots, and from Venus it sometimes braces and '+
-       'opens with a five-shell spread instead of three.'},
+     u:'heavy', a:[cxEnemy('heavy',0),44,17,.37,20], ctr:'It is slow. Stay away while strafing it.',
+     t:"The enemy's elite. Strong tanks that will fire three large bombs at you. "+
+       'It never retreats. After the later systems, it starts to fire five bombs.'},
     {c:'#ffb44d', n:'TRACKER', tag:'VENUS  ·  SEEKER', sys:1,
-     u:'tracker', a:[cxEnemy('tracker',1),120,12,.32,10], ctr:'Outrun the seekers for a few seconds and they go straight. Then close.',
-     t:'Hangs back and launches homing seekers. Outrun them — they burn out after '+
-       'about four and a half seconds and fly straight afterwards. From Jupiter '+
-       'it fires them two at a time.'},
+     u:'tracker', a:[cxEnemy('tracker',1),120,12,.32,10], ctr:'Get up close and kill it before it fires.',
+     t:'Hangs back and launches homing seekers. '+
+       'After about five seconds, the seekers stop homing in. After the later systems, they fire two seekers each time.'},
     {c:'#3fd8e0', n:'OVERSEER', tag:'JUPITER  ·  SHIELDED', sys:2,
-     u:'overseer', a:[cxEnemy('overseer',2),62,9,.38,13], ctr:'The arc chases your gun. Keep moving around it, do not stop.',
-     t:'Carries a spinning shield arc. Shoot it from behind. The arc now drifts '+
-       'toward whichever side you are shooting from, so flanking it is something '+
-       'you keep doing, not something you do once.'},
+     u:'overseer', a:[cxEnemy('overseer',2),62,9,.38,13], ctr:'Circle around it and get behind its defenses.',
+     t:'Carries a spinning shield arc. Shoot it from behind. '+
+       'The shield drifts towards the side you are on.'},
     {c:'#e8c872', n:'ORBITER', tag:'SATURN  ·  RING', sys:3,
      u:'orbiter', a:[cxEnemy('orbiter',3),215,15,.43,18], ctr:'Dodge the blasts and go towards it. Close quarters is its weakness.',
      t:'A new Iteration type that will circle you and fire inwards.'},
@@ -11042,25 +11500,19 @@ const CODEX={
      u:'corona', a:[cxEnemy('corona',7),CORO_V,CORO_RKT_DMG,.3,18], ctr:'Kill it fast before it can get a shot off.',
      t:'A tough enemy that fires a wave of darts that merge together to make a damaging rocket.'},
     {c:'#d9c6ff', n:'SPLINTER', tag:'ICARUS  ·  BREEDER', sys:8,
-     u:'splinter', a:[cxEnemy('splinter',8),110,11,.42,16], ctr:'The fan opens along the line the orb was thrown. Cross that line early, do not back down it.',
+     u:'splinter', a:[cxEnemy('splinter',8),110,11,.42,16], ctr:'Get away from the orb before it splits, or dash through it.',
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
-       'you. Those shards continue to break until an unstoppable torrent of shards are coming. It holds a working distance and weaves while it reloads, so the orb '+
-       'is the warning and the fan is the attack.'},
+       'you. Those shards continue to break until an unstoppable torrent of shards are coming. '+
+       'It stays away, then fires the orbs.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'EARTH  ·  WAVE 5', sys:0,
      u:'b_primary', a:[cxHull(cxBoss('primary'),cxSys('primary')),62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
-     t:'A Primary that outgrew its mindframe. It never retreats, it never stops '+
-       'bracing, and once it is hurt it aims itself at you and blasts down the '+
-       'line it showed you. Do not be standing on that line.'},
+     t:'A tougher Primary that has different attacks.'},
     {c:'#46e39b', n:'THE HIVE MIND', tag:'VENUS  ·  WAVE 5', sys:1,
      u:'b_hive', a:[cxHull(cxBoss('hive'),cxSys('hive')),70,10,.44,15], ctr:'Ignore the Watchers it spawns until they get close. Focus fire on the core to kill it.',
-     t:'Not one enemy, a swarm around a core. It spits Watchers, and it sheds '+
-       'two more every time you take an eighth of its hull off it. Killing the '+
-       'core kills the swarm, so ignore the escorts and keep hitting the middle.'},
+     t:'A core that spawns hordes of Watchers. Killing the core wins you the mission.'},
     {c:'#3fd8e0', n:'ITERATION 2117', tag:'JUPITER  ·  WAVE 5', sys:2,
-     u:'b_overseer', a:[cxHull(cxBoss('overseer'),cxSys('overseer')),66,13,.46,15], ctr:'The arc blocks whatever it faces, so shoot from behind it.',
-     t:'An Overseer that has learned. Its shield arc is wider and it '+
-       'tracks you, so every shot has to come from somewhere it is not looking. '+
-       'Hurt, it rakes a rotating wall of fire across the whole arena.'},
+     u:'b_overseer', a:[cxHull(cxBoss('overseer'),cxSys('overseer')),66,13,.46,15], ctr:'The arc blocks all damage. Get around it.',
+     t:'A tougher Overseer with a giant shield that rotates faster.'},
     {c:'#e8c872', n:'THE ARCHITECT', tag:'SATURN  ·  WAVE 5', sys:3,
      u:'b_architect', a:[cxHull(cxBoss('architect'),cxSys('architect')),76,14,.45,15], ctr:'Get outside of its shapes before they burst.',
      t:'A new Iteration that builds exploding shapes. Move through the gaps in them to escape.'},
@@ -11088,13 +11540,11 @@ const CODEX={
        so neither is a padlock on the roster hinting at something you have not
        been told about yet. */
     {c:'#8dffc4', n:'ITERATION 3295', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'s3295',
-     u:'b_s3295', a:[cxHull(cxBoss('s3295'),PORTAL_SYS),145,17,.62,15], ctr:'Faster than anything on the route and it never settles. Take the gold flare when it comes \u2014 there will not be another for a while.',
-     t:'An Iteration that was never deployed. It fights at close range at speed, '+
-       'and its lines run longer between openings than any campaign boss.'},
+     u:'b_s3295', a:[cxHull(cxBoss('s3295'),PORTAL_SYS),145,17,.62,15], ctr:'Stay in one spot until it starts shooting, then dash before it can hit.',
+     t:'A never-deployed Iteration that circles you.'},
     {c:'#c78dff', n:'THE ARCHIVE', tag:'QUANTUM PORTAL  ·  OFF-ROSTER', sys:0, hide:'archive',
-     u:'b_archive', a:[cxHull(cxBoss('archive'),PORTAL_SYS),64,18,.66,15], ctr:'The hardest fight in the game. Its last tier is on a clock \u2014 run it out and it restores itself to full and starts again.',
-     t:'Everything the Iterations ever recorded, kept in one frame. It is slow, it '+
-       'is enormous, and it is beyond the Ruler.'},
+     u:'b_archive', a:[cxHull(cxBoss('archive'),PORTAL_SYS),64,18,.66,15], ctr:'Fly away on its phase change and max out your ship first.',
+     t:'A giant block that houses all of the knowledge of the Iterations.'},
   ]},
   cells:{ label:'CELLS', sub:'what wrecks leave behind', rows:[
     {c:'#46e39b', n:'HULL REPAIR', tag:'INSTANT  ·  +30% HULL', sys:0,
@@ -11104,7 +11554,7 @@ const CODEX={
     {c:'#ff4d5e', n:'OVERCHARGE', tag:'11 SECONDS', sys:0,
      t:'1.8x damage. Your rounds turn red.'},
     {c:'#3fd8e0', n:'BARRIER', tag:'6.5 SECONDS', sys:0,
-     t:'Nothing touches you. Ram a Watcher for free.'},
+     t:'You cannot be hit while it is active.'},
     {c:'#ffb44d', n:'SCATTER', tag:'12 SECONDS', sys:0,
      t:'A three-shot spread.'},
   ]},
@@ -11116,12 +11566,8 @@ const CODEX={
     {c:'#4d9dff', n:'CLICK', tag:'FIRE', sys:0, t:'Click and hold to fire.'},
     {c:'#4d9dff', n:'SHIFT', tag:'BLINK DASH', sys:0,
      t:'Needs the Blink Drive skill. Dashes the way you are thrusting.'},
-    {c:'#4d9dff', n:'P', tag:'PAUSE', sys:0,
+    {c:'#4d9dff', n:'P  /  ESC', tag:'PAUSE', sys:0,
      t:'Opens the pause menu, with a way back to the title screen.'},
-    {c:'#4d9dff', n:'ESC', tag:'BACK', sys:0,
-     t:'Backs out of any screen, and pauses a run.'},
-    {c:'#4d9dff', n:'ENTER', tag:'CONFIRM', sys:0,
-     t:'Presses the main button on whatever screen you are looking at.'},
   ]},
 };
 let codexTab='hostiles', codexSel=0;
@@ -11138,10 +11584,13 @@ const asMet=r=>codexTab!=='hostiles'||save.deepestSys>=r.sys;
 // a name you have not earned yet, rendered as the block characters it is
 const scramble=n=>n.replace(/[^ ]/g,'\u2593');
 
-// one section a visit: each has its own way in, so there is no tab row
+// the three lists share one screen, a tab each
 const CODEX_TITLE={hostiles:'BESTIARY', cells:'CELLS', controls:'CONTROLS'};
+$('codexTabs').onclick=ev=>{ const b=ev.target.closest('button'); if(!b||b.dataset.tab===codexTab) return;
+  codexTab=b.dataset.tab; codexSel=0; SFX.ui(); buildCodex(); };
 function buildCodex(){
   const sec=CODEX[codexTab];
+  for(const b of $('codexTabs').children) b.classList.toggle('on', b.dataset.tab===codexTab);
   $('codexTitle').textContent=CODEX_TITLE[codexTab]||sec.label;
   $('codexSub').textContent=sec.sub;
   const rows=asRows(sec);
@@ -11293,7 +11742,8 @@ function shipArt(cv2,hull){
   g.save(); g.translate(w/2,h/2); g.rotate(-Math.PI/2);
   g.fillStyle='#0a1426'; g.strokeStyle='#dfe9ff'; g.lineWidth=2.2*k;
   g.shadowColor='#9fd0ff'; g.shadowBlur=14*k;
-  shipPath(g,Math.min(w,h)*.32,hull); g.fill(); g.stroke();
+  // nose up, so its length runs down the canvas: fit the longest hull (1.35r) and the widest (1.2r), with room for the glow
+  shipPath(g,Math.min(h/3.2,w/2.9),hull); g.fill(); g.stroke();
   g.restore();
 }
 
@@ -11358,8 +11808,10 @@ function buildGarage(){
     const ub=d.querySelector('.cup');
     if(ub) ub.onclick=ev=>{ ev.stopPropagation(); openHull(i); };
     bay.appendChild(d);
-    shipArt(d.querySelector('canvas'),i);
   });
+  // only once every card is in: a card measured while the bay is still filling
+  // is wider than it ends up, and its art gets squeezed with it
+  bay.querySelectorAll('canvas').forEach((c,i)=>shipArt(c,i));
 }
 /* A hull's upgrade screen: one row per stat, each with the meter (the hull's
    own number in blue, bought steps in gold, the next step outlined, any after
@@ -11487,8 +11939,9 @@ function buildSound(){
 const skillReady=()=>SKILLS.some(canBuy);
 function refreshMenu(){
   const buyable=SHIPS.some((sh,i)=>shipBuy(i));
-  $('btnTreeMenu').className = skillReady()?'hot':'ghost';
-  $('btnGarage').className = buyable?'hot':'ghost';
+  $('btnTreeMenu').className = 'hot';
+  $('btnGarage').className = 'hot';
+  $('btnExtras').className = 'ghost';
   $('btnGarage').textContent='GARAGE';
   buildSound(); buildDiff();
 }
@@ -11733,12 +12186,10 @@ $('gearClose').onclick=gearClose;
 $('btnExtras').onclick=()=>show('extras');
 $('btnExtrasBack').onclick=()=>{ refreshMenu(); show('menu'); };
 $('extCodex').onclick=()=>{ gearFrom='extras'; codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
-$('extCells').onclick=()=>{ gearFrom='extras'; codexTab='cells'; codexSel=0; buildCodex(); show('codex'); };
-$('extControls').onclick=()=>{ gearFrom='extras'; codexTab='controls'; codexSel=0; buildCodex(); show('codex'); };
 $('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
-$('extMedals').onclick=()=>{ gearFrom='extras'; buildMedals(); show('medals'); };
-$('extRewards').onclick=()=>{ gearFrom='extras'; buildRewards(); show('rewards'); };
-$('btnRewardsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
+$('extMedals').onclick=()=>{ gearFrom='extras'; medalTab='medals'; buildMedals(); show('medals'); };
+$('medalTabs').onclick=ev=>{ const b=ev.target.closest('button'); if(!b||b.dataset.tab===medalTab) return;
+  medalTab=b.dataset.tab; SFX.ui(); buildMedals(); };
 $('gearCode').onclick=()=>gearGo(openCode);
 $('btnMedalsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
@@ -11754,7 +12205,22 @@ $('btnStart').onclick=()=>{
 };
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
-$('btnRetry').onclick=()=>{ if(retryOk&&retryCost()!==undefined&&save.credits>=retryCost()){ retryOk=false; retryBoss(); } else SFX.deny(); };
+// RETRY BOSS asks first: what you have, what it costs, what is left
+$('btnRetry').onclick=()=>{
+  const c=retryCost();
+  if(!(retryOk&&c!==undefined&&save.credits>=c)){ SFX.deny(); return; }
+  $('raHave').textContent=save.credits; $('raCost').textContent='\u2212'+c; $('raAfter').textContent=save.credits-c;
+  // the medals this system still has to give, each one off the table for this flight
+  const have=medalsOf(sysIdx), goals=medalGoals(sysIdx);
+  $('raMiss').innerHTML=goals.map((g,k)=>have[k]?'':
+    '<div class="mm"><s>\u2715 NOT THIS FLIGHT</s><span><em>'+MEDAL_NAMES[sysIdx][k]+'</em> \u00b7 '+g+'</span></div>').join('');
+  SFX.ui(); $('retryAsk').classList.add('on');
+};
+$('btnRetryNo').onclick=()=>$('retryAsk').classList.remove('on');
+$('btnRetryYes').onclick=()=>{
+  $('retryAsk').classList.remove('on');
+  if(retryOk&&retryCost()!==undefined&&save.credits>=retryCost()){ retryOk=false; retryBoss(); } else SFX.deny();
+};
 // every flight off the map goes through the launching screen first
 function mapLaunch(i,k){
   mapPick=i; mapPickK=k||null;
@@ -11769,6 +12235,7 @@ $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
 $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnRegPrev').onclick=()=>mapRegStep(-1);
 $('btnRegNext').onclick=()=>mapRegStep(1);
+$('btnOverNext').onclick=()=>{ SFX.ui(); overStep(2); };
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 // the tree only opens from the home screen now, so it only ever goes back there
 let treeFrom='menu';
@@ -11780,39 +12247,9 @@ $('btnDoneTree').onclick=()=>{ treeFrom='done'; buildTree(); show('skills'); };
 // on the result card only while there is something to buy
 function doneTreeBtn(){ $('btnDoneTree').style.display = skillReady()?'':'none'; }
 
-/* ---- getting around fast ----
-   ESC always goes back one step (and pauses a run); ENTER always presses the
-   main button on whatever is in front of you. Every screen has a way home. */
-const openOverlay=()=>['menu','over','skills','story','medals','extras','rewards','launch','done','code','codex','pause','garage','hullup','map']
+// whichever full screen is showing, if any
+const openOverlay=()=>['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']
   .find(o=>$(o).classList.contains('on'));
-
-function onEscape(){
-  if(gearIsOpen()){ gearClose(); return; }
-  const o=openOverlay();
-  if(state==='play'&&!o){ setPause(true); return; }
-  if(o==='pause'){ setPause(false); return; }
-  if(o==='garage'){ closeGarage(); return; }
-  if(o==='hullup'){ closeHull(); return; }
-  if(o==='launch'){ $('btnLaunchBack').onclick(); return; }
-  if(o==='skills'){ $('btnTreeBack').onclick(); return; }
-  if(o==='menu') return;
-  if(o==='done'&&finaleArmed) return;         // the finale is about to break this card
-  // screens with a BACK of their own go back the way it does — the Bestiary
-  // opened from pause returns to pause, one opened from the gear to the gear
-  const back={codex:'btnCodexBack',code:'btnCodeBack',story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',rewards:'btnRewardsBack',map:'btnMapBack'}[o];
-  if(back){ $(back).onclick(); return; }
-  // anything else lands on the title, and the game has to know it is there
-  if(o){ state='menu'; refreshMenu(); show('menu'); }
-}
-function onEnter(){
-  const o=openOverlay();
-  const main={menu:'btnStart',over:$('btnRelaunch').style.display==='none'?'btnOverMenu':'btnRelaunch',pause:'btnResume',
-              skills:'btnTreeBack',codex:'btnCodexBack',garage:'btnGarageBack',hullup:'btnHullBack',
-              story:'btnStoryBack',medals:'btnMedalsBack',extras:'btnExtrasBack',rewards:'btnRewardsBack',code:'btnCodeBack',launch:'btnLaunchGo',done:'btnDoneGo'}[o];
-  if(!main) return;
-  const b=$(main);
-  if(b && b.style.display!=='none' && b.onclick) b.onclick();
-}
 
 /* ---- pause menu ---- */
 $('btnResume').onclick=()=>setPause(false);
@@ -11829,7 +12266,6 @@ $('btnGarage').onclick=openGarage;
 $('btnGarageBack').onclick=closeGarage;
 $('btnHullBack').onclick=closeHull;
 
-if(APP) $('linkApp').style.display='none';
 // the app calls this when you switch away from it or minimise it
 window.mfAppBlur=()=>{ if(state==='play'&&!paused) setPause(true); };
 
