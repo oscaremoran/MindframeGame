@@ -53,8 +53,8 @@ First release.
 - The result and launch cards scroll on short windows (1366×768 laptops
   could not reach SPACE MAP), and Enter continues from a result card.
 - Dying to Splinter shrapnel names the Splinter and gives its tip.
-- Resizing the window mid-flight ends the flight (credits kept)
-  with a screen to relaunch.
+- Resizing the window mid-flight (or leaving full screen) pauses the flight;
+  the arena is a fixed size, so nothing about the fight changes.
 - Opening another screen closes the Settings panel.
 - The mouse aims and fires over the black bars beside the arena too; aim
   holds at the arena's edge instead of freezing.

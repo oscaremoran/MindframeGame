@@ -1113,14 +1113,6 @@
     </div>
   </div>
 
-  <div id="resized" class="overlay">
-    <h1 style="font-size:clamp(20px,3.2vw,34px)">SYSTEM LOST</h1>
-    <p>Sorry, you must restart the system - your window size was changed.</p>
-    <div class="row" style="margin-top:22px">
-      <button id="btnResizedGo">RELAUNCH</button>
-      <button id="btnResizedMap" class="ghost">SPACE MAP</button>
-    </div>
-  </div>
 
   <div id="code" class="overlay">
     <button id="btnCodeBack" class="ghost back">&larr; BACK</button>
@@ -11095,9 +11087,6 @@ function setPause(on){
   }else hideAll();
 }
 // leaving a run early still banks what you earned — the run is what ends
-/* The window changed size mid-flight. The arena is laid out for the window it
-   started in, so the flight ends here rather than carrying on in a different
-   shape: what was earned is banked, as quitting does, and you fly it again. */
 /* The game is played full screen. In a browser that means real full screen,
    or a browser window that covers the whole display: the Mac's green button
    does that and keeps the toolbar, while an ordinary window, however big,
@@ -11131,16 +11120,16 @@ addEventListener('resize',fitCheck);
 document.addEventListener('fullscreenchange',fitCheck);
 document.addEventListener('webkitfullscreenchange',fitCheck);
 fitCheck();
+/* A resize mid-flight pauses it. The arena is a fixed 1000x680 canvas that is
+   only scaled to fit, so nothing about the fight changes; the pause is for the
+   player, who has just had the window move under them (Escape leaving full
+   screen in Safari or Firefox, the green button). If the window is now too
+   small, the full-screen card sits over the pause menu until it is not. */
 let winSize=[innerWidth,innerHeight];
 addEventListener('resize',()=>{
   const changed=innerWidth!==winSize[0]||innerHeight!==winSize[1];
   winSize=[innerWidth,innerHeight];
-  if(!changed||state!=='play') return;
-  if(gearIsOpen()) gearClose();
-  $('retryAsk').classList.remove('on');
-  entrance=null; phaseCut=null;
-  quitRun();
-  state='over'; show('resized');
+  if(changed&&state==='play'&&!paused&&!gearIsOpen()) setPause(true);
 });
 function quitRun(){
   paused=false;
@@ -11288,7 +11277,7 @@ function show(which){
   // a screen change takes the settings panel, and any purchase being asked, with it
   if(gearIsOpen()) gearClose();
   if(buyYes) buyAskClose();
-  for(const o of ['menu','over','skills','story','credits','medals','extras','launch','done','code','codex','pause','garage','hullup','map','resized']) $(o).classList.toggle('on', o===which);
+  for(const o of ['menu','over','skills','story','credits','medals','extras','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -12528,16 +12517,25 @@ refreshMenu();
    CREDITS is one [heading, names] pair per block, in the order shown. */
 const VERSION='1.0.0';
 const CREDITS=[
-  ['\u00abWRITE: credits heading\u00bb', '\u00abWRITE: names\u00bb'],
+  ['Mindframe: Defense of Earth', 'By Oscar Moran, with the help of Claude Opus 5.5. Thanks to all the playtesters who helped! Thanks to family, friends, and you for playing this game. I hope you enjoyed it! More is coming soon, so stay tuned. You can contact me at oscar.e.moran20@gmail.com.'],
 ];
 /* The screenshots the roll runs past, in order, one between each block of
    names (any left over follow the last block). Each is a file next to
    index.html; `cap` is an optional line under it. A shot that is missing is
    simply left out of the roll. */
 const CREDIT_SHOTS=[
-  // {src:'shots/01.png', cap:''},
+  {src:'shots/01.jpg', cap:''},   // the skill tree
+  {src:'shots/02.jpg', cap:''},   // the garage
+  {src:'shots/03.jpg', cap:''},   // the space map
+  {src:'shots/04.jpg', cap:''},   // brought down by the Archive
+  {src:'shots/05.jpg', cap:''},   // brought down by Triton
+  {src:'shots/06.jpg', cap:''},   // launching the Icarus
+  {src:'shots/07.jpg', cap:''},   // the full skill tree
+  {src:'shots/08.jpg', cap:''},   // the bestiary
+  {src:'shots/09.jpg', cap:''},   // medal rewards
+  {src:'shots/10.jpg', cap:''},   // the home screen
 ];
-const CREDITS_END='\u00abWRITE: closing line\u00bb';
+const CREDITS_END='THANKS FOR PLAYING!';
 const CREDITS_SPEED=62;            // px a second the roll climbs
 
 /* ---- the roll ----
@@ -12846,8 +12844,6 @@ $('btnStart').onclick=()=>{
 };
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
-$('btnResizedGo').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } else { state='menu'; refreshMenu(); show('menu'); } };
-$('btnResizedMap').onclick=()=>{ hideAll(); openMap('menu'); };
 // RETRY BOSS asks first: what you have, what it costs, what is left
 $('btnRetry').onclick=()=>{
   const c=retryCost();
@@ -12889,7 +12885,7 @@ $('btnDoneMenu').onclick=()=>{ if(finaleArmed) return; state='menu'; refreshMenu
 function doneTreeBtn(){ $('btnDoneMenu').style.display=''; }
 
 // whichever full screen is showing, if any
-const openOverlay=()=>['menu','over','skills','story','credits','medals','extras','launch','done','code','codex','pause','garage','hullup','map','resized']
+const openOverlay=()=>['menu','over','skills','story','credits','medals','extras','launch','done','code','codex','pause','garage','hullup','map']
   .find(o=>$(o).classList.contains('on'));
 
 /* ---- pause menu ---- */
