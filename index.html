@@ -417,6 +417,10 @@
   }
   #launchText,#doneText{max-width:min(92vw,560px); margin-top:4px; flex:0 0 auto; text-align:center}
   #doneKind{margin:0 0 6px; color:#46e39b; letter-spacing:.42em; font-size:calc(clamp(8px,.95vw,10px) + 3px)}
+  #doneStats .dc{display:flex; gap:8px}
+  #doneStats .dc input{flex:1; min-width:0; margin:0; font-size:13px; padding:8px 10px}
+  #doneStats .dc button{margin:0; padding:8px 18px}
+  #doneStats .dcm{min-height:1.2em; margin-top:6px; font-size:13px; letter-spacing:.1em}
   #doneStats,#overStats{
     display:grid; grid-template-columns:1fr; gap:14px;
     width:min(92vw,440px); margin:22px 0 4px; text-align:left;
@@ -916,6 +920,7 @@
     <div id="gearHead">SETTINGS</div>
     <div class="snd" id="sndGear"></div>
     <div class="diff" id="diffGear"></div>
+    <div class="diff" id="fxGear"></div>
     <div id="gearBtns">
       <button id="gearQuit" class="ghost">QUIT LEVEL</button>
       <button id="gearCode" class="ghost">SAVE CODE</button>
@@ -1368,7 +1373,7 @@ const SND={
   },
   // one oscillator, one envelope, gone
   tone(type,f0,f1,a,d,peak,dest){
-    if(!this.ctx) return;
+    if(!this.ctx||this.hush) return;
     const t=this.ctx.currentTime, o=this.ctx.createOscillator();
     o.type=type; o.frequency.setValueAtTime(f0,t);
     if(f1&&f1!==f0) o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+a+d);
@@ -1378,7 +1383,7 @@ const SND={
   },
   // filtered white noise, which is most of what an explosion is
   noise(dur,f0,f1,peak,q){
-    if(!this.ctx) return;
+    if(!this.ctx||this.hush) return;
     const t=this.ctx.currentTime, n=Math.floor(this.ctx.sampleRate*dur);
     const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate), ch=buf.getChannelData(0);
     for(let i=0;i<n;i++) ch[i]=(Math.random()*2-1)*(1-i/n);
@@ -2262,11 +2267,22 @@ addEventListener('keydown',e=>{
   SND.boot(); SND.resume();
   if(e.code==='Space'){e.preventDefault();}
   if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()) launchSkip();
+  else if(entrance&&state==='play'&&!paused&&!e.repeat&&entranceSeen()) entranceSkip();
   if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()){ e.preventDefault(); setPause(!paused); }
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
 });
 addEventListener('keyup',e=>keys[e.code]=false);
+/* Clicking away, a notification, another monitor: the keyup for whatever was
+   held goes to someone else, so every key is let go here, and a fight in
+   progress pauses rather than flying on with nobody at the controls. */
+function focusLost(){
+  for(const k in keys) keys[k]=false;
+  mouse.down=false;
+  if(state==='play'&&!paused&&!gearIsOpen()) setPause(true);
+}
+addEventListener('blur',focusLost);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) focusLost(); });
 function ptr(e){
   const r=cv.getBoundingClientRect();
   mouse.x=(e.clientX-r.left)*(W/r.width);
@@ -2541,7 +2557,7 @@ function beginSystem(){
   bullets=[];ebullets=[];enemies=[];
   clearBuffs();
   worldStart(); sceneStart();
-  toast=''; toastT=0;
+  toast=''; toastT=0; crToastT=0;
   wave=0; nextWave();
   state='play';
   launchStart();
@@ -2559,7 +2575,7 @@ const SYS_CLEAR_TEXT=[
   'The Titans have been destroyed! Congratulations. Prepare and continue.',
   'The Leviathan has been brought down! Congratulations. Prepare and continue.',
   'The Omega Space Station has been destroyed! Congratulations. Prepare and continue.',
-  'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon. -Oscar.',
+  'The Ruler has been defeated! Amazing work, cadet. You have beaten the main game! More content will be added soon.',
 ];
 
 /* ══════════════════════ MEDALS ══════════════════════
@@ -2836,6 +2852,12 @@ function systemCleared(){
     lrow('TOTAL CREDITS', save.credits)+
     lrow('SCORE', score)+
     lrow('BEST', save.best))+(fake?'':medalsPanel(i,fresh,MR&&MR.retried?'NO MEDALS THIS FLIGHT \u00b7 BOSS RETRIED':''));
+  // the save as it stands now, ready to copy somewhere safe
+  if(!fake) $('doneStats').insertAdjacentHTML('beforeend',
+    '<section class="lpanel dcode"><h3>SAVE CODE</h3><div class="dc"><input readonly value="'+makeCode()+'">'+
+    '<button class="ghost">COPY</button></div><div class="dcm"></div></section>');
+  const dc=$('doneStats').querySelector('.dcode');
+  if(dc) dc.querySelector('button').onclick=()=>copyCode(dc.querySelector('input'),dc.querySelector('.dcm'));
   const t=SYS_CLEAR_TEXT[i];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
   doneTreeBtn();
@@ -3178,6 +3200,9 @@ function takePup(k){
   shock(player.x,player.y,'#ffffff',10,58,.3,2.5);
 }
 let toast='', toastT=0, flash=0;
+// what a cleared wave paid, in gold, while the next one comes in
+let crToast='', crToastT=0;
+const CR_TOAST_T=2.4;
 
 
 /* ════════════════ SYSTEM BOSSES ════════════════
@@ -5159,6 +5184,22 @@ function bossEntrance(b){
   ]);
 }
 
+/* Like the launch: a boss's entrance plays in full the first time, and any key
+   skips it after that. Kept by boss key in save.entered. Skipping runs the
+   rest of the entrance in one step, so every beat it sets up still happens. */
+const entranceSeen=()=>!!entrance&&(save.entered||[]).includes(entrance.b.k);
+/* ...but quietly. The rest of the entrance's beats still run, for whatever
+   they set up, with the sound off; then every ring, spark, shake and flash
+   they threw is cleared, and the boss just arrives with its usual glow. */
+function entranceSkip(){
+  const E=entrance; if(!E) return;
+  const n0=parts.length;
+  SND.hush=true;
+  try{ entranceStep(E.dur-E.t+1e-3); } finally{ SND.hush=false; }
+  waves.length=0; shards.length=0; parts.length=Math.min(parts.length,n0);
+  shake=0; flash=0; slowT=0;
+  shock(E.x,E.y,E.b.col,E.b.r*.8,E.b.r*2.2,.45,4);   // one soft ring where it stands
+}
 function entranceStep(dt){
   const E=entrance, t0=E.t;
   E.t+=dt;
@@ -5166,6 +5207,8 @@ function entranceStep(dt){
   for(const [at,fn] of E.ev) if(at>=t0 && at<E.t && entrance===E) fn();
   if(entrance===E && E.t>=E.dur){
     const b=E.b;
+    save.entered=save.entered||[];
+    if(!save.entered.includes(b.k)){ save.entered.push(b.k); persist(); }
     waveTimer=E.wt;                    // its escorts start their clock now
     entrance=null;
     b.hidden=false; b.flare=2.2; b.cool=1.6;
@@ -6769,6 +6812,7 @@ function update(dt){
   // buffs tick down; the barrier is what stands between you and a hit
   if(!held) for(const k in buffs) if(buffs[k]>0) buffs[k]=Math.max(0,buffs[k]-dt);
   if(toastT>0) toastT-=dt;
+  if(crToastT>0) crToastT-=dt;
 
   // pickups drift, get pulled in from close range, and expire
   for(let i=pickups.length-1;i>=0;i--){
@@ -7362,7 +7406,7 @@ function update(dt){
   if(!spawnQ.length && !enemies.length){
     if(wave>=5&&rush) rushCleared();
     else if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); systemCleared(); }
-    else if(bannerT<=0){ credit(CREDITS_PER_WAVE(sysIdx)); nextWave(); }
+    else if(bannerT<=0){ const n=CREDITS_PER_WAVE(sysIdx); credit(n); crToast='+'+n+' CREDITS'; crToastT=CR_TOAST_T; nextWave(); }
   }
 }
 
@@ -7408,7 +7452,7 @@ function retryBoss(){
   hideAll();
   player.frz=player.thaw=0;
   worldStart(); sceneStart();
-  toast=''; toastT=0;
+  toast=''; toastT=0; crToastT=0;
   wave=4; nextWave();
   state='play';
 }
@@ -7427,8 +7471,8 @@ function retryButton(){
    or boss gives its bestiary counter tip, the arena gives DEATH_TIP. */
 
 const DEATH_TIP={'SOLAR FLARE':'Look for the gaps, then dash through them.', 'FIRE VENT':'Try figuring out the pattern, then staying away.', 'RING DEBRIS':'Try looking for the golden lines, then avoiding them.',
-  'HAIL':'Try getting the BLINK DASH skill and dashing through the fronts.', 'LASER RAIDER':'You can kill them before they shoot.',
-  'THE ARENA':'ERROR', 'ENEMY FIRE':'ERROR'};
+  'STORM FRONT':'Try getting the BLINK DASH skill and dashing through the fronts.', 'LASER RAIDER':'You can kill them before they shoot.',
+  'ENEMY FIRE':'ERROR'};
 function deathTip(){
   if(!killer) return '';
   const r=CODEX.hostiles.rows.find(x=>x.n===killer);
@@ -9187,7 +9231,7 @@ function startMission(kind){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
   clearBuffs();
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
-  waveTimer=0; paused=false; toast=''; toastT=0; sceneStart();
+  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
   launchStart();
   /* The Portal is somewhere else entirely and brings no weather with it. Every
@@ -10001,7 +10045,7 @@ function hpbar(x,y,w,pc,col){
 function draw(){
   ctx.fillStyle='#05060d'; ctx.fillRect(0,0,W,H);
   ctx.save();
-  if(shake>0) ctx.translate(rand(-shake,shake),rand(-shake,shake));
+  const sk=fxShake(); if(sk>0) ctx.translate(rand(-sk,sk),rand(-sk,sk));
 
   for(const s of stars){ ctx.fillStyle='rgba(160,185,240,'+(s.z*.55)+')'; ctx.fillRect(s.x,s.y,s.s,s.s); }
 
@@ -10009,7 +10053,7 @@ function draw(){
 
   if(state==='play'&&launchCut&&launchCut.t<CUT_OUT){
     launchDraw(); ctx.restore();
-    if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
+    if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+fxFlash()*.75+')'; ctx.fillRect(0,0,W,H); }
     return;
   }
   if(state==='play'||state==='over'||state==='dying'){
@@ -10352,7 +10396,7 @@ function draw(){
   }
   ctx.restore();
 
-  if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+clamp(flash,0,1)*.75+')'; ctx.fillRect(0,0,W,H); }
+  if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+fxFlash()*.75+')'; ctx.fillRect(0,0,W,H); }
   if(state==='play') hurtDraw();
   if((state==='play'||state==='over'||state==='dying')&&!launchCut) hud();
 }
@@ -10530,6 +10574,16 @@ function hud(){
     ctx.fillStyle='#dfe9ff'; ctx.font='600 15px Menlo,monospace';
     ctx.fillText(toast,W/2,H/2+58);
     ctx.globalAlpha=1; ctx.textAlign='left';
+  }
+
+  // a cleared wave's pay: rises a little and fades
+  if(crToastT>0){
+    const age=CR_TOAST_T-crToastT, a=clamp(Math.min(age*5,crToastT*1.4),0,1);
+    ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center';
+    ctx.font='700 30px Menlo,monospace'; ctx.fillStyle='#ffd24d';
+    ctx.shadowColor='#ffb44d'; ctx.shadowBlur=18;
+    ctx.fillText(crToast,W/2,H*.68-age*14);
+    ctx.restore();
   }
 
   // boss bar
@@ -10757,7 +10811,7 @@ let gearHeld=false;
 function gearOpen(){
   if(state==='play'&&!paused){ paused=true; gearHeld=true; }
   $('gearQuit').style.display = (state==='play'||state==='dying'||paused) ? '' : 'none';
-  buildSound(); buildDiff(); resetWipeLink();
+  buildSound(); buildDiff(); buildFx(); resetWipeLink();
   $('gearPanel').classList.add('on');
 }
 function gearClose(){
@@ -11910,6 +11964,22 @@ function buildDiff(){
 
 /* The same control in the pause menu and on the title screen, kept in step by
    rebuilding both whenever either one moves. */
+/* EFFECTS. Reduced takes out the screen shake and turns the white flashes
+   down to a quarter; nothing about the fight's timing changes. Until it is
+   chosen, it follows the system's reduced-motion setting. */
+const FX_REDUCED=()=> save.fx ? save.fx==='reduced'
+  : !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const fxShake=()=>FX_REDUCED()?0:shake;
+const fxFlash=()=>clamp(flash,0,1)*(FX_REDUCED()?.25:1);
+function buildFx(){
+  const box=$('fxGear'); if(!box) return;
+  const red=FX_REDUCED();
+  box.innerHTML='<span class="lab">EFFECTS</span><div class="seg">'+
+    '<button data-v="full" class="'+(red?'':'on')+'">FULL</button>'+
+    '<button data-v="reduced" class="'+(red?'on':'')+'">REDUCED</button></div>';
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    save.fx=b.dataset.v; persist(); SFX.ui(); buildFx(); });
+}
 function buildSound(){
   for(const id of ['sndGear','sndPause']){
     const box=$(id); if(!box) continue;
@@ -12160,17 +12230,19 @@ function openCode(){
 }
 
 $('btnCodeBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
-$('btnCopy').onclick=()=>{
+// copy a code field, and say how it went in `msg`
+function copyCode(el,msg){
   // the whole code: an MF7 carries the whole save and runs well past a thousand characters
-  const el=$('codeOut'); el.select(); el.setSelectionRange(0,el.value.length);
+  el.select(); el.setSelectionRange(0,el.value.length);
   let done=false;
   try{ done=document.execCommand('copy'); }catch(err){}
   if(!done&&navigator.clipboard) navigator.clipboard.writeText(el.value).then(()=>{
-    $('codeMsg').style.color='#46e39b'; $('codeMsg').textContent='Copied.';
+    msg.style.color='#46e39b'; msg.textContent='Copied.';
   },()=>{});
-  else{ $('codeMsg').style.color= done?'#46e39b':'#ff4d5e';
-        $('codeMsg').textContent= done?'Copied.':'Copy failed — select it by hand.'; }
-};
+  else{ msg.style.color= done?'#46e39b':'#ff4d5e';
+        msg.textContent= done?'Copied.':'Copy failed — select it by hand.'; }
+}
+$('btnCopy').onclick=()=>copyCode($('codeOut'),$('codeMsg'));
 $('btnLoadCode').onclick=()=>{
   const err=loadCode($('codeIn').value);
   $('codeMsg').style.color=err?'#ff4d5e':'#46e39b';
