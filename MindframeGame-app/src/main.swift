@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Mindframe"
         window.backgroundColor = .black
         window.contentAspectRatio = NSSize(width: 1000, height: 680)
+        // never smaller than the game's own floor (MIN_W x MIN_H in index.html),
+        // so the "too small" card cannot come up inside the app
+        window.contentMinSize = NSSize(width: 1200, height: 816)
         window.collectionBehavior = .fullScreenPrimary
         window.contentView = web
         window.center()

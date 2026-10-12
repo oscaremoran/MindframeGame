@@ -47,6 +47,23 @@
   .overlay>button.back{position:absolute; top:min(2.2vw,3.2vh); left:min(2.2vw,3.2vh); z-index:6;
     margin:0; padding:8px 18px; font-size:calc(clamp(10px,1.15vw,12px) + 2px)}
   .overlay>button.back:hover{transform:none}
+  /* Not full screen: one card over everything until it is (fitCheck in the
+     script decides). On a phone or tablet the game is not playable at all,
+     so that card wins over this one. */
+  #tooSmall{position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center;
+    background:#05060d; padding:16px}
+  #tooSmall .card{border:1px solid #2c3d61; background:rgba(8,12,24,.95); padding:28px 34px;
+    color:#dfe9ff; letter-spacing:.16em; font-size:clamp(14px,2.4vw,18px); text-align:center}
+  #tooSmall.on{display:flex}
+  #tooSmall .card button{display:block; margin:20px auto 0}
+  #mobileOnly{position:fixed; inset:0; z-index:210; display:none; align-items:center; justify-content:center;
+    background:#05060d; padding:16px}
+  #mobileOnly .card{border:1px solid #2c3d61; background:rgba(8,12,24,.95); padding:28px 34px;
+    color:#dfe9ff; letter-spacing:.16em; font-size:clamp(14px,4vw,18px); text-align:center}
+  /* No mouse or trackpad anywhere: a phone, or a tablet on its own. A tablet
+     with a trackpad (and its keyboard) has a fine pointer, so it plays —
+     with the trackpad, never by touch. Plugging one in clears the card. */
+  @media not all and (any-pointer:fine){ #mobileOnly{display:flex} }
 
   /* ══════════ the hi-tech kit ══════════
      One vocabulary shared by the title screen, the garage, the tree, the map
@@ -67,11 +84,6 @@
     animation:hScan 5.2s linear infinite;
   }
   @keyframes hScan{ 0%{top:-64px} 100%{top:100%} }
-  .hcnr{position:absolute; width:14px; height:14px; border:1.5px solid #6fb2ff; opacity:.7; z-index:5}
-  .hcnr.a{top:7px;left:7px;border-right:0;border-bottom:0}
-  .hcnr.b{top:7px;right:7px;border-left:0;border-bottom:0}
-  .hcnr.c{bottom:7px;left:7px;border-right:0;border-top:0}
-  .hcnr.d{bottom:7px;right:7px;border-left:0;border-top:0}
   /* a labelled hairline, the way every readout on this ship is titled */
   .hrule{display:flex; align-items:center; gap:10px; width:100%;
     font-size:12.5px; letter-spacing:.24em; color:#6b7ba0; margin:0}
@@ -140,6 +152,11 @@
   /* a yes/no that costs something, over the screen it was asked from */
   #retryAsk{display:none; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
   #retryAsk.on{display:flex}
+  /* the same yes/no for spending in the Garage, over whichever screen asked */
+  #buyAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
+  #buyAsk.on{display:flex}
+  #buyAsk .askBox{border-color:#33456d}
+  #buyAsk .askQ{color:#dfe9ff}
   .askBox{width:min(92vw,470px); padding:20px 22px; border:1px solid #8d3a55; background:rgba(14,10,20,.97); text-align:left}
   .askQ{font-size:calc(clamp(12px,1.4vw,15px) + 3px); letter-spacing:.18em; color:#ffd9e4; margin-bottom:12px}
   .askRow{display:flex; justify-content:space-between; padding:5px 0; letter-spacing:.16em; color:#a3b2d3;
@@ -291,6 +308,21 @@
   #menuBtns #btnStart{width:100%; font-size:clamp(22px,3.4vw,34px); padding:24px 34px; letter-spacing:.24em}
   #extrasBtns{display:flex; flex-direction:column; align-items:stretch; gap:14px; margin-top:28px; width:min(90vw,360px)}
   #extrasBtns button{margin:0; font-size:clamp(14px,1.95vw,19px); padding:15px 34px}
+  .ver{margin-top:22px; color:#4a5878; letter-spacing:.2em; font-size:12.5px}
+  /* the credits roll: one column running up the screen, names between shots */
+  #credits{background:#03040a; backdrop-filter:none; padding:0; overflow:hidden; justify-content:flex-start}
+  #creditsTrack{position:absolute; left:0; right:0; top:0; display:flex; flex-direction:column;
+    align-items:center; gap:clamp(40px,7vh,80px); padding:0 16px; will-change:transform}
+  #creditsTrack h1{margin-bottom:8px}
+  #creditsTrack .cr{color:#9aa8c8; letter-spacing:.16em; line-height:1.9;
+    font-size:calc(clamp(10.5px,1.28vw,13.5px) + 3px)}
+  #creditsTrack .cr b{display:block; color:#4d9dff; letter-spacing:.24em; font-weight:600; font-size:.85em}
+  #creditsTrack figure{margin:0; display:flex; flex-direction:column; align-items:center; gap:10px}
+  #creditsTrack img{display:block; width:min(80vw,760px); height:auto; border:1px solid #1b2540;
+    box-shadow:0 0 40px rgba(77,157,255,.18)}
+  #creditsTrack figcaption{color:#5d6c8f; letter-spacing:.18em; font-size:12.5px}
+  #creditsTrack .ver{margin:0 0 50vh}
+  #creditsSkip{position:absolute; right:min(2.2vw,3.2vh); bottom:min(2.2vw,3.2vh); z-index:6; margin:0}
   #demoKeys{
     display:flex; flex-wrap:wrap; justify-content:center; gap:10px 38px; margin-top:clamp(30px,5vw,58px);
     font-size:clamp(15px,2.3vw,24px); letter-spacing:.16em; color:#a3b2d3;
@@ -422,14 +454,29 @@
   #doneStats .dc button{margin:0; padding:8px 18px}
   #doneStats .dcm{min-height:1.2em; margin-top:6px; font-size:13px; letter-spacing:.1em}
   #doneStats,#overStats{
-    display:grid; grid-template-columns:1fr; gap:14px;
+    display:grid; grid-template-columns:minmax(0,1fr); gap:14px;
     width:min(92vw,440px); margin:22px 0 4px; text-align:left;
   }
   #launchStats{
-    display:grid; grid-template-columns:1fr; gap:14px;
+    display:grid; grid-template-columns:minmax(0,1fr); gap:14px;
     width:min(92vw,470px); margin:22px 0 4px; text-align:left;
   }
+  /* what a flight paid: two gold lines, no panel */
+  .crLines{color:#ffd24d; letter-spacing:.12em; line-height:1.7; text-align:center;
+    font-size:calc(clamp(13px,1.6vw,17px) + 3px); text-shadow:0 0 14px rgba(255,210,77,.35)}
+  .bossLeft{color:#ff8a99; letter-spacing:.14em; text-align:center; font-size:calc(clamp(10px,1.15vw,12.5px) + 3px)}
+  /* the win, death and launch screens are one flat black, edge to edge, like the bars round them */
+  #done,#over,#launch{background:#05060d; backdrop-filter:none}
   .lpanel{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:14px 16px 12px}
+  /* Short windows (a 1366x768 laptop, less the browser) cannot fit the whole
+     result or launch card. These two scroll instead of clipping, and stay
+     centred when they do fit: the spacers take the slack and shrink to nothing
+     once the content is taller than the window. */
+  #done,#launch{overflow-y:auto; justify-content:flex-start;
+    padding-top:calc(min(2.2vw,3.2vh) + min(2.9vw,4.3vh) + 34px)}   /* clear of the Settings gear */
+  #done::before,#launch::before,#done::after,#launch::after{content:''; flex:1 0 0}
+  #done::after,#launch::after{order:99}
+  #done .prose,#launch .prose{flex:none; overflow:visible}
   #launch.sys #launchKind{order:1} #launch.sys #launchTitle{order:2} #launch.sys #launchText{order:3}
   #launch.sys #launchStats{order:4; width:min(94vw,760px)} #launch.sys #launchPick{order:5} #launch.sys .row{order:6}
   #launch.sys #launchStats{width:min(94vw,600px); gap:12px}
@@ -512,6 +559,9 @@
   .rwT small{display:block; font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.3em; color:#8a7433}
   .rwT b{display:block; font-weight:400; font-size:clamp(13px,1.6vw,17px); letter-spacing:.18em; color:#ffd24d; margin:5px 0}
   @keyframes rwT{0%{opacity:0; transform:translateY(-14px)} 8%{opacity:1; transform:none} 85%{opacity:1} 100%{opacity:0}}
+  .rwT.no{border-color:#4a5878; background:rgba(10,14,26,.96); box-shadow:0 0 26px rgba(77,157,255,.18)}
+  .rwT.no b{color:#a3b2d3; margin:0}
+  #extCredits.lock,#extMedals.lock{opacity:.45}
   .rw{border:1px solid #1b2540; background:rgba(8,12,24,.8); padding:18px 20px 20px; opacity:.6}
   .rw.open{opacity:1; border-color:#3a3220}
   .rw h5{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:0 0 10px;
@@ -652,6 +702,9 @@
   /* the region switcher above the chart: one set of systems per screen */
   #mapRegBar{display:flex; align-items:center; justify-content:center; gap:18px; margin-top:8px; text-align:center}
   #mapRegBar button{margin-top:0; padding:12px 34px; font-size:clamp(18px,2.4vw,26px); letter-spacing:0}
+  /* a region you have opened but never stepped into: orange until you do */
+  #mapRegBar button.fresh{background:#ff9a3c; color:#1a0d02; animation:regFresh 1.6s ease-in-out infinite}
+  @keyframes regFresh{0%,100%{box-shadow:0 0 10px rgba(255,154,60,.45)} 50%{box-shadow:0 0 30px rgba(255,154,60,.9)}}
   #mapRegBar button:disabled{opacity:.25; cursor:default; transform:none; box-shadow:none}
   #mapRegName{min-width:13em; font-size:clamp(12px,1.6vw,18px); letter-spacing:.2em; color:#dfe9ff}
   #mapRegName.lock{color:#6b7ca3}
@@ -692,7 +745,7 @@
     background:linear-gradient(180deg,rgba(var(--bc),.10),rgba(var(--bc),.04));
     border-left:1px solid rgba(var(--bc),.16); border-right:1px solid rgba(var(--bc),.16)}
   .node::before{content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-    background:linear-gradient(180deg,rgba(var(--bc),.22),rgba(var(--bc),.06));
+    background:linear-gradient(180deg,rgba(var(--bc),.11),rgba(var(--bc),.03));
     border-top:3px solid rgba(var(--bc),.85)}
   .node .nm,.node .cost,.node .tr{position:relative; z-index:1}
   .node .tr{position:absolute; top:4px; left:7px; font-size:13.5px; letter-spacing:.14em; color:#8b9ac0}
@@ -711,7 +764,14 @@
   .node.own .nm{color:#6bf3b4}
   .node.own .cost{color:#46e39b}
   .node.own .tr{color:#46b585}
-  .node.locked{opacity:.6; border-style:dashed; cursor:not-allowed}
+  /* not reachable yet: a dark, blank slab you cannot read or click */
+  .node.locked{pointer-events:none; border-color:#1e2740; background:#07090f}
+  .node.locked::before{background:none; border-top-color:rgba(var(--bc),.25)}
+  .node.locked>*{visibility:hidden}
+  /* only on a locked card: one you can reach but not afford reads normally */
+  .node.locked::after{content:'ACCESS DENIED'; position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center; color:#fff; letter-spacing:.2em; text-align:center;
+    font-size:calc(clamp(8px,.92vw,10px) + 3px); z-index:1}
   .node.sel{outline:1px solid #ffd24d; outline-offset:3px; z-index:3}
 
   /* ---- skill readout, under the tree ----
@@ -735,7 +795,7 @@
   #skillInfo p{margin:8px 0 0; font-size:calc(clamp(10px,1.15vw,12.5px) + 3px); line-height:1.55; color:#b9c8e6}
   #skillInfo .lr{padding:4px 0}
   #skillInfo .si-hint{grid-column:1 / -1; align-self:center; justify-self:center; font-size:calc(clamp(8px,.92vw,10px) + 3px); letter-spacing:.24em; color:#8b9ac0}
-  #skillInfo .si-d{font-size:calc(clamp(14px,1.8vw,19px) + 3px); letter-spacing:.08em; color:#ffd24d; margin:0 0 6px;
+  #skillInfo .si-d{font-size:calc((clamp(14px,1.8vw,19px) + 3px) * .72); letter-spacing:.08em; color:#ffd24d; margin:0 0 6px;
     text-shadow:0 0 14px rgba(255,210,77,.45)}
   /* a skill the one you just bought opened */
   .node.fresh{animation:nodeFresh 1.6s ease-out both; z-index:4}
@@ -753,7 +813,7 @@
     0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
     75%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-50%) scale(1)}
   }
-  #skillInfo .si-d span{color:#a3b2d3; letter-spacing:.14em; font-size:.72em; margin-right:6px}
+  #skillInfo .si-d span{color:#a3b2d3; letter-spacing:.14em; margin-right:6px}   /* the same size as its value */
   #skillInfo .si-ask{max-width:340px}
   #skillInfo .si-q{font-size:calc(clamp(10px,1.15vw,12.5px) + 3px); letter-spacing:.14em; color:#dfe9ff; margin-bottom:6px; white-space:nowrap}
   #skillInfo .si-row{display:flex; justify-content:space-between; padding:3px 0; font-size:calc(clamp(10px,1.15vw,12.5px) + 2px);
@@ -796,6 +856,7 @@
     padding:18px 22px; display:flex; flex-direction:column; gap:13px;
     overflow-y:auto;
   }
+  #assess>*{flex-shrink:0}                /* a tall readout scrolls; no row is squeezed */
   #assess::-webkit-scrollbar{width:7px}
   #assess::-webkit-scrollbar-thumb{background:#263050; border-radius:4px}
   #assess::before{                       /* scanlines over the whole readout */
@@ -811,7 +872,7 @@
 
   .asHead{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap;
     border-bottom:1px solid #33456d; padding-bottom:11px}
-  .asIdx{font-size:13px; letter-spacing:.22em; color:#66748f}
+  .asIdx{font-size:13px; letter-spacing:.22em; color:#66748f; line-height:1.4; margin-bottom:6px}
   .asName{font-size:clamp(16px,2.5vw,27px); letter-spacing:.2em; color:#dfe9ff; line-height:1}
   .asTag{margin-left:auto; font-size:12.5px; letter-spacing:.18em; padding:4px 9px;
     border:1px solid currentColor; opacity:.9}
@@ -827,9 +888,9 @@
   .asArt .c4{bottom:6px;right:6px;border-left:0;border-top:0}
 
   .asStats{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px}
-  .asBar{display:grid; grid-template-columns:74px 1fr 58px; align-items:center; gap:10px}
+  .asBar{display:grid; grid-template-columns:74px 1fr minmax(58px,auto); align-items:center; gap:10px}
   .asBar b{font-weight:400; font-size:12.5px; letter-spacing:.17em; color:#8b9ac0}
-  .asBar i{font-style:normal; font-size:13px; letter-spacing:.1em; color:#c3d0e8; text-align:right}
+  .asBar i{font-style:normal; font-size:13px; letter-spacing:.1em; color:#c3d0e8; text-align:right; white-space:nowrap}
   .asTrack{height:9px; background:#161f36; border:1px solid #33456d; position:relative; overflow:hidden}
   .asFill{position:absolute; inset:0 auto 0 0; background:currentColor;
     box-shadow:0 0 11px currentColor; animation:asGrow .5s cubic-bezier(.2,.9,.3,1) both}
@@ -933,7 +994,6 @@
   <div id="menu" class="overlay on">
     <!-- the live feed fills the whole screen, behind everything else -->
     <div id="demoBox"><canvas id="demo"></canvas></div>
-    <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     <div id="menuTop">
       <h1>MINDFRAME</h1>
       <div id="menuRule"></div>
@@ -1027,7 +1087,6 @@
 
   <div id="launch" class="overlay">
     <button id="btnLaunchBack" class="ghost back">&larr; BACK</button>
-    <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     <p id="launchKind">LAUNCHING</p>
     <h1 id="launchTitle" style="font-size:clamp(22px,3.6vw,40px)">EARTH</h1>
     <div id="launchStats"></div>
@@ -1042,7 +1101,6 @@
   </div>
 
   <div id="done" class="overlay">
-    <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     <p id="doneKind">LEVEL COMPLETE</p>
     <h1 id="doneTitle" style="font-size:clamp(22px,3.6vw,40px)">EARTH</h1>
     <h2 id="doneSub">HELD</h2>
@@ -1051,7 +1109,16 @@
     <div class="prose" id="doneText"></div>
     <div class="row" style="margin-top:20px">
       <button id="btnDoneGo">SPACE MAP</button>
-      <button id="btnDoneTree" class="hot">SKILL TREE</button>
+      <button id="btnDoneMenu" class="ghost">MAIN MENU</button>
+    </div>
+  </div>
+
+  <div id="resized" class="overlay">
+    <h1 style="font-size:clamp(20px,3.2vw,34px)">SYSTEM LOST</h1>
+    <p>Sorry, you must restart the system - your window size was changed.</p>
+    <div class="row" style="margin-top:22px">
+      <button id="btnResizedGo">RELAUNCH</button>
+      <button id="btnResizedMap" class="ghost">SPACE MAP</button>
     </div>
   </div>
 
@@ -1078,7 +1145,14 @@
       <button id="extMedals" class="ghost">MEDALS &amp; REWARDS</button>
       <button id="extCodex" class="ghost">BESTIARY &amp; CONTROLS</button>
       <button id="extStory" class="ghost">READ THE STORY</button>
+      <button id="extCredits" class="ghost">CREDITS</button>
     </div>
+    <div class="ver" id="extrasVer"></div>
+  </div>
+
+  <div id="credits" class="overlay">
+    <div id="creditsTrack"></div>
+    <button id="creditsSkip" class="ghost">SKIP</button>
   </div>
 
   <div id="medals" class="overlay">
@@ -1118,11 +1192,13 @@
       <div class="askRow"><span>CREDITS</span><b id="raHave"></b></div>
       <div class="askRow"><span>COST</span><b id="raCost"></b></div>
       <div class="askRow tot"><span>AFTER</span><b id="raAfter"></b></div>
+      <div id="raMedals">
       <div class="askSub">MEDALS</div>
       <div class="askRow"><span>THIS FLIGHT</span><b class="bad">NONE CAN BE EARNED</b></div>
       <div class="askRow"><span>MEDALS YOU HOLD</span><b>KEPT</b></div>
       <div class="askRow"><span>TO EARN MEDALS</span><b>RELAUNCH INSTEAD</b></div>
       <div id="raMiss"></div>
+      </div>
       <div class="row"><button id="btnRetryYes" class="danger">PAY AND RETRY</button><button id="btnRetryNo" class="ghost">CANCEL</button></div>
     </div></div>
     <!-- step 2: what the flight came to, and where to go from here -->
@@ -1133,7 +1209,7 @@
       <div class="row">
         <button id="btnRetry" class="danger">RETRY BOSS</button>
         <button id="btnRelaunch">RELAUNCH</button>
-        <button id="btnOverMenu" class="ghost">TITLE SCREEN</button>
+        <button id="btnOverMenu" class="ghost">MAIN MENU</button>
       </div>
     </div>
   </div>
@@ -1152,16 +1228,39 @@
     <div id="treeHeads"></div>
     <div id="tree">
       <canvas id="treeArt"></canvas><svg id="lines"></svg>
-      <i class="hcnr a"></i><i class="hcnr b"></i><i class="hcnr c"></i><i class="hcnr d"></i>
     </div>
     <!-- the readout for whichever skill was clicked last -->
     <div id="skillInfo"></div>
   </div>
 </div>
 
+<div id="buyAsk"><div class="askBox">
+  <div class="askQ" id="baQ"></div>
+  <div class="askRow"><span>CREDITS</span><b id="baHave"></b></div>
+  <div class="askRow"><span>COST</span><b id="baCost"></b></div>
+  <div class="askRow tot"><span>AFTER</span><b id="baAfter"></b></div>
+  <div class="row"><button id="btnBuyYes">CONFIRM</button><button id="btnBuyNo" class="ghost">CANCEL</button></div>
+</div></div>
+<div id="tooSmall"><div class="card"><span id="fitMsg">Please play in full screen mode.</span><button id="btnFull">FULL SCREEN</button></div></div>
+<div id="mobileOnly"><div class="card">Please play on Desktop.</div></div>
 <script>
 (()=>{
 "use strict";
+/* $ — every element the script reaches for goes through here, and it never
+   throws. An element that is not in the page (markup put after the script,
+   an id renamed, a typo) is reported once in the console and handed back as
+   a detached stand-in, so `$('x').onclick=...` on it does nothing instead of
+   stopping the whole script and every button wired after it. A function
+   declaration, so it exists from the script's first line.
+   The few places that ask whether an element exists yet use $opt instead. */
+const $missing=new Set();
+function $(id){
+  const el=document.getElementById(id);
+  if(el) return el;
+  if(!$missing.has(id)){ $missing.add(id); try{ console.error('[mindframe] missing element #'+id); }catch(e){} }
+  return document.createElement('div');
+}
+function $opt(id){ return document.getElementById(id); }
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const W=cv.width, H=cv.height;
 const TAU=Math.PI*2, rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1903,13 +2002,14 @@ const SAVE='mindframe.001';
 // set when the game is running inside the Mac app rather than a browser
 const APP=!!window.MF_APP;
 /* CREDITS are what a system pays out: two per wave held in Earth, four
-   per wave in 002, and so on, plus eight for putting down a system's boss.
+   per wave in 002, and so on, plus ten for putting down a system's boss —
+   so a system pays a round 20, 30, 40 ... 100.
    They are the only currency — spend them on hulls in the Garage, or exchange
    spend them on the tree. Score is now just the scoreboard.
    The rates are deliberately generous: the tree is meant to open across one
    playthrough, not be ground out over several campaigns.                   */
 const CREDITS_PER_WAVE=i=>(i+1)*2;   // i = system index
-const CREDIT_BOSS=8;
+const CREDIT_BOSS=10;
 /* Skills are paid for in credits directly — there is no second currency and no
    exchange. A skill costs twice its tier weight. */
 const SKILL_CR=s=>s.cost*2;
@@ -1996,7 +2096,6 @@ function owned(){
 }
 const spentOn=i=>(save.trees&&save.trees[i]||[]).reduce(
   (a,id)=>{const k=byId(id); return a+(k?k.cost:0);},0);
-const ownedAll=()=>(save.trees||[]).reduce((a,t)=>a+(t?t.length:0),0);
 
 const has=id=>owned().includes(id);
 
@@ -2091,10 +2190,10 @@ const SKILLS=[
   {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d74', cost:70, x:11, y:13, req:'pierce',
    info:'When a boss is exposed, deal 4x damage instead of the regular 2x. A boss is exposed after each attack combo: It usually doubles your damage if you survive the combo with no hits. After one hit, you only get half the time. After two, only a third of the time, and after three or more, you get no punish window.'},
 
-  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+18% fire rate',   cost:4, x:33, y:88, req:null,
-   info:'Fire 18% faster.'},
-  {id:'rate2', n:'TWIN\nEMITTERS',      d:'+18% fire rate',   cost:7, x:33, y:64, req:'rate1',
-   info:'Fire another 18% faster.'},
+  {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+20% fire rate',   cost:4, x:33, y:88, req:null,
+   info:'Fire 20% faster.'},
+  {id:'rate2', n:'TWIN\nEMITTERS',      d:'+20% fire rate',   cost:7, x:33, y:64, req:'rate1',
+   info:'Fire another 20% faster.'},
   {id:'spread',n:'TRIPLE\nSPREAD',      d:'3-shot spread',    cost:26, x:33, y:40, req:'rate2',
    info:'Have the Scatter powerup all the time.'},
   {id:'spread2',n:'QUANTUM\nSPREAD', d:'5-shot spread',  cost:88, x:33, y:13, req:'spread',
@@ -2104,13 +2203,13 @@ const SKILLS=[
    info:'Gain 30 extra max HP.'},
   {id:'hull2', n:'HULL\nREINFORCEMENT', d:'+30 max HP',       cost:9, x:56, y:64, req:'hull1',
    info:'Gain another 30 max HP.'},
-  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.4 HP / sec',    cost:25, x:56, y:40, req:'hull2',
-   info:'The hull repairs at 1.4 HP per second.'},
-  {id:'armour',n:'BIOLOGICAL\nWEAVE', d:'-22% damage taken', cost:80, x:56, y:13, req:'regen',
-   info:'22% less damage from any source.'},
+  {id:'regen', n:'REPAIR\nFIELD',       d:'+1.5 HP / sec',    cost:25, x:56, y:40, req:'hull2',
+   info:'The hull repairs at 1.5 HP per second.'},
+  {id:'armour',n:'BIOLOGICAL\nWEAVE', d:'-25% damage taken', cost:80, x:56, y:13, req:'regen',
+   info:'25% less damage from any source.'},
 
-  {id:'spd1',  n:'THRUST\nBOOST',   d:'+18% speed',       cost:5, x:79, y:88, req:null,
-   info:'Move 18% faster.'},
+  {id:'spd1',  n:'THRUST\nBOOST',   d:'+20% speed',       cost:5, x:79, y:88, req:null,
+   info:'Move 20% faster.'},
   {id:'dash',  n:'DASH\nDRIVE',        d:'SHIFT to dash',    cost:7, x:79, y:64, req:'spd1',
    info:'Press SHIFT to dash.'},
   {id:'shield',n:'DASH\nDEFLECTOR',          d:'dash grants i-frames', cost:12, x:79, y:40, req:'dash',
@@ -2221,13 +2320,19 @@ function stats(){
   const s={...BASE, pierce:0, shots:1, regen:0, dash:false, iframe:false,
            // tier-4 defaults: what the ship does with no capstone bought
            punish:PUNISH_MULT, armour:1, dashCd:DASH_CD, dashLen:DASH_LEN};
+  /* The hull scales the ship's own base hull and damage first, so a skill's
+     flat bonus lands exactly as its card says: HULL PLATING is +30 max HP on
+     every hull, not +30 times the hull's multiplier. */
+  const hi=SHIPS.indexOf(SHIP()), sh=k=>shipStat(hi,k);   // upgrades included
+  s.maxHp=Math.round(s.maxHp*sh('hp'));
+  s.dmg*=sh('dmg');
   if(has('dmg1'))s.dmg+=4; if(has('dmg2'))s.dmg+=5;
   if(has('pierce'))s.pierce=2;
-  if(has('rate1'))s.delay*=.82; if(has('rate2'))s.delay*=.82;
+  if(has('rate1'))s.delay/=1.2; if(has('rate2'))s.delay/=1.2;
   if(has('spread'))s.shots=3;
   if(has('hull1'))s.maxHp+=30; if(has('hull2'))s.maxHp+=30;
-  if(has('regen'))s.regen=1.4;
-  if(has('spd1'))s.speed*=1.18;
+  if(has('regen'))s.regen=1.5;
+  if(has('spd1'))s.speed*=1.2;
   if(has('dash'))s.dash=true;
   if(has('shield'))s.iframe=true;
   /* ---- tier 4 ----
@@ -2237,12 +2342,9 @@ function stats(){
      the order with the tiers below never matters. */
   if(has('punish'))  s.punish=4;          // the punish window is worth more
   if(has('spread2')) s.shots=5;           // supersedes TRIPLE SPREAD's 3
-  if(has('armour'))  s.armour=.78;        // every source of damage, not just fire
+  if(has('armour'))  s.armour=.75;        // every source of damage, not just fire
   if(has('dash2'))   s.dashLen=DASH_LEN*3;// the same shove, held three times as long
-  // ---- hull multipliers, applied last so the Garage scales everything you own ----
-  const hi=SHIPS.indexOf(SHIP()), sh=k=>shipStat(hi,k);   // upgrades included
-  s.maxHp=Math.round(s.maxHp*sh('hp'));
-  s.dmg*=sh('dmg');
+  // ---- the rest of the hull: these multiply, so the order does not matter ----
   s.delay/=sh('rate');
   s.speed*=sh('spd');
   s.accel=2400*sh('grip');          // GRIP: how hard it can push against its own drift
@@ -2261,7 +2363,6 @@ const PUPS={
   shield:{n:'BARRIER',     col:'#3fd8e0', ch:'\u25cb', time:6.5},
   scatter:{n:'SCATTER',    col:'#ffb44d', ch:'\u2263', time:12},
 };
-const PUKEYS=Object.keys(PUPS);
 const PU_LIFE=14;
 
 /* ================= input ================= */
@@ -2287,13 +2388,18 @@ function focusLost(){
 }
 addEventListener('blur',focusLost);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) focusLost(); });
+/* The pointer is read off the whole window, not just the canvas: the black
+   bars either side of the arena still aim and fire, and an aim that drifts
+   off the arena holds at its edge rather than freezing where it left. */
 function ptr(e){
   const r=cv.getBoundingClientRect();
-  mouse.x=(e.clientX-r.left)*(W/r.width);
-  mouse.y=(e.clientY-r.top)*(H/r.height);
+  mouse.x=clamp((e.clientX-r.left)*(W/r.width),0,W);
+  mouse.y=clamp((e.clientY-r.top)*(H/r.height),0,H);
 }
-cv.addEventListener('mousemove',ptr);
-cv.addEventListener('mousedown',e=>{SND.boot();SND.resume();ptr(e);mouse.down=true;});
+// a press that lands on the arena or the bars round it, never on a button or panel
+const onField=t=>t===cv||t===document.body||t===document.documentElement||t===$('wrap');
+addEventListener('mousemove',ptr);
+addEventListener('mousedown',e=>{ if(!onField(e.target)) return; SND.boot();SND.resume();ptr(e);mouse.down=true; });
 addEventListener('mouseup',()=>mouse.down=false);
 // any button anywhere clicks — one listener rather than forty
 addEventListener('mousedown',()=>{ SND.boot(); SND.resume(); },{capture:true});
@@ -2302,12 +2408,25 @@ addEventListener('click',e=>{
   if(!t||!t.closest) return;
   if(t.tagName==='BUTTON'||t.closest('.storylink,.node,.ship,.rosterRow,.mnode.secret.open')) SFX.ui();
 },{capture:true});
-cv.addEventListener('contextmenu',e=>e.preventDefault());
+/* Right click is left click, everywhere. Over the arena it already fires
+   (the press above takes any button). Anywhere else, a right press and
+   release on the same thing clicks it, and the browser's own menu never
+   opens — except in a text field, where it is how you paste a save code. */
+const isText=t=>t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA');
+let rightOn=null;
+addEventListener('contextmenu',e=>{ if(!isText(e.target)) e.preventDefault(); });
+addEventListener('mousedown',e=>{ if(e.button===2) rightOn=e.target; },{capture:true});
+addEventListener('mouseup',e=>{
+  if(e.button!==2) return;
+  const t=rightOn; rightOn=null;
+  if(!t||onField(t)||isText(t)||!t.isConnected) return;
+  if(t===e.target||t.contains(e.target)) t.click();
+});
 
 /* ================= world ================= */
 let state='menu', paused=false;
 let player, bullets, ebullets, enemies, parts, stars, pickups, buffs;
-let wave, waveTimer, spawnQ, score, shake, banner, bannerT, sysIdx;
+let wave, waveTimer, spawnQ, shake, banner, bannerT, sysIdx;
 
 function makeStars(){
   stars=[];
@@ -2336,7 +2455,7 @@ function newBranch(kind,i){
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
-  score=0; shake=0; wave=0; sysIdx=i; paused=false;
+  shake=0; wave=0; sysIdx=i; paused=false;
   mission=null; fxClear(); flash=0; worldClear();
   branchSortie=true; runCr=0;
   MUS.crit=false;
@@ -2352,7 +2471,7 @@ function newRun(){
   player={x:W/2,y:H/2,vx:0,vy:0,a:0,hp:st.maxHp,st,cool:0,dashCd:0,inv:0,dashT:0}; killer='';
   bullets=[];ebullets=[];enemies=[];parts=[];
   clearBuffs();
-  score=0; shake=0; wave=0; sysIdx=mapPick; paused=false;
+  shake=0; wave=0; sysIdx=mapPick; paused=false;
   mission=null; fxClear(); flash=0; worldClear();
   branchSortie=false; runCr=0;
   finaleArmed=false; finaleDone=false; finale=null; glitch=[]; clearShatter();
@@ -2362,16 +2481,6 @@ function newRun(){
   if(SND.musLP){ SND.musLP.frequency.value=18000; SND.musBus.gain.value=.5; }
   // straight into the fight: no readout in front of it, on any run
   hideAll(); beginSystem();
-}
-
-// text -> paragraphs; [BRACKETED] lines render as terminal output
-function para(t){
-  if(!t||!t.trim()) return '';
-  return t.trim().split('\n\n').map(b=>{
-    const line=b.trim().split('\n').join('<br>');
-    if(!line) return '';
-    return line.charAt(0)==='[' ? '<p class="rep">'+line+'</p>' : '<p>'+line+'</p>';
-  }).join('');
 }
 
 /* ---- the launching screen ----
@@ -2441,27 +2550,14 @@ function launchCard(i){
                     Object.values(ROSTERS[rosterOf(i)]).filter(v=>typeof v==='string').map(unit).join(', ')) : '')+
       (sy.adds ? row('NEW ENEMY', unit(sy.adds)) : '')+
       (sy.haz ? row('HAZARD', HAZ_NAME[sy.haz]) : '')+
-      row('BOSS', '<em style="color:'+b.col+'">'+b.n+'</em>')+
+      row('BOSS', bossKnown(i) ? '<em style="color:'+b.col+'">'+b.n+'</em>' : 'UNKNOWN')+
       row('REWARD', '<em class="g">+'+pay+' CREDITS</em>')+
     '</div>'+
-    '<div class="lmeds"><div class="mh">MEDALS <b>'+have.filter(Boolean).length+' / 3</b></div>'+
+    (medalsOn() ? '<div class="lmeds"><div class="mh">MEDALS <b>'+have.filter(Boolean).length+' / 3</b></div>'+
       medalGoals(i).map((g,k)=>'<div class="lm'+(have[k]?' on':'')+'"><i></i><span><em>'+MEDAL_NAMES[i][k]+'</em>'+g+'</span>'+
         (have[k]?'<b>HELD</b>':'')+'</div>').join('')+
-    '</div>';
+    '</div>' : '');
 }
-function sysOverview(i){
-  const sy=SYSTEMS[i], b=BOSS(i);
-  const pay=5*CREDITS_PER_WAVE(i)+CREDIT_BOSS;
-  return lpanel('ENEMY FORCE DETAILS',
-           lrow('THREAT','\u00d7'+sy.hp.toFixed(2), sy.hp>=1.7?'bad':sy.hp>1?'warn':'')+
-           (i>0&&rosterOf(i)!==rosterOf(i-1)
-              ? lrow('NEW HOSTILES', Object.values(ROSTERS[rosterOf(i)]).join(' \u00b7 ').toUpperCase(),'warn')
-              : lrow('NEW HOSTILE', sy.adds?sy.adds.toUpperCase():'NONE', sy.adds?'warn':''))+
-           lrow('HAZARDS', HAZ_NAME[sy.haz]||HAZ_NAME.none, sy.haz?'warn':'')+
-           lrow('BOSS', b.n,'warn')+
-           lrow('PAYOUT','+'+pay+' CR','good'));
-}
-
 function branchOverview(k,i){
   const M={hold:    ['Defend the space station from enemy attackers.',
                     'Swarms of enemies attacking the base, not you.'],
@@ -2535,17 +2631,17 @@ function buildPortalPick(){
   box.querySelectorAll('button').forEach(b=>{
     const k=+b.dataset.p;
     if(!portalOpen(k)){ b.onclick=()=>SFX.deny(); return; }
-    b.onclick=()=>{ portalPick=k; buildPortalPick(); };
+    b.onclick=()=>{ portalPick=k; buildPortalPick(); $('launchStats').innerHTML=branchOverview('boss',PORTAL_SYS); };
   });
 }
 
 function openLaunch(kind,i){
   $('launchKind').textContent = kind==='boss' ? 'LAUNCHING A SIDE BOSS' : kind ? 'LAUNCHING A SIDE MISSION' : 'LAUNCHING';
   $('launchTitle').textContent = kind ? branchTitle(kind) : SYSTEMS[i].name;
+  if(!portalOpen(portalPick)) portalPick=0;       // before the card: its reward follows the pick
   $('launchStats').innerHTML = kind ? branchOverview(kind,i) : launchCard(i);
   // every launching screen reads top to bottom: its name, its line, the card
   $('launch').classList.add('sys');
-  if(!portalOpen(portalPick)) portalPick=0;
   if(kind==='boss') buildPortalPick(); else $('launchPick').classList.remove('on');
   const txt = kind ? LAUNCH_TEXT[kind] : LAUNCH_TEXT.sys[i];
   $('launchText').innerHTML = txt?'<p>'+txt+'</p>':'';
@@ -2635,16 +2731,30 @@ const MEDALS=[
 const MEDAL_NAMES=[
   /* EARTH   */ ['Victory at Earth', 'Flawless Iteration 3296', 'Flawless Earth'],
   /* VENUS   */ ['Victory at Venus', 'Tracker Destroyer', 'Speedy Hive Mind'],
-  /* JUPITER */ ['Victory at Jupiter', 'Sweep Dodger', 'Flawless Jupiter'],
-  /* SATURN  */ ['Victory at Saturn', 'Ring Debris Dodger', 'Flawless Architect Battle'],
+  /* JUPITER */ ['Victory at Jupiter', 'Sweep Dodger', 'Steady Jupiter'],
+  /* SATURN  */ ['Victory at Saturn', 'Ring Debris Dodger', 'Steady Architect Battle'],
   /* LUNA    */ ['Victory at Luna', 'Non-Dasher', 'Wave Obliterator'],
   /* NEPTUNE */ ['Victory at Neptune', 'Proteus Dodger', 'Triton Dodger'],
   /* EUROPA  */ ['Victory at Europa', 'Ice Spurt Dodger', 'Clone Dodger'],
-  /* SOL     */ ['Victory at Sol', 'Corona Dodger', 'Flawless Omega Space Station'],
-  /* ICARUS  */ ['Victory at the Icarus', 'Icarus Starfarer', 'Flawless Ruler'],
+  /* SOL     */ ['Victory at Sol', 'Corona Dodger', 'Steady Omega Space Station'],
+  /* ICARUS  */ ['Victory at the Icarus', 'Icarus Starfarer', 'Steady Ruler'],
 ];
 const medalGoals=i=>['Beat '+SYSTEMS[i].name[0]+SYSTEMS[i].name.slice(1).toLowerCase()]
   .concat((MEDALS[i]||[]).map(m=>m[0]));
+/* Medals open once Saturn is held: before that the game is still teaching
+   you to fly, and there is nothing to chase. Until then no medal is awarded,
+   shown on a card, or reachable from Extras. */
+const MEDALS_SYS=3;                                   // Saturn
+const medalsOn=()=>save.deepestSys>MEDALS_SYS;
+/* A system's boss is UNKNOWN on its launch card and in the Bestiary until you
+   have beaten it (the system is held) or lost to it (BOSS_MET). */
+const bossKnown=i=> save.deepestSys>i || (save.bossMet||[]).includes(i);
+function unlockToast(n,where){
+  const d=document.createElement('div'); d.className='rwT';
+  d.innerHTML='<small>UNLOCKED</small><b>'+n+'</b><small>'+where+'</small>';
+  $('rwToast').appendChild(d); SFX.tier();
+  setTimeout(()=>d.remove(),4700);
+}
 const medalsOf=i=>(save.medals&&save.medals[SYSTEMS[i].name])||[0,0,0];
 const medalCount=()=>SYSTEMS.reduce((n,sy,i)=>n+medalsOf(i).filter(Boolean).length,0);
 // the system was just held: judge this flight, keep what it earned, say which are new
@@ -2657,6 +2767,13 @@ function medalsAward(i){
   const n1=medalCount();
   REWARDS.filter(r=>n0<r.at&&n1>=r.at).forEach((r,k)=>setTimeout(()=>rewardToast(r),600+k*900));
   return fresh;
+}
+// a short note at the top of the screen: something is not open yet
+function lockToast(text){
+  const d=document.createElement('div'); d.className='rwT no';
+  d.innerHTML='<b>'+text+'</b>';
+  $('rwToast').appendChild(d); SFX.deny();
+  setTimeout(()=>d.remove(),4700);
 }
 function rewardToast(r){
   const d=document.createElement('div'); d.className='rwT';
@@ -2822,13 +2939,13 @@ function rushCleared(){
 function rushWin(){
   const t=rush.t, was=save.rushBest;
   if(!was||t<was) save.rushBest=Math.round(t*10)/10;
-  save.best=Math.max(save.best,score); persist();
+  persist();
   rush=null;
   const secs=v=>v.toFixed(1)+'s';
   $('doneKind').textContent='BOSS RUSH';
   $('doneTitle').textContent='ALL '+SYSTEMS.length+' DOWN';
   $('doneSub').textContent=!was||t<was?'NEW BEST':'VICTORY';
-  $('doneStats').innerHTML=lpanel('RESULT', lrow('TIME',secs(t),'good')+lrow('BEST',secs(save.rushBest))+lrow('SCORE',score));
+  $('doneStats').innerHTML='<div class="crLines"><div>Time: '+secs(t)+'</div><div>Best: '+secs(save.rushBest)+'</div></div>';
   $('doneText').innerHTML='';
   doneTreeBtn();
   state='done'; show('done');
@@ -2842,20 +2959,18 @@ function systemCleared(){
      it tells first, so nothing here counts yet: Icarus is only held once the
      thing behind it is down too, and dying to that leaves it unheld. */
   const fake=finaleArmed;
-  const fresh=fake?null:medalsAward(i);
+  // medals count from the Saturn clear that opens them onward
+  const medalsWere=medalsOn(), medalsNow=!fake&&Math.max(save.deepestSys,i+1)>MEDALS_SYS;
+  const fresh=medalsNow?medalsAward(i):null;
   save.unlocked=true;
-  save.best=Math.max(save.best,score);
   if(!fake) save.deepestSys=Math.max(save.deepestSys,i+1);
   persist();
   mission=null;
   $('doneKind').textContent = last?'CAMPAIGN COMPLETE':'LEVEL COMPLETE';
   $('doneTitle').textContent = done.name;
   $('doneSub').textContent = last?'VICTORY':'HELD';
-  $('doneStats').innerHTML = lpanel('RESULT',
-    lrow('CREDITS EARNED','+'+runCr+' CR','good')+
-    lrow('TOTAL CREDITS', save.credits)+
-    lrow('SCORE', score)+
-    lrow('BEST', save.best))+(fake?'':medalsPanel(i,fresh,MR&&MR.retried?'NO MEDALS THIS FLIGHT \u00b7 BOSS RETRIED':''));
+  $('doneStats').innerHTML = crLines(runCr)+(medalsNow?medalsPanel(i,fresh,MR&&MR.retried?'NO MEDALS THIS FLIGHT \u00b7 BOSS RETRIED':''):'');
+  if(!medalsWere&&medalsOn()) setTimeout(()=>unlockToast('MEDALS','EXTRAS \u00b7 MEDALS &amp; REWARDS'),600);
   // the save as it stands now, ready to copy somewhere safe
   if(!fake) $('doneStats').insertAdjacentHTML('beforeend',
     '<section class="lpanel dcode"><h3>SAVE CODE</h3><div class="dc"><input readonly value="'+makeCode()+'">'+
@@ -2865,8 +2980,11 @@ function systemCleared(){
   const t=SYS_CLEAR_TEXT[i];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
   doneTreeBtn();
-  if(finaleArmed) $('btnDoneTree').style.display='none';   // this card is about to be taken away
-  state='done'; show('done');
+  if(finaleArmed) $('btnDoneMenu').style.display='none';   // this card is about to be taken away
+  state='done';
+  // the real ending: the thing behind the Ruler is down. The credits roll first.
+  if(last&&!fake&&finaleDone) creditsRoll(()=>show('done'));
+  else show('done');
   // ...and then it does not hold
   if(finaleArmed) after(1.0,startFinale);
 }
@@ -2898,8 +3016,8 @@ function nextWave(){
   }else{
     clearBuffs();                // a boss is fought on your own tree, not on what waves 1-4 dropped
     push(1.2,'boss');
-    // the Titans come alone, and so do the Leviathan and Omega
-    if(!BOSS(sysIdx).duo&&!BOSS(sysIdx).chain&&!BOSS(sysIdx).station){
+    // Earth's boss comes alone, as do the Titans, the Leviathan and Omega
+    if(sysIdx>0&&!BOSS(sysIdx).duo&&!BOSS(sysIdx).chain&&!BOSS(sysIdx).station){
     for(let i=0;i<Math.round(((sysIdx?5:3)+S.extra)*(R.ramK||1));i++) push(8+i*(sysIdx?6.5:8),R.ram);
     for(let i=0;i<Math.round(((sysIdx?4:2)+S.extra)*(R.lineK||1));i++) push(11+i*(sysIdx?7:9),R.line);
     for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,R.heavy);
@@ -2916,7 +3034,7 @@ function nextWave(){
   waveTimer=0;
   worldWave();
   if(wave<5) SFX.wave();
-  banner = wave<5 ? 'WAVE '+wave : 'WAVE 5 — '+BOSS(sysIdx).n;
+  banner = wave<5 ? 'WAVE '+wave+' / 5' : 'WAVE 5 / 5 — '+BOSS(sysIdx).n;
   if(wave===1) banner=SYS().name;
   bannerT=2.4;
 }
@@ -3984,11 +4102,12 @@ const BOSSES=[
     mus:{bpm:138, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,1,0, 0,0,1,1], hook:'brace', lead:'sawtooth', ride:1},
     tiers:[
-      {n:'', seq:['shell','ring','shell','summon','|'], pool:['shell','ring','summon'], rest:[1.95,2.7], spd:1},
-      {n:'ITERATION 3296 — BRACED',   seq:['shell','shell','charge','|','ring','summon','shell','charge','|'],
-       pool:['shell','ring','summon','charge'],        rest:[1.55,2.2], spd:1.2},
-      {n:'ITERATION 3296 — CRITICAL', seq:['charge','shell','fan','ring','charge','|','shell','shell','summon','ring','|'],
-       pool:['shell','ring','charge','fan','summon'],  rest:[1.15,1.75], spd:1.45},
+      // no 'summon': it fights you alone, without calling in escorts
+      {n:'', seq:['shell','ring','shell','|'], pool:['shell','ring'], rest:[1.95,2.7], spd:1},
+      {n:'ITERATION 3296 — BRACED',   seq:['shell','shell','charge','|','ring','shell','charge','|'],
+       pool:['shell','ring','charge'],        rest:[1.55,2.2], spd:1.2},
+      {n:'ITERATION 3296 — CRITICAL', seq:['charge','shell','fan','ring','charge','|','shell','shell','ring','|'],
+       pool:['shell','ring','charge','fan'],  rest:[1.15,1.75], spd:1.45},
     ]},
 
   { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1617, val:1400,
@@ -7416,7 +7535,7 @@ function update(dt){
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?14:7, e.open>0?300:190);
         flare(b.x,b.y, e.open>0?'#ffd24d':'#ffffff', e.open>0?14:9, .09);
         if(e.hp<=0){
-          score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
+          shake=Math.max(shake,e.t==='boss'?26:5);
           if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier'||e.t==='crusher');
           if(e.val) drop(e);
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
@@ -7466,7 +7585,8 @@ function update(dt){
           ebullets.push({x:b.x,y:b.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
             r:SPLIT_R[g+1],dmg:SPLIT_DMG[g+1]*EASE(),col:SPLIT_COL[g+1],
             // the last generation is just shrapnel: it carries no fuse of its own
-            orb:last?0:1, gen:last?0:g+1, fuse:last?0:rand(.3,.5)});
+            orb:last?0:1, gen:last?0:g+1, fuse:last?0:rand(.3,.5),
+            src:b.src, tag:b.tag});     // shrapnel is still the Splinter's: the death screen says so
         }
         burst(b.x,b.y,SPLIT_COL[g],10,200);
         ebullets.splice(i,1); continue;
@@ -7568,15 +7688,15 @@ function update(dt){
    screen, but in its own words: nothing about the system is lost, it just
    paid nothing. RELAUNCH flies the same mission again. */
 // what this flight paid, said big on the death screen
-const crWord=n=>n===1?'Credit':'Credits';
-const earnedLine=()=>runCr>0 ? 'Earned '+runCr+' '+crWord(runCr)+'!<small>You now have '+save.credits+'.</small>' : '';
+// what a flight paid, in gold, where the RESULT panel used to be
+const crLines=n=>'<div class="crLines"><div>Credits Earned: '+n+'</div><div>Total Credits: '+save.credits+'</div></div>';
 function sideFailText(M,why){
   retryOk=false; retryButton();            // a side mission has no boss to go back to
   $('overTitle').textContent = M.k==='boss' ? 'SIDE BOSS FAILED' : 'SIDE MISSION FAILED';
   $('overSub').textContent = M.B?M.B.n:branchName(M.k);
   overStep1(why?why:recap(), why?'':deathTip());
-  $('overCr').innerHTML = earnedLine();
-  $('overStats').innerHTML = lpanel('RESULT', lrow('SCORE',score)+lrow('BEST',save.best));
+  $('overCr').innerHTML = crLines(runCr);
+  $('overStats').innerHTML = '';
   $('overMeta').innerHTML = '';
   $('btnRelaunch').style.display = relaunch ? '' : 'none';
   $('btnOverMenu').textContent='MAIN MENU';
@@ -7647,9 +7767,10 @@ function endRun(win,why){
   const left=win||M?null:bossLeft();
   retryOk=!win&&!M&&!rush&&wave>=5&&!!left&&!finaleArmed&&!finale;
   const R=rush; rush=null;
-  save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   if(!R) save.deepestSys=Math.max(save.deepestSys,sysIdx);
+  // lost on the boss wave: you have seen it now, so its name is no secret
+  if(!win&&!M&&!R&&wave>=5){ save.bossMet=save.bossMet||[]; if(!save.bossMet.includes(sysIdx)) save.bossMet.push(sysIdx); }
   if(win) save.unlocked=true;
   persist();
   mission=null;
@@ -7661,16 +7782,13 @@ function endRun(win,why){
     : 'FELL IN '+SYS().name+' — WAVE '+wave;
   overStep1(win?'':why?why:recap(), win?'':deathTip());
   // step 2: how far it got, in the same readout a held system gets
-  $('overStats').innerHTML = lpanel('RESULT',
-    (win?'' : R ? lrow('REACHED','BOSS '+(R.i+1)+' / '+SYSTEMS.length,'warn')
-               : lrow('REACHED', SYS().name+' \u00b7 WAVE '+Math.min(wave,5)+' / 5','warn'))+
-    (left?lrow('BOSS HP LEFT', left.n+' \u00b7 '+left.pc+'%','bad'):'')+
-    lrow('SCORE', score)+lrow('BEST', save.best));
+  // how close it came, if a boss was up: one line, no panel
+  $('overStats').innerHTML = left ? '<div class="bossLeft">'+left.n+' \u00b7 '+left.pc+'% HULL LEFT</div>' : '';
   document.getElementById('overMeta').innerHTML = win?'':
     'If your ship is destroyed, your progress in that system will be destroyed. '+
     'You can re-launch to the system to try again.';
-  $('overCr').innerHTML = win ? '' : earnedLine();
-  $('btnOverMenu').textContent='TITLE SCREEN';     // a side mission renames it below
+  $('overCr').innerHTML = win ? '' : crLines(runCr);
+  $('btnOverMenu').textContent='MAIN MENU';
   $('btnRelaunch').style.display = (win||!relaunch) ? 'none' : '';
   retryButton();
   if(M&&!win){ branchSortie=false; sideFailText(M,why); }
@@ -8541,8 +8659,8 @@ function hazHurt(dmg,x,y,col,kick){
    and keeping it there is harder than shooting it. */
 function hazBossKill(e){
   if(e.twin&&enemies.includes(e.twin)){ const j=enemies.indexOf(e); if(j>=0) enemies.splice(j,1);
-    score+=e.val; duoFall(e); return; }
-  score+=e.val; shake=Math.max(shake,26);
+    duoFall(e); return; }
+  shake=Math.max(shake,26);
   if(!mission&&!rush) credit(CREDIT_BOSS);   // a branch boss is paid by its branch, once; a rush pays nothing
   bossDeathFx(e);
   enemies.length=0;
@@ -9355,7 +9473,11 @@ const secretFlyable=k=>!!k&&k!=='none';
    and a half systems for one fight, which made the route itself optional, and
    a shortcut that good is not a secret, it is the game. The Echo Trial is a
    whole boss fight, so it sits between the two.                            */
-const SECRET_PAY=(i,k)=>Math.max(2,Math.round((k==='boss'?2.4:k==='echo'?.4:.3)*(5*CREDITS_PER_WAVE(i)+CREDIT_BOSS)));
+// rounded to fives, so a reward reads as a reward rather than a calculation.
+// The Portal pays by which of its two you fly: PORTAL_PAY follows SECRET_BOSSES.
+const PORTAL_PAY=[55,90];
+const SECRET_PAY=(i,k)=> k==='boss' ? (PORTAL_PAY[portalPick]||PORTAL_PAY[0])
+  : Math.max(5,5*Math.round((k==='echo'?.4:.3)*(5*CREDITS_PER_WAVE(i)+CREDIT_BOSS)/5));
 
 let mission=null;
 /* ---- the Portal's destination ----
@@ -9374,7 +9496,10 @@ const portalOpen=i=> i===0 || bossBeaten(SECRET_BOSSES[0].k);
    worth something; it is just no longer better than flying the route.      */
 const BRANCH_REPEAT=1/3;
 const branchKey=(i,k)=> k==='boss' ? 'boss' : k+':'+i;
-const branchBanked=(i,k)=> (save.branches||[]).includes(branchKey(i,k));
+// each Portal boss is its own first win: it is banked once that boss is down
+const branchBanked=(i,k)=> k==='boss'
+  ? bossBeaten((SECRET_BOSSES[portalPick]||SECRET_BOSSES[0]).k)
+  : (save.branches||[]).includes(branchKey(i,k));
 function bankBranch(i,k){
   save.branches=save.branches||[];
   const key=branchKey(i,k);
@@ -9823,7 +9948,7 @@ function missionEnd(win,why){
     // the detour failed; the route is untouched. You lose the payout and the
     // second attempt at this branch, and you carry on up the spine.
     branchSortie=false;
-    save.best=Math.max(save.best,score); persist();
+    persist();
     sideFailText(M,why);
     state='over'; show('over');
     return;
@@ -9832,7 +9957,7 @@ function missionEnd(win,why){
   credit(M.pay);
   bankBranch(M.sys,M.k);
   player.hp=Math.min(player.st.maxHp, player.hp+player.st.maxHp*.15);
-  save.best=Math.max(save.best,score); persist();
+  persist();
   branchSortie=false;
   winScene=M;
   // a boss mission has already had its own death scene; the rest get one here
@@ -9885,25 +10010,10 @@ const SIDE_CLEAR_TEXT={
   boss:    'Congratulations on defeating the strange enemy!',
 };
 function missionVictory(M){
-  const secs=t=>t.toFixed(1)+'s';
-  const extra = M.k==='hold'     ? lrow('STATION HULL', Math.max(0,Math.ceil(M.ward.hp))+' / '+M.ward.max,'good')
-              : M.k==='run'      ? lrow('TIME', secs(M.t), M.best?'good':'')+
-                                   lrow('BEST', secs(save.runBest[String(M.sys)]), M.best?'good':'')
-              : M.k==='bounty'   ? lrow('TIME TO KILL', secs(M.t),'good')
-              : M.k==='gauntlet' ? lrow('WAVES CLEARED', GAUNT_N+' / '+GAUNT_N,'good')
-              : M.k==='eye'      ? lrow('SURVIVED', EYE_T+'s  ·  NO HITS','good')
-              : M.k==='mirror'   ? lrow('SURVIVED THE DARK', DARK_T+'s','good')
-              : M.k==='hunt'     ? lrow('CORONAS', HUNT_N+' IN '+secs(M.t),'good')+
-                                   lrow('ROCKET HITS', M.rh+' / '+HUNT_RKT, M.rh?'warn':'good')
-              :                    lrow('TIME', secs(M.t),'good');
   $('doneKind').textContent = M.k==='boss' ? 'QUANTUM PORTAL' : 'SIDE MISSION COMPLETE';
   $('doneTitle').textContent = M.B ? M.B.n : branchName(M.k);
   $('doneSub').textContent = M.k==='run'&&M.best ? 'NEW BEST' : 'VICTORY';
-  $('doneStats').innerHTML = lpanel('RESULT',
-    extra+
-    lrow('CREDITS EARNED','+'+M.pay+' CR'+(M.first?'':'  (REFLOWN)'),'good')+
-    lrow('TOTAL CREDITS', save.credits)+
-    lrow('SCORE', score));
+  $('doneStats').innerHTML = crLines(M.pay);
   const t=SIDE_CLEAR_TEXT[M.k];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
   doneTreeBtn();
@@ -10480,20 +10590,20 @@ function draw(){
       ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
       if(e.t==='phantom') ctx.globalAlpha=e.vis;
       ctx.strokeStyle=col; ctx.fillStyle=e.t==='heavy'?'rgba(255,77,94,.13)':'rgba(0,0,0,.55)';
-      // the last thing in the game has a heartbeat, and it is always running
-      if(e.B&&e.B.final){
-        const pu=.5+.5*Math.sin(e.pt*7.4);
-        ctx.shadowColor='#ff2233'; ctx.shadowBlur=20+34*pu;
-        ctx.strokeStyle='rgb(255,'+Math.round(34+90*pu)+','+Math.round(51+70*pu)+')';
-      }
       ctx.lineWidth=e.t==='boss'?3:e.t==='heavy'?2.6:2; ctx.shadowColor=col; ctx.shadowBlur=14;
       unitPath(ctx,unitKind(e),e.r,e.spin,e.morph);
-      if(e.t==='boss'&&(e.k==='archive'||e.k==='hive'||e.k==='ruler')) e.morph+=1/60;
+      if(e.t==='boss'&&(e.k==='archive'||e.k==='hive'||e.k==='ruler')) e.morph+=frameDt;
       if(e.t==='boss'){
         ctx.fillStyle = e.k==='ruler' ? '#000' : 'rgba(0,0,0,.66)';
         ctx.fill();
         ctx.shadowBlur=26+(e.flare>0?26:0);
         ctx.strokeStyle=e.tier===2?'#e6dcff':col;
+        // the last thing in the game has a heartbeat, and it is always running
+        if(e.B&&e.B.final){
+          const pu=.5+.5*Math.sin(e.pt*7.4);
+          ctx.shadowColor='#ff2233'; ctx.shadowBlur=20+34*pu+(e.flare>0?26:0);
+          ctx.strokeStyle='rgb(255,'+Math.round(34+90*pu)+','+Math.round(51+70*pu)+')';
+        }
         ctx.lineWidth=e.tier===2?4:3;
         ctx.stroke();                              // shimmering rim
         ctx.shadowBlur=0;
@@ -10737,7 +10847,7 @@ function duoBar(any){
   }else{
     const op=[p0,p1].find(e=>alive(e)&&e.open>0);
     if(op){ ctx.fillStyle='#ffd24d'; ctx.font='600 13px Menlo,monospace';
-      ctx.fillText(op.B.n+' EXPOSED  \u00d7'+player.st.punish.toFixed(1),W/2,y-24); }
+      ctx.fillText(op.B.n+' EXPOSED  \u00d7'+(+player.st.punish.toFixed(1)),W/2,y-24); }
   }
 }
 
@@ -10782,9 +10892,9 @@ function hud(){
   ctx.font='13px Menlo,monospace'; ctx.fillStyle='#7d8bb0'; ctx.textAlign='left';
   ctx.fillText('HULL  '+Math.ceil(P.hp)+' / '+Math.round(st.maxHp),24,54);
 
-  ctx.textAlign='right'; ctx.font='13px Menlo,monospace'; ctx.fillStyle='#dfe9ff';
-  ctx.fillText('SCORE '+score,W-24,32);
-  ctx.fillStyle='#7d8bb0'; ctx.font='13px Menlo,monospace';
+  ctx.textAlign='right'; ctx.fillStyle='#7d8bb0'; ctx.font='13px Menlo,monospace';
+  // the right-hand readout starts at the top now there is no score above it
+  ctx.save(); ctx.translate(0,-20);
   if(rush){
     ctx.fillStyle='#ffd24d';
     ctx.fillText('BOSS RUSH — '+(rush.i+1)+' / '+SYSTEMS.length,W-24,52);
@@ -10811,13 +10921,14 @@ function hud(){
       ctx.fillStyle='#7d8bb0'; ctx.fillText('BEST '+save.runBest[String(M.sys)].toFixed(1)+'s',W-24,y); y+=18; }
     ctx.fillStyle='#46e39b';
     ctx.fillText('PAYS '+M.pay+' CR',W-24,y);
-    missionClock();
   }else{
     ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
     ctx.fillText('HOSTILES '+(enemies.length+spawnQ.length),W-24,70);
     ctx.fillStyle='#46e39b';
     ctx.fillText('CREDITS '+save.credits,W-24,88);
   }
+  ctx.restore();
+  if(mission) missionClock();
 
   // dash cd
   if(st.dash){
@@ -10898,7 +11009,7 @@ function hud(){
       ctx.fillStyle='#ff4d5e'; ctx.fillRect(x,y-4,w*p,3);
     }else if(boss.open>0){
       ctx.fillStyle='#ffd24d'; ctx.font='600 13px Menlo,monospace';
-      ctx.fillText('EXPOSED  \u00d7'+P.st.punish.toFixed(1),W/2,y-24);
+      ctx.fillText('EXPOSED  \u00d7'+(+P.st.punish.toFixed(1)),W/2,y-24);
     }
   }
 
@@ -10915,6 +11026,7 @@ function hud(){
 
 /* ================= loop ================= */
 let last=performance.now();
+let frameDt=1/60;     // this frame's world step, for the few things draw() animates itself
 function frame(now){
   // with settings open nothing moves: not a level, a cutscene, or the feed
   // Chrome can stamp the first frame before `last` was taken, so never negative
@@ -10922,6 +11034,7 @@ function frame(now){
   timerStep(raw);                                  // scheduled beats keep real time
   if(slowT>0) slowT=Math.max(0,slowT-raw);
   const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
+  frameDt=dt;
   /* Each stage is guarded on its own. One bad frame used to throw straight out
      of here, the next frame was never asked for, and the whole game stopped
      dead while the page around it kept answering clicks. Now a throw is shown
@@ -10949,6 +11062,7 @@ function frame(now){
     if($('map').classList.contains('on')) mapArt(raw);
     if($('skills').classList.contains('on')) treeArt(raw);
     if($('menu').classList.contains('on')) demoArt(raw);
+    if(roll) creditsStep(raw);
   }catch(err){ frameFault(err,'screens'); }
   try{ gearHome(); }catch(err){ frameFault(err,'gear'); }
   try{ MUS.tick(); }catch(err){ frameFault(err,'music'); }
@@ -10981,10 +11095,56 @@ function setPause(on){
   }else hideAll();
 }
 // leaving a run early still banks what you earned — the run is what ends
+/* The window changed size mid-flight. The arena is laid out for the window it
+   started in, so the flight ends here rather than carrying on in a different
+   shape: what was earned is banked, as quitting does, and you fly it again. */
+/* The game is played full screen. In a browser that means real full screen,
+   or a browser window that covers the whole display: the Mac's green button
+   does that and keeps the toolbar, while an ordinary window, however big,
+   always leaves the menu bar showing, so its outer height falls short.
+   Anything less shows #tooSmall with a FULL SCREEN button. The Mac app has
+   no full-screen API, so there only the floor applies.
+   Below MIN_W x MIN_H nothing fits at all (680 is the arena's own height, and
+   under it the skill tree runs together). Full screen on a display that small
+   cannot help, so the card says so instead of offering the button. */
+const MIN_W=1200, MIN_H=680;
+const fullNow=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+const coversScreen=()=>outerWidth>=screen.width-2&&outerHeight>=screen.height-2;
+function fitCheck(){
+  const floor=innerWidth>=MIN_W&&innerHeight>=MIN_H;
+  const whole=APP||fullNow()||coversScreen();
+  const tooSmallScreen=(whole&&!floor)||screen.width<MIN_W||screen.height<MIN_H;   // full screen cannot help
+  $('fitMsg').textContent = tooSmallScreen ? 'Play on a computer, desktop is best.' : 'Please play in full screen mode.';
+  $('btnFull').style.display = tooSmallScreen||APP ? 'none' : '';
+  $('tooSmall').classList.toggle('on', !(floor&&whole));
+}
+$('btnFull').onclick=()=>{
+  const el=document.documentElement, go=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(!go) return;
+  Promise.resolve(go.call(el)).then(()=>{
+    // in full screen Escape would leave it; Chrome can keep it for the pause key
+    // (hold Escape to leave). Other browsers ignore this and P still pauses.
+    try{ navigator.keyboard&&navigator.keyboard.lock&&navigator.keyboard.lock(['Escape']); }catch(e){}
+  }).catch(()=>{});
+};
+addEventListener('resize',fitCheck);
+document.addEventListener('fullscreenchange',fitCheck);
+document.addEventListener('webkitfullscreenchange',fitCheck);
+fitCheck();
+let winSize=[innerWidth,innerHeight];
+addEventListener('resize',()=>{
+  const changed=innerWidth!==winSize[0]||innerHeight!==winSize[1];
+  winSize=[innerWidth,innerHeight];
+  if(!changed||state!=='play') return;
+  if(gearIsOpen()) gearClose();
+  $('retryAsk').classList.remove('on');
+  entrance=null; phaseCut=null;
+  quitRun();
+  state='over'; show('resized');
+});
 function quitRun(){
   paused=false;
   mission=null; fxClear(); flash=0; shake=0; launchCut=null;
-  save.best=Math.max(save.best,score);
   save.deepest=Math.max(save.deepest,wave);
   if(!rush) save.deepestSys=Math.max(save.deepestSys,sysIdx);
   rush=null;
@@ -11018,7 +11178,7 @@ function feedParse(){
   });
 }
 function demoArt(dt){
-  const cv3=$('demo'), box=$('demoBox');
+  const cv3=$opt('demo'), box=$opt('demoBox');
   if(!cv3||!box) return;
   const w=box.clientWidth, h=box.clientHeight;
   if(!w||!h) return;
@@ -11103,7 +11263,7 @@ function gearHome(){
   const m=IN_LEVEL();
   $('gearBtn').classList.toggle('mid',m);
   $('gearPanel').classList.toggle('mid',m);
-  const gone=m&&!$('pause').classList.contains('on');
+  const gone=(m&&!$('pause').classList.contains('on'))||!!roll;   // nothing over the credits
   $('gearBtn').classList.toggle('gone',gone);
   if(gone&&gearIsOpen()&&!gearHeld) gearClose();
 }
@@ -11124,9 +11284,11 @@ function gearBack(){
 }
 
 /* ================= UI ================= */
-const $=id=>document.getElementById(id);
 function show(which){
-  for(const o of ['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']) $(o).classList.toggle('on', o===which);
+  // a screen change takes the settings panel, and any purchase being asked, with it
+  if(gearIsOpen()) gearClose();
+  if(buyYes) buyAskClose();
+  for(const o of ['menu','over','skills','story','credits','medals','extras','launch','done','code','codex','pause','garage','hullup','map','resized']) $(o).classList.toggle('on', o===which);
 }
 function hideAll(){ show(''); }
 
@@ -11190,7 +11352,38 @@ const sysReached=i=>i<=Math.min(save.deepestSys,SYSTEMS.length-1);
 const sysHeld=i=>i<Math.min(save.deepestSys,SYSTEMS.length);
 const sysOpen=sysReached;
 
+/* Every connector is drawn centre to centre, and most boxes are see-through,
+   so the line would run on into the box. Once the chart is laid out, each end
+   is pulled back to the edge of the box it sits in. Lines on the chart only
+   ever run straight across or straight up, so the trim is along one axis. */
+let mapClipDirty=false;
+function mapClip(){
+  const c=$('chart'), cr=c.getBoundingClientRect();
+  if(!cr.width||!cr.height) return false;
+  const boxes=[...c.querySelectorAll('.mnode')].map(n=>{
+    const r=n.getBoundingClientRect();
+    return {l:r.left-cr.left, r:r.right-cr.left, t:r.top-cr.top, b:r.bottom-cr.top};
+  });
+  const inBox=(x,y)=>boxes.find(q=>x>=q.l&&x<=q.r&&y>=q.t&&y<=q.b);
+  $('mlines').querySelectorAll('line').forEach(l=>{
+    const [a,b,c2,d]=l.dataset.p.split(',').map(Number);
+    let x1=a/100*cr.width, y1=b/100*cr.height, x2=c2/100*cr.width, y2=d/100*cr.height;
+    const across=Math.abs(y2-y1)<Math.abs(x2-x1);
+    const q1=inBox(x1,y1), q2=inBox(x2,y2);
+    if(across){
+      if(q1) x1 = x2>x1 ? q1.r : q1.l;
+      if(q2) x2 = x1>x2 ? q2.r : q2.l;
+    }else{
+      if(q1) y1 = y2>y1 ? q1.b : q1.t;
+      if(q2) y2 = y1>y2 ? q2.b : q2.t;
+    }
+    l.setAttribute('x1',x1/cr.width*100+'%'); l.setAttribute('y1',y1/cr.height*100+'%');
+    l.setAttribute('x2',x2/cr.width*100+'%'); l.setAttribute('y2',y2/cr.height*100+'%');
+  });
+  return true;
+}
 function buildMap(){
+  mapClipDirty=true;
   const c=$('chart'), svg=$('mlines'), ns='http://www.w3.org/2000/svg';
   // the green nodes are the save's record, which is the whole point of a level select
   const held=heldN();
@@ -11200,6 +11393,7 @@ function buildMap(){
     const l=document.createElementNS(ns,'line');
     l.setAttribute('x1',x1+'%'); l.setAttribute('y1',y1+'%');
     l.setAttribute('x2',x2+'%'); l.setAttribute('y2',y2+'%');
+    l.dataset.p=[x1,y1,x2,y2].join(',');     // centre to centre, before mapClip trims it
     /* A branch connector is dashed, and a thin faint dash on a dark grid reads
        as nothing at all — so the dashes are longer, fatter and round-capped,
        and the unlit colours passed in below are lifted clear of the grid. */
@@ -11218,10 +11412,6 @@ function buildMap(){
       (meta?'<div class="mx">'+meta+'</div>':'');
     c.appendChild(d); return d;
   };
-  // what a system actually is, in numbers: how much heavier everything is,
-  // what it pays a wave, and the one enemy it introduces
-  // two short lines rather than one long one that runs off the card
-  const spent=spentPoints();
 
   regItems(mapReg).forEach((it,slot)=>{
     const y=MAP_Y(slot);
@@ -11242,7 +11432,7 @@ function buildMap(){
       const pick=branchPickable(i,k), selB=pick && mapPickK===k && mapPick===i;
       const lit=pick, won=k!=='boss'&&branchBanked(i,k);
       line(bx,y,MAP_X,y, lit?(won?'#46e39b':col):dim, true, false);
-      const bn=node(bx,y,cls+(lit?' open':'')+(won?' won':'')+(selB?' sel':''), branchName(k),
+      const bn=node(bx,y,cls+(lit?' open':'')+(won?' won':'')+(selB?' sel':''), lit?branchName(k):UNKNOWN,   // like a system, no name until it opens
         selB   ? 'SELECTED'
         : lit  ? branchSub(k)
         : sysReached(i) ? 'CLEAR '+sysLabel(i)+' FIRST'  
@@ -11271,6 +11461,8 @@ function buildMap(){
   $('mapRegNum').textContent='REGION '+(mapReg+1)+' / '+REGIONS.length;
   $('btnRegPrev').disabled=mapReg<=0;
   $('btnRegNext').disabled=mapReg>=REGIONS.length-1;
+  // newly opened (Saturn held opens Solar System 2, Sol the Icarus): lit until visited
+  $('btnRegNext').classList.toggle('fresh', regOpen(mapReg+1) && (save.regSeen|0)<mapReg+1);
 
   $('mapPts').textContent=save.credits+' CREDIT'+(save.credits===1?'':'S');
   $('mapBest').textContent = !save.deepestSys ? ''
@@ -11282,11 +11474,12 @@ function buildMap(){
    route it lights is always the route you are looking at.                   */
 let mapT=0;
 function mapArt(dt){
-  const cv2=$('mapArt'), box=$('chart');
+  const cv2=$opt('mapArt'), box=$opt('chart');
   if(!cv2||!box) return;
   const w=box.clientWidth, h=box.clientHeight;
   if(!w||!h) return;
-  if(cv2.width!==w||cv2.height!==h){ cv2.width=w; cv2.height=h; }
+  if(cv2.width!==w||cv2.height!==h){ cv2.width=w; cv2.height=h; mapClipDirty=true; }
+  if(mapClipDirty&&mapClip()) mapClipDirty=false;
   const g=cv2.getContext('2d');
   mapT+=dt;
   g.clearRect(0,0,w,h);
@@ -11425,7 +11618,12 @@ function mapArt(dt){
 
   // ── the portal, when there is one: a vortex rather than a box ──
   if(SYSTEMS.length>PORTAL_SYS && regOf(PORTAL_SYS)===mapReg){
-    const y=py(MAP_Y(slotOf(PORTAL_SYS))), pxx=px(PORTAL_X);
+    // centred on the portal card itself: the card is pinned to the left edge
+    // and sized to its text, so PORTAL_X is only where it would be otherwise
+    let y=py(MAP_Y(slotOf(PORTAL_SYS))), pxx=px(PORTAL_X);
+    const pc=box.querySelector('.mnode.portal');
+    if(pc){ const cr=box.getBoundingClientRect(), r=pc.getBoundingClientRect();
+            if(r.width){ pxx=r.left-cr.left+r.width/2; y=r.top-cr.top+r.height/2; } }
     const live=branchPickable(PORTAL_SYS,'boss');   // fast and lit once it can be flown
     const R1=Math.max(66,w*.075);          // outside the portal card
     for(let i=0;i<4;i++){
@@ -11471,6 +11669,7 @@ function mapRegStep(d){
   const r=clamp(mapReg+d,0,REGIONS.length-1);
   if(r===mapReg) return;
   mapReg=r;
+  if(r>(save.regSeen|0)){ save.regSeen=r; persist(); }
   let best=-1;
   regItems(r).forEach(it=>{ if(it.ph===undefined && sysOpen(it.i)) best=it.i; });
   if(best>=0){ mapPick=best; mapPickK=null; }
@@ -11517,7 +11716,7 @@ function unlockFx(s){
   }
   const sc=$('skills');
   sc.classList.remove('pulse'); void sc.offsetWidth; sc.classList.add('pulse');
-  const old=$('unlockName'); if(old) old.remove();
+  const old=$opt('unlockName'); if(old) old.remove();
   const el=document.createElement('div');
   el.id='unlockName';
   el.innerHTML=s.n.replace(/\n/g,' ')+'<small>'+s.d+'</small>';
@@ -11530,7 +11729,7 @@ function unlockFx(s){
    spent into visibly has current in it. */
 let treeT=0, treeSparks=[];
 function treeArt(dt){
-  const cv2=$('treeArt'), box=$('tree');
+  const cv2=$opt('treeArt'), box=$opt('tree');
   if(!cv2||!box) return;
   const w=box.clientWidth, h=box.clientHeight;
   if(!w||!h) return;
@@ -11658,17 +11857,19 @@ function buySkill(s){
 }
 /* What a skill does to the ship, as numbers: every stat it moves, before and
    after. Worked out from stats() itself, with and without the skill, so it
-   can never disagree with what the ship actually gets. */
+   can never disagree with what the ship actually gets. A 'pct' stat has no
+   number a pilot could place (shots a second, pixels a second), so it shows
+   only how much the skill moves it: FIRE RATE +20%. */
 const SKILL_STATS=[
   ['HEALTH',      s=>s.maxHp,                 v=>Math.round(v)],
-  ['DAMAGE',      s=>s.dmg,                   v=>+v.toFixed(1)],
-  ['FIRE RATE',   s=>1/s.delay,               v=>v.toFixed(1)+'/s'],
+  ['DAMAGE',      s=>s.dmg,                   v=>Math.round(v)],
+  ['FIRE RATE',   s=>1/s.delay,               'pct'],
   ['SHOTS',       s=>s.shots,                 v=>v],
   ['PIERCE',      s=>s.pierce,                v=>v?v+' ENEMIES':'NONE'],
   ['EXPOSED HITS',s=>s.punish,                v=>'\u00d7'+v],
   ['REPAIR',      s=>s.regen,                 v=>v?v+' HP/s':'NONE'],
   ['DAMAGE TAKEN',s=>s.armour,                v=>Math.round(v*100)+'%'],
-  ['SPEED',       s=>s.speed,                 v=>Math.round(v)],
+  ['SPEED',       s=>s.speed,                 'pct'],
   ['DASH',        s=>s.dash?1:0,              v=>v?'YES':'NO'],
   ['DASH SHIELD', s=>s.iframe?1:0,            v=>v?'YES':'NO'],
   ['DASH LENGTH', s=>s.dashLen/DASH_LEN,      v=>'\u00d7'+(+v.toFixed(1))],
@@ -11679,7 +11880,9 @@ function skillDelta(sk){
   const a=stats(); o.push(sk.id); const b=stats();
   if(!had) o.pop();
   return SKILL_STATS.filter(([,g])=>Math.abs(g(a)-g(b))>1e-6)
-    .map(([n,g,f])=>'<div class="si-d"><span>'+n+'</span> '+f(g(a))+' \u2192 '+f(g(b))+'</div>').join('');
+    .map(([n,g,f])=>'<div class="si-d"><span>'+n+'</span> '+(f==='pct'
+      ? (g(b)>g(a)?'+':'')+Math.round((g(b)/g(a)-1)*100)+'%'
+      : f(g(a))+' \u2192 '+f(g(b)))+'</div>').join('');
 }
 let buyAsk=null;          // the skill whose purchase is waiting on CONFIRM
 function skillInfo(s){
@@ -11688,8 +11891,8 @@ function skillInfo(s){
   const own=has(s.id), ready=!s.req||has(s.req), cr=SKILL_CR(s);
   const status = own ? ['own','OWNED']
                : !ready ? ['no','NEEDS '+byId(s.req).n.replace(/\n/g,' ')]
-               : save.credits<cr ? ['no',cr+' CR  \u00b7  NEED '+(cr-save.credits)+' MORE']
-               : ['can',cr+' CR'];
+               : save.credits<cr ? ['no','COSTS '+cr+' CR  \u00b7  NEED '+(cr-save.credits)+' MORE']
+               : ['can','COSTS '+cr+' CR'];
   // a skill behind one you do not own yet keeps what it does to itself
   box.innerHTML=
     '<div class="si-l"><div class="si-t">TIER '+tierOf(s.id)+'</div>'+
@@ -11707,7 +11910,7 @@ function skillInfo(s){
         : (ready?'<p>'+s.info+'</p>':'')+
           (canBuy(s)?'<button id="btnSkillBuy">BUY \u2014 '+cr+' CR</button>':''))+
     '</div>';
-  const bb=$('btnSkillBuy'), yes=$('btnSkillYes'), no=$('btnSkillNo');
+  const bb=$opt('btnSkillBuy'), yes=$opt('btnSkillYes'), no=$opt('btnSkillNo');
   if(bb)  bb.onclick=()=>{ buyAsk=s.id; SFX.ui(); skillInfo(s); };
   if(no)  no.onclick=()=>{ buyAsk=null; skillInfo(s); };
   if(yes) yes.onclick=()=>{ buyAsk=null; treeSel=s.id; buySkill(s); buildTree(); };
@@ -11834,10 +12037,10 @@ const CODEX={
        'you. Those shards continue to break until an unstoppable torrent of shards are coming. '+
        'It stays away, then fires the orbs.'},
     {c:'#5ff2ff', n:'ZAPPER', tag:'ICARUS  \u00b7  SPLITTER', sys:8,
-     u:'zapper', a:[cxEnemy('zapper',8),150,10,.37,9], ctr:'\u00abWRITE: Zapper tip\u00bb',
+     u:'zapper', a:[cxEnemy('zapper',8),150,10,.37,9], ctr:'Strafe it until the dart splits, then charge to close range.',
      t:'A small enemy that fires 1 splitting dart that homes. It splits into 3.'},
     {c:'#ffe45c', n:'CRUSHER', tag:'ICARUS  \u00b7  HEAVY', sys:8,
-     u:'crusher', a:[cxEnemy('crusher',8),40,13,.36,26], ctr:'\u00abWRITE: Crusher tip\u00bb',
+     u:'crusher', a:[cxEnemy('crusher',8),40,13,.36,26], ctr:'Get close, but avoid the bolts. Charge right after it shoots.',
      t:'A big tanky enemy that fires electric bolts that briefly stun the player.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'EARTH  ·  WAVE 5', sys:0,
      u:'b_primary', a:[cxHull(cxBoss('primary'),cxSys('primary')),62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
@@ -11915,7 +12118,8 @@ const AS_LABELS=[['HULL','',0],['VELOCITY',' px/s',1],['POWER',' dmg',2],['CADEN
 function asMax(i){
   return asRows(CODEX.hostiles).reduce((m,r)=>r.a&&r.a[i]>m?r.a[i]:m,1);
 }
-const asMet=r=>codexTab!=='hostiles'||save.deepestSys>=r.sys;
+const asMet=r=>codexTab!=='hostiles'
+  || (/^b_/.test(r.u)&&!r.hide ? bossKnown(r.sys) : save.deepestSys>=r.sys);
 // a name you have not earned yet, rendered as the block characters it is
 const scramble=n=>n.replace(/[^ ]/g,'\u2593');
 
@@ -12136,8 +12340,11 @@ function buildGarage(){
       '<div class="foot">'+foot+'</div>';
     d.onclick=()=>{
       if(owned){ save.ship=i; persist(); buildGarage(); refreshMenu(); }
-      else if(buy){ save.credits-=sh.cost; save.ships.push(i); save.ship=i; persist();
-                    buildGarage(); refreshMenu(); }
+      else if(buy) askBuy('BUY '+sh.n+'?', sh.cost, ()=>{
+        if(!shipBuy(i)) return;
+        save.credits-=sh.cost; save.ships.push(i); save.ship=i; persist();
+        buildGarage(); refreshMenu();
+      });
     };
     // its own screen, without putting the hull in the bay
     const ub=d.querySelector('.cup');
@@ -12183,11 +12390,30 @@ function buildHull(){
   $('hullStats').innerHTML=html;
   $('hullStats').querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{
     const key=b.dataset.k; if(!hupBuy(i,key)) return;
-    save.credits-=hupCost(i,key);
-    save.hup[i]=save.hup[i]||{}; save.hup[i][key]=hupLv(i,key)+1;
-    persist(); buildHull(); refreshMenu();
+    const label=STATS.find(([l,k])=>k===key)[0];
+    askBuy('UPGRADE '+sh.n+' '+label+'?', hupCost(i,key), ()=>{
+      if(!hupBuy(i,key)) return;
+      save.credits-=hupCost(i,key);
+      save.hup[i]=save.hup[i]||{}; save.hup[i][key]=hupLv(i,key)+1;
+      persist(); buildHull(); refreshMenu();
+    });
   });
 }
+/* Spending in the Garage asks first, the way the skill tree does: what you
+   have, what it costs, what is left. CONFIRM pays; CANCEL, Escape or a click
+   outside the box leaves everything as it was. */
+let buyYes=null;
+function askBuy(q,cost,yes){
+  $('baQ').textContent=q;
+  $('baHave').textContent=save.credits; $('baCost').textContent='\u2212'+cost;
+  $('baAfter').textContent=save.credits-cost;
+  buyYes=yes; SFX.ui(); $('buyAsk').classList.add('on');
+}
+function buyAskClose(){ buyYes=null; $('buyAsk').classList.remove('on'); }
+$('btnBuyYes').onclick=()=>{ const f=buyYes; buyAskClose(); if(f) f(); };
+$('btnBuyNo').onclick=buyAskClose;
+$('buyAsk').onclick=e=>{ if(e.target===$('buyAsk')) buyAskClose(); };
+addEventListener('keydown',e=>{ if(e.code==='Escape'&&$('buyAsk').classList.contains('on')){ e.preventDefault(); buyAskClose(); } });
 function closeHull(){ show('garage'); buildGarage(); }
 /* ---- hull respec ----
    The upgrade screen's own RESPEC: every upgrade on that hull comes back as
@@ -12253,7 +12479,7 @@ const FX_REDUCED=()=> save.fx ? save.fx==='reduced'
 const fxShake=()=>FX_REDUCED()?0:shake;
 const fxFlash=()=>clamp(flash,0,1)*(FX_REDUCED()?.25:1);
 function buildFx(){
-  const box=$('fxGear'); if(!box) return;
+  const box=$opt('fxGear'); if(!box) return;
   const red=FX_REDUCED();
   box.innerHTML='<span class="lab">EFFECTS</span><div class="seg">'+
     '<button data-v="full" class="'+(red?'':'on')+'">FULL</button>'+
@@ -12289,7 +12515,6 @@ function buildSound(){
    it turns up as its own button beside SPACE MAP.                         */
 const skillReady=()=>SKILLS.some(canBuy);
 function refreshMenu(){
-  const buyable=SHIPS.some((sh,i)=>shipBuy(i));
   $('btnTreeMenu').className = 'hot';
   $('btnGarage').className = 'hot';
   $('btnExtras').className = 'ghost';
@@ -12297,6 +12522,54 @@ function refreshMenu(){
   buildSound(); buildDiff();
 }
 refreshMenu();
+
+/* ---- version and credits ----
+   VERSION is shown under the Extras buttons and at the foot of the credits.
+   CREDITS is one [heading, names] pair per block, in the order shown. */
+const VERSION='1.0.0';
+const CREDITS=[
+  ['\u00abWRITE: credits heading\u00bb', '\u00abWRITE: names\u00bb'],
+];
+/* The screenshots the roll runs past, in order, one between each block of
+   names (any left over follow the last block). Each is a file next to
+   index.html; `cap` is an optional line under it. A shot that is missing is
+   simply left out of the roll. */
+const CREDIT_SHOTS=[
+  // {src:'shots/01.png', cap:''},
+];
+const CREDITS_END='\u00abWRITE: closing line\u00bb';
+const CREDITS_SPEED=62;            // px a second the roll climbs
+
+/* ---- the roll ----
+   Plays when the thing behind the Ruler goes down, before the victory card,
+   and from Extras. SKIP, Escape, Space or Enter ends it early. */
+let roll=null;
+function creditsRoll(then){
+  const fig=sh=>'<figure><img src="'+sh.src+'" alt="" onerror="this.parentNode.remove()">'+
+    (sh.cap?'<figcaption>'+sh.cap+'</figcaption>':'')+'</figure>';
+  let html='<h1>MINDFRAME</h1>', k=0;
+  CREDITS.forEach(([h,n])=>{
+    html+='<p class="cr"><b>'+h+'</b>'+n+'</p>';
+    if(k<CREDIT_SHOTS.length) html+=fig(CREDIT_SHOTS[k++]);
+  });
+  while(k<CREDIT_SHOTS.length) html+=fig(CREDIT_SHOTS[k++]);
+  html+='<p class="cr">'+CREDITS_END+'</p><p class="ver">v'+VERSION+'</p>';
+  $('creditsTrack').innerHTML=html;
+  roll={y:innerHeight, then};
+  $('creditsTrack').style.transform='translateY('+roll.y+'px)';
+  show('credits');
+}
+function creditsStep(dt){
+  if(!roll) return;
+  roll.y-=CREDITS_SPEED*dt;
+  $('creditsTrack').style.transform='translateY('+roll.y+'px)';
+  if(roll.y < -$('creditsTrack').offsetHeight+innerHeight*.5) creditsEnd();
+}
+function creditsEnd(){
+  if(!roll) return;
+  const f=roll.then; roll=null; f();
+}
+$('extrasVer').textContent='v'+VERSION;
 
 /* ---- the source text ---- */
 const STORY=`MINDFRAME|Oscar Moran · 20 August 2026
@@ -12536,11 +12809,20 @@ $('gearBtn').onclick=()=>{ gearIsOpen()?gearClose():gearOpen(); };
 $('gearClose').onclick=gearClose;
 /* EXTRAS — off the title: medals, the reference and the story. What they open comes
    back here (gearFrom does that for every screen it names). */
-$('btnExtras').onclick=()=>show('extras');
+$('btnExtras').onclick=()=>{ $('extCredits').classList.toggle('lock',!creditsOpen()); $('extMedals').classList.toggle('lock',!medalsOn()); show('extras'); };
 $('btnExtrasBack').onclick=()=>{ refreshMenu(); show('menu'); };
 $('extCodex').onclick=()=>{ gearFrom='extras'; codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
 $('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
-$('extMedals').onclick=()=>{ gearFrom='extras'; medalTab='medals'; buildMedals(); show('medals'); };
+// the credits are the ending's: they open once the thing behind the Ruler is down
+const creditsOpen=()=>save.deepestSys>=SYSTEMS.length;
+$('extCredits').onclick=()=>{
+  if(!creditsOpen()){ lockToast('Not Available until you beat the Ruler.'); return; }
+  creditsRoll(()=>show('extras'));
+};
+$('extMedals').onclick=()=>{
+  if(!medalsOn()){ lockToast('Not Available until you beat Saturn.'); return; }
+  gearFrom='extras'; medalTab='medals'; buildMedals(); show('medals');
+};
 $('medalTabs').onclick=ev=>{ const b=ev.target.closest('button'); if(!b||b.dataset.tab===medalTab) return;
   medalTab=b.dataset.tab; SFX.ui(); buildMedals(); };
 $('gearCode').onclick=()=>gearGo(openCode);
@@ -12548,6 +12830,12 @@ $('btnMedalsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu
 $('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
 
 $('btnStoryBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
+$('creditsSkip').onclick=creditsEnd;
+addEventListener('keydown',e=>{
+  if(roll&&(e.code==='Escape'||e.code==='Space'||e.code==='Enter')){ e.preventDefault(); creditsEnd(); return; }
+  // Enter carries on from a result card: on to the map, as SPACE MAP does
+  if(e.code==='Enter'&&!e.repeat&&$('done').classList.contains('on')&&!gearIsOpen()){ e.preventDefault(); $('btnDoneGo').click(); }
+});
 
 /* The very first LAUNCH skips the chart and the launching screen and puts you
    in Earth: a new player has nothing to choose yet and should be flying, not
@@ -12558,12 +12846,15 @@ $('btnStart').onclick=()=>{
 };
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
+$('btnResizedGo').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } else { state='menu'; refreshMenu(); show('menu'); } };
+$('btnResizedMap').onclick=()=>{ hideAll(); openMap('menu'); };
 // RETRY BOSS asks first: what you have, what it costs, what is left
 $('btnRetry').onclick=()=>{
   const c=retryCost();
   if(!(retryOk&&c!==undefined&&save.credits>=c)){ SFX.deny(); return; }
   $('raHave').textContent=save.credits; $('raCost').textContent='\u2212'+c; $('raAfter').textContent=save.credits-c;
   // the medals this system still has to give, each one off the table for this flight
+  $('raMedals').style.display=medalsOn()?'':'none';
   const have=medalsOf(sysIdx), goals=medalGoals(sysIdx);
   $('raMiss').innerHTML=goals.map((g,k)=>have[k]?'':
     '<div class="mm"><s>\u2715 NOT THIS FLIGHT</s><span><em>'+MEDAL_NAMES[sysIdx][k]+'</em> \u00b7 '+g+'</span></div>').join('');
@@ -12591,17 +12882,14 @@ $('btnRegNext').onclick=()=>mapRegStep(1);
 $('btnOverNext').onclick=()=>{ SFX.ui(); overStep(2); };
 $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 // the tree only opens from the home screen now, so it only ever goes back there
-let treeFrom='menu';
-$('btnTreeBack').onclick=()=>{
-  if(treeFrom==='done'){ treeFrom='menu'; doneTreeBtn(); state='done'; show('done'); return; }
-  state='menu'; refreshMenu(); show('menu'); };
-$('btnTreeMenu').onclick=()=>{ treeFrom='menu'; buildTree(); show('skills'); };
-$('btnDoneTree').onclick=()=>{ treeFrom='done'; buildTree(); show('skills'); };
-// on the result card only while there is something to buy
-function doneTreeBtn(){ $('btnDoneTree').style.display = skillReady()?'':'none'; }
+$('btnTreeBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
+$('btnTreeMenu').onclick=()=>{ buildTree(); show('skills'); };
+$('btnDoneMenu').onclick=()=>{ if(finaleArmed) return; state='menu'; refreshMenu(); show('menu'); };
+// MAIN MENU is always on the result card, except the one the finale is about to break
+function doneTreeBtn(){ $('btnDoneMenu').style.display=''; }
 
 // whichever full screen is showing, if any
-const openOverlay=()=>['menu','over','skills','story','medals','extras','launch','done','code','codex','pause','garage','hullup','map']
+const openOverlay=()=>['menu','over','skills','story','credits','medals','extras','launch','done','code','codex','pause','garage','hullup','map','resized']
   .find(o=>$(o).classList.contains('on'));
 
 /* ---- pause menu ---- */

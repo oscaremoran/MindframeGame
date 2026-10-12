@@ -25,6 +25,8 @@ swiftc -O src/icon.swift -o "$TMP/icon"
 iconutil -c icns "$TMP/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 
 cp "$GAME" "$APP/Contents/Resources/index.html"
+# the credits roll's screenshots sit next to the page, in the app as on the web
+if [ -d ../shots ]; then rm -rf "$APP/Contents/Resources/shots"; cp -R ../shots "$APP/Contents/Resources/shots"; fi
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

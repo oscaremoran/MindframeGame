@@ -1,11 +1,14 @@
 # Mindframe — Defense of Earth
 
 A single-file browser space shooter set in the world of **"Mindframe"** by Oscar Moran.
-You are the last human pilot, flying a route of seven systems from Earth to the
+You are the last human pilot, flying a route of nine systems from Earth to the
 Icarus, the enemy battleship. Each system is five waves, and the fifth is a boss.
 Clear a system and it is held for good: you can fly it again any time from the map.
 
-**[Play it](index.html)**: no install, no build step, no server. Open `index.html` in any browser.
+**Version 1.0.0.** See [CHANGELOG.md](CHANGELOG.md).
+
+**[Play it](index.html)**: no install, no build step, no server. Open `index.html` in any browser. It plays full screen
+(the game offers a FULL SCREEN button), on a desktop or laptop.
 A Mac app is also available ([download](MindframeGame-app/Mindframe-mac.zip)).
 
 ![Mindframe](mindframe.gif)
@@ -29,7 +32,7 @@ A Mac app is also available ([download](MindframeGame-app/Mindframe-mac.zip)).
    to select it.
 3. **Launching screen.** What you are about to fly: threat, new hostile, boss
    and payout. **ENGAGE** starts it.
-4. **The fight.** Five waves. Clearing the fifth shows a result screen and
+4. **The fight.** Five waves. Clearing the fifth shows the credits it paid and
    returns you to the map.
 5. **Dying** loses that attempt at that system, never the campaign.
    **RELAUNCH** goes straight back in.
@@ -44,10 +47,12 @@ A Mac app is also available ([download](MindframeGame-app/Mindframe-mac.zip)).
 | 04 | Saturn | ring debris down marked lanes | Orbiter | The Architect |
 | 05 | Luna | low-gravity zones | Phantom, Meteor, Lander *(new roster)* | The Crescent |
 | 06 | Neptune | ice storm fronts and whiteout | Glacier | The Titans (Triton + Proteus) |
-| 07 | Icarus | raider beams | Splinter | The Ruler, and what is behind it |
+| 07 | Europa | ice geysers | Cloner | The Leviathan |
+| 08 | Sol | solar flares | Corona | Space Station Omega |
+| 09 | Icarus | raider beams | Splinter, Zapper, Crusher *(new roster)* | The Ruler, and what is behind it |
 
 - **Hazards stay with their own system.** Hostiles carry forward within a roster.
-  Luna starts a new roster, so Earth's three enemies do not follow you there.
+  Luna and the Icarus each start a new roster, so earlier enemies do not follow you there.
 - **Hazards hit enemies too**, five times harder than they hit you. Steering a
   fight into the arena pays off.
 - **Earth is a runway.** Waves 1–4 come in softer (62% → 92% of full weight).
@@ -91,6 +96,11 @@ thing that can be clicked.
 | Jupiter | Hazard Run | A gate race against the clock, with the gravity well pulling you off the line |
 | Saturn | Gauntlet | Three Saturn waves back to back; one hit ends it |
 | Luna | Echo Trial | Echoes of the Hive Mind and Iteration 2117 together, faster, with less rest. A pair like the Titans: one bar, they take turns, each is shielded at half until the other gets there |
+| Neptune | Through the Storm | Cross blizzard fronts through the hole in each, then hold the one drifting calm eye |
+| Europa | Conquering the Depths | Two Cloners, then four, then the lights go out and the Leviathan hunts you: outlast it |
+| Sol | Corona Hunt | Kill enough Coronas before the clock runs out, without taking too many of their rockets |
+
+The Icarus has no side mission.
 
 Failing one (its goal, or your ship) shows a SIDE MISSION FAILED screen: no credits, RELAUNCH to try again.
 
@@ -102,8 +112,8 @@ that on every repeat.
 The violet vortex off Jupiter. Behind it are the two hardest fights in the game,
 and you pick which one:
 
-- **Iteration 3295**: the Watcher that held the record before 3296.
-- **The Archive**: sealed until 3295 is down. Beating it unlocks the
+- **Iteration 3295** (55 CR): the Watcher that held the record before 3296.
+- **The Archive** (90 CR): sealed until 3295 is down. Beating it unlocks the
   **Worldbreaker** hull.
 
 ## Credits
@@ -112,11 +122,11 @@ Credits are the only currency.
 
 | | |
 |---|---|
-| Holding a wave | 2 CR in Earth, +2 per system after it (Icarus pays 14) |
-| Killing a system's boss | 8 CR |
-| Side missions and the Portal | a fixed payout, full the first time |
+| Holding a wave | 2 CR in Earth, +2 per system after it (Icarus pays 18) |
+| Killing a system's boss | 10 CR (so a system pays 20, 30, 40 … 100 in all) |
+| Side missions and the Portal | a fixed payout in fives, full the first time |
 
-Score is just the scoreboard.
+There is no score.
 
 ## Skill tree
 
@@ -126,9 +136,9 @@ Each skill costs twice its tier weight in credits.
 | Branch | Tier 1 → Tier 4 |
 |---|---|
 | Damage | Pulse Upgrades → Focused Pulse → Phase Rounds → Punishing Pulses |
-| Fire rate | Weapon Overclock → Twin Emitters → Triple Spread → Quantum Spread |
-| Hull | Hull Plating → Hull Reinforcement → Repair Field → Biological Weave |
-| Movement | Thrust Boost → Dash Drive → Dash Deflector → Interstellar Drive |
+| Arsenal | Weapon Overclock → Twin Emitters → Triple Spread → Quantum Spread |
+| Defensive | Hull Plating → Hull Reinforcement → Repair Field → Biological Weave |
+| Speed | Thrust Boost → Dash Drive → Dash Deflector → Interstellar Drive |
 
 Click a skill to read it, then click it again to buy. **RESPEC** refunds every
 credit (first click arms it, second click confirms).
@@ -138,10 +148,10 @@ credit (first click arms it, second click confirms).
 | Hull | Class | Unlocks |
 |---|---|---|
 | Lancer | Standard pattern | from the start |
-| Bulwark | Assault hull | hold Earth, then 10 CR |
-| Needle | Interceptor | hold Venus, then 20 CR |
-| Verdict | Siege gunship | hold Jupiter, then 32 CR |
-| Worldbreaker | Siege platform | beat The Archive, then 60 CR |
+| Bulwark | Assault hull | hold Earth, then 20 CR |
+| Needle | Interceptor | hold Jupiter, then 40 CR |
+| Verdict | Siege gunship | hold Saturn, then 64 CR |
+| Worldbreaker | Siege platform | beat The Archive, then 120 CR |
 
 Stat letter grades are calculated from each hull's multipliers in `SHIPS`.
 
@@ -174,11 +184,16 @@ it (`MAGNET_R`, `MAGNET_CONE`, `MAGNET_TURN`).
 ## Settings
 
 The gear sits in the same corner of every screen: volume, difficulty,
-**Quit Level** (in a run), **Bestiary** (every hostile, boss, cell and control),
-**Save Code**, **Read the Story** and **Wipe All Progress**.
+**Effects** (Full or Reduced), **Quit Level** (in a run), **Save Code** and
+**Wipe All Progress**.
+
+**Extras** on the home screen holds **Medals & Rewards** (open once Saturn is
+held), the **Bestiary** (every hostile, boss, cell and control; a system's
+boss stays UNKNOWN until you beat it or lose to it), **Read the Story** and
+**Credits** (open once the campaign is beaten).
 
 - **Save codes** carry your progress between browsers as
-  `MF4-<payload>-<checksum>`. Older `MF1`–`MF3` codes still load.
+  `MF8-<payload>-<checksum>`. Older `MF1`–`MF7` codes still load.
 - **Wipe** asks twice.
 
 ## Writing the text
@@ -186,6 +201,11 @@ The gear sits in the same corner of every screen: volume, difficulty,
 Player-facing text lives in the block marked `★ WRITE YOUR TEXT HERE ★` at the
 top of the script in `index.html` (system names), plus `SYS_CLEAR_TEXT` (the
 line under a cleared system), `SIDE_CLEAR_TEXT` and `LAUNCH_TEXT`.
+
+The credits roll after the final fight, and from Extras. It reads `CREDITS`
+(one `[heading, names]` pair per block), `CREDIT_SHOTS` (screenshots in
+`shots/`, one between each block) and `CREDITS_END` (the closing line).
+`VERSION` sets the version shown under Extras and at the end of the roll.
 
 ## Files
 
@@ -196,5 +216,3 @@ line under a cleared system), `SIDE_CLEAR_TEXT` and `LAUNCH_TEXT`.
 | `mindframe.gif` | Gameplay capture |
 | `mindframe-cover.gif` | Shorter cut under itch.io's 3MB cover limit |
 
-The home-screen footage (`FEED_DATA`) and both GIFs are recorded from the real
-game. A bot is driven through the actual `update()` and `draw()`.
