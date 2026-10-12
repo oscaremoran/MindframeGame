@@ -1219,7 +1219,7 @@ const SYSTEMS=[
   { id:'008', name:'SOL', hp:2.3, spd:1.35, extra:3, haz:'flares', roster:'sol2', adds:'corona',
     wave:{hp:2.25, dmg:1.4, rof:1.5, more:2, gap:.75, live:11} },
 
-  { id:'009', name:'ICARUS', hp:1.98, spd:1.16, extra:3, haz:'raiders', adds:'splinter' },
+  { id:'009', name:'ICARUS', hp:2.2, spd:1.16, extra:3, haz:'raiders', roster:'ica' },
 ];
 
 /* ---- regions ----
@@ -1259,6 +1259,10 @@ const ROSTERS={
   // `lineK` scales how many line units a wave brings: Phantoms are a lot of
   // gun each, so Solar System 2 fields fewer of them
   sol2:{line:'phantom', ram:'meteor', heavy:'lander', lineK:.55},
+  // the Icarus fields its own: Splinters on the line, Zappers in the second
+  // slot and Crushers as the heavies. Each is worth several of Earth's, so
+  // fewer come (`ramK` scales the second slot the way `lineK` does the first)
+  ica:{line:'splinter', ram:'zapper', heavy:'crusher', lineK:.45, ramK:.5},
 };
 const rosterOf=i=>SYSTEMS[Math.min(i,SYSTEMS.length-1)].roster||'sol1';
 const ROSTER=()=>ROSTERS[rosterOf(sysIdx)];
@@ -2882,7 +2886,7 @@ function nextWave(){
                       :(wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0));
     const gap=(soft&&wave<=2?1.8:1.15)*V.gap;               // they arrive one at a time early on
     for(let i=0;i<Math.round(grunts*(R.lineK||1));i++) push(i*gap+(soft?1.4:.6),R.line);
-    for(let i=0;i<darts;i++) push(i*gap+(soft?4:2.6),R.ram);
+    for(let i=0;i<Math.round(darts*(R.ramK||1));i++) push(i*gap+(soft?4:2.6),R.ram);
     for(let i=0;i<heavies;i++) push(i*6+4,R.heavy);
     if(unlockedType('tracker'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*7+3.4,'tracker');
     if(unlockedType('overseer')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5.5,'overseer');
@@ -2896,7 +2900,7 @@ function nextWave(){
     push(1.2,'boss');
     // the Titans come alone, and so do the Leviathan and Omega
     if(!BOSS(sysIdx).duo&&!BOSS(sysIdx).chain&&!BOSS(sysIdx).station){
-    for(let i=0;i<(sysIdx?5:3)+S.extra;i++) push(8+i*(sysIdx?6.5:8),R.ram);
+    for(let i=0;i<Math.round(((sysIdx?5:3)+S.extra)*(R.ramK||1));i++) push(8+i*(sysIdx?6.5:8),R.ram);
     for(let i=0;i<Math.round(((sysIdx?4:2)+S.extra)*(R.lineK||1));i++) push(11+i*(sysIdx?7:9),R.line);
     for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,R.heavy);
     if(unlockedType('tracker'))  { push(13,'tracker'); push(30,'tracker'); }
@@ -2934,7 +2938,7 @@ function leadAngle(e,speed,amount){
 const ECOL={grunt:'#4d9dff',dart:'#46e39b',heavy:'#ff4d5e',boss:'#9d86e8',
             tracker:'#ffb44d',overseer:'#3fd8e0',orbiter:'#e8c872',splinter:'#d9c6ff',
             phantom:'#a9b8ff',meteor:'#ff9a5c',lander:'#c9ccd4',drone:'#8fe3ff',quarry:'#ffd24d',
-            glacier:'#9fe8ff', cloner:'#4f8dff', corona:'#ffcf5a'};
+            glacier:'#9fe8ff', cloner:'#4f8dff', corona:'#ffcf5a', zapper:'#5ff2ff', crusher:'#ffe45c'};
 const ecol=t=>ECOL[t]||'#4d9dff';
 const ecolOf=e=>e.col||ecol(e.t);   // a boss brings its own colour
 
@@ -2955,7 +2959,8 @@ const SPAWN_REACT=.3;
 // fastest approach in px/s before the system and setting scale it, and body radius
 const SPAWN_RUSH={grunt:[78,17], heavy:[44,27], tracker:[120,15], overseer:[62,22],
   orbiter:[215,18], splinter:[127,21], quarry:[190,24], glacier:[40,28],
-  phantom:[110,16], meteor:[130,13], lander:[46,26], cloner:[160,18], corona:[90,22]};
+  phantom:[110,16], meteor:[130,13], lander:[46,26], cloner:[160,18], corona:[90,22],
+  zapper:[150,14], crusher:[40,31]};
 function spawnClear(type,vm){
   const R = type==='dart' ? [(122+wave*7)*1.35,12] : SPAWN_RUSH[type];
   return R ? R[0]*vm*SPAWN_REACT + R[1] + 13 : 0;
@@ -2979,7 +2984,16 @@ function edgeSpawn(clear){
 const EHP=1.3;
 // each hostile's hull before any of that scaling; the Bestiary reads it too
 const EHULL={grunt:32, dart:14, heavy:140, tracker:55, overseer:110, orbiter:150,
-  splinter:130, glacier:340, phantom:58, meteor:30, lander:240, cloner:300, corona:190};
+  splinter:130, glacier:340, phantom:58, meteor:30, lander:240, cloner:300, corona:190,
+  zapper:48, crusher:380};
+
+/* ---- the Icarus's own ----
+   ZAPPER   small and quick, keeps its distance, and fires one homing dart that
+            splits into three a moment after it leaves.
+   CRUSHER  big and slow, and its electric bolts STUN: for STUN_T the ship
+            cannot thrust, fire or dash. It can still aim.                   */
+const ZAP_V=230, ZAP_SEEK=1.7, ZAP_FUSE=.95, ZAP_SPLIT=3, ZAP_SPREAD=.38, ZAP_SHARD_V=270;
+const CRUSH_BOLT_V=290, STUN_T=.7;
 
 /* ---- the ORBITER's circle ----
    It wants a seat on a ring this far out from its target and keeps sliding
@@ -3083,6 +3097,13 @@ function spawn(type,at,def){
   if(type==='splinter') enemies.push({t:'splinter',x:p.x,y:p.y,vx:0,vy:0,r:21,
       hp:EHULL.splinter*sc,max:EHULL.splinter*sc,spd:110*vm,cool:rand(1.4,2.6)/cd,a:0,val:190,
       rof:1/cd,spin:0,wob:rand(0,TAU)});
+  // ZAPPER — the Icarus's small one: keeps off, fires a homing dart that splits
+  if(type==='zapper') enemies.push({t:'zapper',x:p.x,y:p.y,vx:0,vy:0,r:14,
+      hp:EHULL.zapper*sc,max:EHULL.zapper*sc,spd:150*vm,cool:rand(1.4,2.6)/cd,a:0,val:80,rof:1/cd,
+      spin:0,dir:Math.random()<.5?-1:1});
+  // CRUSHER — the Icarus's heavy: slow, armoured, and its bolts stun
+  if(type==='crusher') enemies.push({t:'crusher',x:p.x,y:p.y,vx:0,vy:0,r:31,
+      hp:EHULL.crusher*sc,max:EHULL.crusher*sc,spd:40*vm,cool:rand(2,3.2)/cd,a:0,val:280,rof:1/cd,spin:0});
   // QUARRY — the Bounty's elite Tracker: kites, floods seekers, calls for help
   if(type==='quarry') enemies.push({t:'quarry',x:p.x,y:p.y,vx:0,vy:0,r:24,
       hp:QUARRY_HP*sc,max:QUARRY_HP*sc,spd:190*vm,cool:1.6/cd,a:0,val:900,spin:0,
@@ -3175,6 +3196,7 @@ function drop(e){
   const odds = e.t==='boss'?1 : e.t==='heavy'?.5 : e.t==='overseer'?.42
              : e.t==='splinter'?.32 : e.t==='orbiter'?.3 : e.t==='tracker'?.3
              : e.t==='lander'?.5 : e.t==='phantom'?.15 : e.t==='drone'?0 : e.t==='quarry'?1 : e.t==='glacier'?.45 : e.t==='cloner'?.4 : e.t==='corona'?.4
+             : e.t==='crusher'?.5 : e.t==='zapper'?.12
              : e.t==='grunt'?.15 : .07;
   const n = e.t==='boss'?((e.chain&&e.kind!=='head')||(e.station&&e.wing!=='D')?1:3) : Math.random()<odds?1:0;
   for(let i=0;i<n;i++){
@@ -4051,24 +4073,25 @@ const BOSSES=[
      than anything else on the roster, it closes distance rather than holding a
      ring, and its authored lines are longer between punish windows than the
      bosses before it — so reaching one is something you work toward. */
-  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:2840, val:2200,
+  { k:'ruler', n:'THE RULER', col:'#9d86e8', r:88, hp:4125, val:2200,
     spd:54, want:262, strafe:.82, sum:'dart',
     mus:{bpm:128, prog:[0,0,8,8, 4,4,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1},
     tiers:[
-      {n:'', seq:['ring','summon','fan','ring','spiral','|'], pool:['ring','fan','summon','spiral'], rest:[1.7,2.4], spd:1.1},
-      {n:'THE RULER — DESTROYER', seq:['lance','ring','spiral','fan','|','summon','fan','lance','ring','spiral','|'],
-       pool:['ring','fan','summon','lance','spiral'],        rest:[1.2,1.8], spd:1.38},
-      {n:'THE RULER — ENRAGED',    seq:['blink','lance','spiral','ring','fan','|','summon','blink','fan','lance','spiral','ring','|'],
-       pool:['ring','fan','lance','spiral','blink','summon'],rest:[.78,1.3], spd:1.78},
+      {n:'', seq:['decree','ring','rlash','fan','|','summon','decree','spiral','rlash','|'],
+       pool:['ring','fan','summon','spiral','decree','rlash'], rest:[1.6,2.3], spd:1.1},
+      {n:'THE RULER — DESTROYER', seq:['rthrone','|','lance','decree','rlash','|','summon','fan','decree','spiral','rlash','|'],
+       pool:['ring','fan','summon','lance','spiral','decree','rlash'], rest:[1.2,1.8], spd:1.38},
+      {n:'THE RULER — ENRAGED',    seq:['blink','rtether','decree','rlash','|','rthrone','|','lance','rtether','spiral','rlash','fan','|'],
+       pool:['ring','fan','lance','spiral','blink','decree','rlash','rtether'], rest:[.78,1.3], spd:1.78},
       /* The campaign does not end on the same shape as Earth's boss. The
          Ruler has a fourth tier nobody else has: it walks out of its own frame,
          the arena closes around the two of you, and it knits itself back
          together if you stop shooting. `bare` means no armour ring — there is
          nothing left to plate. */
       {n:'THE RULER — CHAOS', bare:1, last:1,
-       seq:['blink','spiral','lance','ring','blink','fan','spiral','lance','ring'],
-       pool:['ring','fan','lance','spiral','blink'], rest:[.46,.82], spd:2.35},
+       seq:['blink','rlash','decree','spiral','rtether','lance','ring','rlash','decree'],
+       pool:['ring','fan','lance','spiral','blink','decree','rlash','rtether'], rest:[.46,.82], spd:2.35},
     ]},
 ];
 const BOSS=i=>BOSSES[Math.min(i,BOSSES.length-1)];
@@ -4128,7 +4151,7 @@ const SECRET_BOSSES=[
    a little under two and a half times the Ruler you just put down: enough that
    you feel the floor go, and the longest fight in the campaign by a distance. */
 const FINAL_BOSS=
-  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:6720, val:5000, final:1,
+  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:8400, val:5000, final:1,
     spd:78, want:230, strafe:1.25, sum:'dart',
     mus:{bpm:170, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1, ride:1},
@@ -4137,24 +4160,24 @@ const FINAL_BOSS=
        pool:['ring','fan','lance','spiral','blink','lash','brand','hammer'],
        rest:[.52,.8], spd:1.5},
       {n:'THE RULER \u2014 UNCHAINED',
-       seq:['echo','hammer','ring','brand','spiral','|','cross','blink','lash','hammer','ring','|'],
+       seq:['hammer','ring','brand','spiral','|','cross','blink','lash','hammer','ring','|'],
        pool:['ring','fan','lance','spiral','blink','lash','brand','hammer','cross'],
        rest:[.4,.62], spd:1.8},
       {n:'THE RULER \u2014 HADES',
-       seq:['cross','brand','echo','spiral','hammer','lash','|','blink','brand','ring','cross','hammer','|'],
-       pool:['ring','fan','lance','spiral','blink','lash','brand','hammer','cross','echo'],
+       seq:['cross','brand','spiral','hammer','lash','|','blink','brand','ring','cross','hammer','|'],
+       pool:['ring','fan','lance','spiral','blink','lash','brand','hammer','cross'],
        rest:[.3,.48], spd:2.1},
-      /* MELTDOWN. Every attack it has is lethal outright in here — heavyDmg()
-         swaps the numbers for ONE_SHOT — so the tier is not a damage race, it
-         is four telegraphs in a row and whether you can read all four. The
-         rest windows are the shortest in the game and it opens with an echo,
-         because it is not fighting you alone any more. */
+      /* MELTDOWN. Its telegraphed attacks — Brand, Hammer, Cross — are lethal
+         outright in here (heavyDmg() swaps the numbers for ONE_SHOT), so the
+         tier is not a damage race, it is a run of telegraphs and whether you
+         can read them all. Everything else still hits at its usual weight.
+         The rest windows are the shortest in the game. */
       {n:'THE RULER \u2014 MELTDOWN', bare:1, last:1,
-       seq:['echo','cross','brand','hammer','blink','cross','brand','hammer','spiral','brand'],
-       /* No 'ring' and no 'lash' in here. Everything it fires is lethal now,
+       seq:['cross','brand','hammer','blink','cross','brand','hammer','spiral','brand'],
+       /* No 'ring' and no 'lash' in here. One mistake can end it now,
           and an omnidirectional wall you cannot be outside of is not a fight —
           every attack left in the pool is one you can read and leave. */
-       pool:['brand','hammer','cross','spiral','blink','echo'],
+       pool:['brand','hammer','cross','spiral','blink'],
        rest:[.22,.36], spd:2.6},
     ]};
 
@@ -4167,8 +4190,8 @@ const FINAL_BOSS=
 
    HEAVY_DMG is read at the moment of firing rather than baked into the table,
    because MELTDOWN redoes it: in the last tier every one of these is lethal
-   outright, whatever your hull is, and the fight becomes a clean question of
-   whether you can read four telegraphs in a row.                            */
+   outright, whatever your hull is. Only these: a round you were never shown
+   coming is never allowed to be the one that ends the run.                            */
 const HEAVY_TEL=.95;              // how long you get to read one
 const MELTDOWN_TIER=3;
 const inMeltdown=e=>!!(e.B&&e.B.final&&e.tier>=MELTDOWN_TIER);
@@ -4262,7 +4285,7 @@ function actHammer(e,dt,dx,dy,T){
     // and a low ring off the impact, so standing on the lip is not free either
     for(let i=0;i<14;i++){ const a=i/14*TAU;
       ebullets.push({x:m.x,y:m.y,vx:Math.cos(a)*230,vy:Math.sin(a)*230,
-        r:6,dmg:heavyDmg(e,14),col:ink(e,'#ff6070')}); }
+        r:6,dmg:14,col:ink(e,'#ff6070')}); }
   }
   if(m.t>HEAVY_TEL+.3){ e.act=null; e.cool=bossRest(T); }
 }
@@ -4573,6 +4596,101 @@ function actSlam(e,dt,dx,dy,T){
   if(m.t>SLAM_TEL+.3){ e.act=null; e.cool=bossRest(T); }
 }
 
+/* ══════════ THE RULER'S OWN ══════════
+   DECREE   gold lanes across the arena, a grid of them, that detonate after
+            DECREE_TEL. The squares between are safe; every Decree moves them.
+   LASH     its tendrils reach out one after another. Each shows its starting
+            line first, then sweeps through an arc. Be past it, or out of reach.
+   THRONE   it goes to the middle and a ring of blades turns slowly round it,
+            breathing in and out. Two slots in the ring are empty: stand in the
+            gap and keep shooting.
+   TETHER   a beam latches on and drags you toward it while it sends out slow
+            rings with a gap in each. Thrust against it and cross at the gap.  */
+const DECREE_TEL=1.15, DECREE_W=58, DECREE_DMG=20;
+const LASH_TEL=.55, LASH_SWEEP=.42, LASH_ARC=1.15, LASH_GAP=.5, LASH_DMG=16;
+const THRONE_IN=1.0, THRONE_T=5.2, THRONE_N=12, THRONE_GAP=2, THRONE_SPIN=.35, THRONE_DMG=16;
+const TETHER_TEL=.6, TETHER_T=2.6, TETHER_PULL=560;
+function rulerHurt(e,dmg,tag,col){
+  const P=player; if(P.inv>0||buffs.shield>0) return false;
+  P.hp-=dmg*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5;
+  killer=unitName(e); hitTag=tag; pilotHurt(); burst(P.x,P.y,col,18,300);
+  return true;
+}
+function actDecree(e,dt,T){
+  const m=e.act, P=player;
+  if(m.t<DECREE_TEL){ if(m.t<.05) SFX.warn(); return; }
+  if(!m.hit){
+    m.hit=1;
+    const inV=m.vx.some(x=>Math.abs(P.x-x)<DECREE_W/2+10), inH=m.hy.some(y=>Math.abs(P.y-y)<DECREE_W/2+10);
+    if(inV||inH) rulerHurt(e,DECREE_DMG,'decree','#ffd24d');
+    SFX.crack(); shake=Math.max(shake,14);
+    for(const x of m.vx) for(let y=0;y<H;y+=60) burst(x,y,'#ffd24d',2,160);
+    for(const y of m.hy) for(let x=0;x<W;x+=60) burst(x,y,'#ffd24d',2,160);
+  }
+  if(m.t>DECREE_TEL+.3){ e.act=null; e.cool=bossRest(T)+.2; }
+}
+function actLash(e,dt,T){
+  const m=e.act, P=player, len=m.len;
+  for(const L of m.l){
+    const u=m.t-L.at;                                    // this tendril's own clock
+    if(u<0) continue;
+    if(L.aim){ L.aim=0; L.a0=Math.atan2(P.y-e.y,P.x-e.x)-L.dir*LASH_ARC*.5+rand(-.25,.25); }
+    if(u<LASH_TEL) continue;
+    const k=clamp((u-LASH_TEL)/LASH_SWEEP,0,1);
+    if(k>=1||L.hit) continue;
+    // the arc it has swept since the last frame: inside it and within reach is a hit
+    const a=L.a0+L.dir*LASH_ARC*k, prev=L.cur===undefined?L.a0:L.cur; L.cur=a;
+    const pa=Math.atan2(P.y-e.y,P.x-e.x), pd=Math.hypot(P.x-e.x,P.y-e.y);
+    const lo=Math.min(prev,a)-.06, hi=Math.max(prev,a)+.06, d=angDiff(pa,(lo+hi)/2);
+    if(pd<len+12&&pd>e.r*.6&&Math.abs(d)<=(hi-lo)/2){ if(rulerHurt(e,LASH_DMG,'lash','#c9b8ff')) L.hit=1; }
+  }
+  const end=m.l[m.l.length-1].at+LASH_TEL+LASH_SWEEP+.15;
+  if(m.t>end){ e.act=null; e.cool=bossRest(T)+.2; }
+}
+function actThrone(e,dt,T){
+  const m=e.act, P=player;
+  // it walks to the middle first, and only then does the ring come up
+  const k=clamp(m.t/THRONE_IN,0,1);
+  e.x+=(W/2-e.x)*Math.min(1,dt*4); e.y+=(H/2-e.y)*Math.min(1,dt*4);
+  if(m.t<THRONE_IN) return;
+  const u=m.t-THRONE_IN;
+  m.rot+=THRONE_SPIN*m.dir*dt;
+  m.R=throneR(u);
+  if(!m.blades) m.blades=throneBlades(m);
+  for(const b of m.blades){
+    const x=e.x+Math.cos(m.rot+b)*m.R, y=e.y+Math.sin(m.rot+b)*m.R;
+    if((P.x-x)*(P.x-x)+(P.y-y)*(P.y-y)<(16+13)*(16+13)) rulerHurt(e,THRONE_DMG,'throne','#e6dcff');
+  }
+  if(u>THRONE_T){ e.act=null; e.cool=bossRest(T)+.3; }
+}
+// how far out the blades sit: they come up from the hull, then breathe
+const throneR=u=>Math.min(1,u/.6)*(205+85*Math.sin(u*1.3));
+function throneBlades(m){
+  const out=[], skip=Math.floor(Math.random()*THRONE_N);
+  for(let i=0;i<THRONE_N;i++){
+    if(((i-skip+THRONE_N)%THRONE_N)<THRONE_GAP) continue;   // the empty slots
+    out.push(i/THRONE_N*TAU);
+  }
+  return out;
+}
+function actTether(e,dt,T){
+  const m=e.act, P=player;
+  if(m.t<TETHER_TEL){ if(m.t<.05) SFX.warn(); return; }
+  const u=m.t-TETHER_TEL;
+  // the pull: real, but a ship thrusting away from it can hold its ground
+  const dx=e.x-P.x, dy=e.y-P.y, d=Math.hypot(dx,dy)||1;
+  if(d>e.r+30){ P.vx+=dx/d*TETHER_PULL*dt; P.vy+=dy/d*TETHER_PULL*dt; }
+  // two slow rings, each with a gap turned toward you when it leaves
+  for(const at of [.35,1.45]) if(u>=at&&!m.rings.includes(at)){
+    m.rings.push(at);
+    const n=20+DIFF().dense*2, gap=Math.atan2(P.y-e.y,P.x-e.x);
+    for(let i=0;i<n;i++){ const a=i/n*TAU; if(Math.abs(angDiff(a,gap))<.42) continue;
+      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*125,vy:Math.sin(a)*125,r:7,dmg:10*BOSS_DMG,col:'#c9b8ff',src:e,tag:'tether'}); }
+    SFX.tier();
+  }
+  if(u>TETHER_T){ e.act=null; e.cool=bossRest(T)+.3; }
+}
+
 /* ---- ICE WALLS ----
    Proteus raises two long walls either side of you, along one of the two
    axes of the arena, so you are standing in a lane. A wall grows for
@@ -4616,7 +4734,7 @@ function iceStep(dt){
       }
     };
     push(P,15);
-    for(const e of enemies) if(e.t!=='boss'&&e.t!=='echo'&&!e.gone) push(e,e.r);
+    for(const e of enemies) if(e.t!=='boss'&&!e.gone) push(e,e.r);
     // and every round stops dead in it
     for(const list of [bullets,ebullets])
       for(let j=list.length-1;j>=0;j--){
@@ -4641,67 +4759,6 @@ function iceDraw(){
     ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
     ctx.restore();
   }
-}
-
-/* ---- echoes ----
-   It wore the Ruler. It can wear the other three just as easily, and it does:
-   3296, the Hive Mind and 2117 come back for a combo and then come apart
-   again. They are not bosses — they carry no bar, they gate nothing, they
-   cannot be killed and they do not drop. They are two attacks and an exit. */
-const ECHO_OF=['primary','hive','overseer'];
-const ECHO_LIFE=5.4;
-function spawnEchoes(e,n){
-  const picks=ECHO_OF.slice().sort(()=>Math.random()-.5).slice(0,n);
-  for(const k of picks){
-    const B=BOSSES.find(b=>b.k===k); if(!B) continue;
-    const a=rand(0,TAU), R=Math.min(W,H)*.32;
-    enemies.push({t:'echo', k:B.k, B, col:B.col, bn:B.n,
-      x:clamp(W/2+Math.cos(a)*R,90,W-90), y:clamp(H/2+Math.sin(a)*R,90,H-90),
-      vx:0, vy:0, r:B.r*.78, a:0, spin:0, morph:0, pt:0,
-      hp:1, max:1, val:0, tier:1, life:ECHO_LIFE, t2:0,
-      cool:rand(.5,1.0), shots:0, fade:0});
-    burst(enemies[enemies.length-1].x,enemies[enemies.length-1].y,B.col,26,340);
-    shock(enemies[enemies.length-1].x,enemies[enemies.length-1].y,B.col,10,120,.5,5);
-  }
-  if(picks.length) SFX.tier();
-}
-
-/* An echo fires its own boss's signature twice, then goes. It runs on its own
-   tiny loop rather than through bossAI, because bossAI is a fight and this is
-   a quotation of one. */
-function echoStep(e,dt,dx,dy,d){
-  e.t2+=dt; e.pt+=dt; e.spin+=dt*1.3; e.morph+=dt;
-  e.a=Math.atan2(dy,dx);
-  e.fade = e.t2<.45 ? e.t2/.45
-         : e.t2>e.life-.5 ? Math.max(0,(e.life-e.t2)/.5) : 1;
-  if(e.t2>=e.life){
-    burst(e.x,e.y,e.col,30,380);
-    shock(e.x,e.y,e.col,e.r*.4,e.r*2,.45,5);
-    e.dead=1; return;
-  }
-  if(e.t2<.55||e.shots>=2) return;                  // it has to arrive first
-  e.cool-=dt;
-  if(e.cool>0) return;
-  e.shots++;
-  e.cool=1.5;
-  const a0=Math.atan2(dy,dx);
-  if(e.k==='primary'){                              // 3296's shell spread
-    for(let i=-2;i<=2;i++){
-      const a=a0+i*.16;
-      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*230,vy:Math.sin(a)*230,
-        r:9,dmg:heavyDmg(e,22),col:'#ff4d5e'});
-    }
-  }else if(e.k==='hive'){                           // the swarm, briefly
-    bossSummon(e,'dart',2);
-    for(let i=0;i<10;i++){ const a=i/10*TAU+e.spin;
-      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*195,vy:Math.sin(a)*195,
-        r:5,dmg:heavyDmg(e,14),col:'#46e39b'}); }
-  }else{                                            // 2117 rakes an arc
-    for(let i=0;i<9;i++){ const a=a0-.7+i*.175;
-      ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*255,vy:Math.sin(a)*255,
-        r:6,dmg:heavyDmg(e,18),col:'#3fd8e0'}); }
-  }
-  SFX.warn(); shake=Math.max(shake,9);
 }
 
 // escorts never pile up on top of a boss fight
@@ -6363,6 +6420,10 @@ function bossAI(e,dt,dx,dy,d){
     if(e.act.k==='slam'){   actSlam(e,dt,dx,dy,T);   return; }
     if(e.act.k==='beam'){   actBeam(e,dt,dx,dy,T);   return; }
     if(e.act.k==='lance'){  actLance(e,dt,dx,dy,T);  return; }
+    if(e.act.k==='decree'){ actDecree(e,dt,T);       return; }
+    if(e.act.k==='rlash'){  actLash(e,dt,T);         return; }
+    if(e.act.k==='rthrone'){ actThrone(e,dt,T);      return; }
+    if(e.act.k==='rtether'){ actTether(e,dt,T);      return; }
     if(e.act.k==='charge'){
       // 3296 braces, aims itself, and rams down the line it showed you
       if(e.act.t<.75){ e.tel={a:e.act.a, t:e.act.t*1.27, len:560}; SFX.warn(); }
@@ -6478,12 +6539,6 @@ function bossAI(e,dt,dx,dy,d){
   else if(k==='brand'){  e.act={k:'brand', t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='hammer'){ e.act={k:'hammer',t:0,x:e.x+dx,y:e.y+dy,r:104,hit:0}; }
   else if(k==='cross'){  e.act={k:'cross', t:0,a:e.spin,hit:0,lines:[]}; }
-  else if(k==='echo'){
-    // it puts the other three back on the board for a combo, then drops them
-    spawnEchoes(e,e.tier>=2?2:1);
-    banner=e.tier>=MELTDOWN_TIER?'MELTDOWN':'THEY ARE ALL IT'; bannerT=1.6;
-    e.cool=bossRest(T)+.9;
-  }
   else if(k==='charge'){ e.act={k:'charge',t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='dash'){
     // a point out past you, so the run carries through where you are
@@ -6503,6 +6558,23 @@ function bossAI(e,dt,dx,dy,d){
   }
   else if(k==='sweep'){ e.act={k:'sweep',t:0,fire:0,a:Math.atan2(dy,dx)-1.1,dir:Math.random()<.5?-1:1}; }
   else if(k==='lance'){ e.act={k:'lance',t:0,a:Math.atan2(dy,dx)}; }
+  else if(k==='decree'){
+    // three columns and two rows, evenly spaced from a random start, so the
+    // grid always leaves squares to stand in and never lands in the same place
+    const ox=rand(.15,.85), oy=rand(.2,.8);
+    e.act={k:'decree',t:0,hit:0,
+      vx:[0,1,2].map(i=>(i+ox)*W/3), hy:[0,1].map(i=>(i+oy)*H/2)};
+  }
+  else if(k==='rlash'){
+    const n=e.tier>=2?4:3, base=Math.atan2(dy,dx);
+    e.act={k:'rlash',t:0,len:e.tier>=2?560:480,l:Array.from({length:n},(_,i)=>{
+      const dir=i%2?-1:1;
+      return {at:i*LASH_GAP, dir, a0:base-dir*LASH_ARC*.5+rand(-.25,.25)}; })};
+    // each later tendril starts from wherever you are by then
+    e.act.l.forEach((L,i)=>{ if(i) L.aim=1; });
+  }
+  else if(k==='rthrone'){ e.act={k:'rthrone',t:0,rot:rand(0,TAU),dir:Math.random()<.5?-1:1,R:0}; }
+  else if(k==='rtether'){ e.act={k:'rtether',t:0,rings:[]}; }
   else if(k==='spiral'){ e.act={k:'spiral',t:0,fire:0,a:e.spin}; }
   else if(k==='blink'){
     burst(e.x,e.y,e.col,30,380);
@@ -6671,6 +6743,41 @@ function deathFx(){
   after(1.15,()=>{ shock(P.x,P.y,'#ff4d5e',20,Math.max(W,H),1.1,10); flash=Math.max(flash,.6); shake=Math.max(shake,30); });
 }
 
+/* Glow is most of what a busy frame costs: shadowBlur and a fresh gradient
+   are worked out again for every round, every frame. A round of one colour
+   and size glows the same way every time, so it is blurred once into a small
+   canvas here and stamped from then on. Keys are capped; anything past the
+   cap is drawn the old way rather than growing the cache without end. */
+const GLOW_CACHE=new Map(), GLOW_MAX=400;
+function glowSprite(k,make){
+  let c=GLOW_CACHE.get(k);
+  if(c) return c;
+  if(GLOW_CACHE.size>=GLOW_MAX) return null;
+  c=make(); GLOW_CACHE.set(k,c); return c;
+}
+// a filled dot of radius r with shadowBlur `blur`, centred at c.o
+function glowDot(col,r,blur){
+  r=Math.round(r*2)/2;
+  return glowSprite(col+'|'+r+'|'+blur,()=>{
+    const o=Math.ceil(r+blur*1.2+2), c=document.createElement('canvas'), g=c.getContext('2d');
+    c.width=c.height=o*2; c.o=o;
+    g.fillStyle=col; g.shadowColor=col; g.shadowBlur=blur;
+    g.beginPath(); g.arc(o,o,r,0,TAU); g.fill();
+    return c;
+  });
+}
+// a radial fade from col to nothing, drawn scaled to whatever size it needs
+function glowSoft(col){
+  return glowSprite('soft|'+col,()=>{
+    const R=48, c=document.createElement('canvas'), g=c.getContext('2d');
+    c.width=c.height=R*2;
+    const gr=g.createRadialGradient(R,R,0,R,R,R);
+    gr.addColorStop(0,col); gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr; g.fillRect(0,0,R*2,R*2);
+    return c;
+  });
+}
+
 function partsDraw(){
   ctx.save();
   ctx.globalCompositeOperation='lighter';
@@ -6680,10 +6787,14 @@ function partsDraw(){
     if(p.g){
       // a glow: swells a touch, then goes
       const r=p.r*(.7+.3*(1-k));
-      const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
-      g.addColorStop(0,p.col); g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.globalAlpha=k*.75; ctx.fillStyle=g;
-      ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.fill();
+      ctx.globalAlpha=k*.75;
+      const s=glowSoft(p.col);
+      if(s) ctx.drawImage(s,p.x-r,p.y-r,r*2,r*2);
+      else{
+        const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
+        g.addColorStop(0,p.col); g.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.fill();
+      }
       continue;
     }
     // a streak back along where it came from, as long as it is fast
@@ -6779,6 +6890,10 @@ function update(dt){
     const drag=Math.pow(st.dragBase,dt*GEY_DRAG); P.vx*=drag; P.vy*=drag;
     if(P.frz<=0){ P.frz=0; P.thaw=GEY_SAFE; burst(P.x,P.y,'#dff4ff',26,300); SFX.crack(); }
   }
+  else if(P.stun>0){                       // a Crusher's bolt: it drifts, it does not drive
+    P.stun-=dt; P.dashT=0;
+    const drag=Math.pow(st.dragBase,dt); P.vx*=drag; P.vy*=drag;
+  }
   else if(P.dashT>0){ P.vx=P.dx*st.speed*3.1; P.vy=P.dy*st.speed*3.1; }
   else{
     P.vx+=ax*st.accel*(lg?LOWG_GRIP:1)*dt; P.vy+=ay*st.accel*(lg?LOWG_GRIP:1)*dt;
@@ -6795,7 +6910,7 @@ function update(dt){
   // dash
   P.dashCd=Math.max(0,P.dashCd-dt); P.dashT=Math.max(0,P.dashT-dt);
   P.inv=Math.max(0,P.inv-dt);
-  if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)&&!(P.frz>0)){
+  if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)&&!(P.frz>0)&&!(P.stun>0)){
     P.dashCd=st.dashCd; P.dashT=st.dashLen; P.dx=ax; P.dy=ay;
     if(MR) MR.dashed=1;
     P.vx=ax*st.speed*3.1; P.vy=ay*st.speed*3.1;
@@ -6833,7 +6948,7 @@ function update(dt){
 
   /* --- fire --- */
   P.cool-=dt;
-  if(mouse.down&&P.cool<=0&&!(P.frz>0)){
+  if(mouse.down&&P.cool<=0&&!(P.frz>0)&&!(P.stun>0)){
     P.cool=st.delay*(buffs.rapid>0?.55:1);
     const n=Math.max(st.shots,buffs.scatter>0?3:1), spread=.15;
     for(let i=0;i<n;i++){
@@ -6966,6 +7081,36 @@ function update(dt){
         // fan is what you dodge, the orb is only the warning
         ebullets.push({x:e.x,y:e.y,vx:Math.cos(ba)*210,vy:Math.sin(ba)*210,
           r:9,dmg:11*EASE(),col:'#d9c6ff',orb:1,gen:0,fuse:clamp(d/210*.55,.35,1.1)});
+      }
+    }
+    else if(e.t==='zapper'){
+      // holds a long range and slides round it, so the dart comes in from the side
+      e.spin+=dt*5;
+      const want=330, k=d>want+40?1:d<want-60?-1:0;
+      e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
+      e.x+=(-dy/d)*e.spd*.55*e.dir*dt; e.y+=(dx/d)*e.spd*.55*e.dir*dt;
+      if(Math.random()<dt*.3) e.dir*=-1;
+      e.cool-=dt;
+      if(e.cool<=0&&d<700){
+        e.cool=2.7*(e.rof||1);
+        const a=e.a;
+        ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*ZAP_V,vy:Math.sin(a)*ZAP_V,r:6,dmg:10*EASE(),
+          col:'#5ff2ff',seek:ZAP_SEEK,age:0,trail:'#5ff2ff',zap:1,fuse:ZAP_FUSE,src:e});
+        burst(e.x,e.y,'#5ff2ff',6,160);
+      }
+    }
+    else if(e.t==='crusher'){
+      // walks in to a middle distance and leans on it
+      e.spin+=dt*.8;
+      const want=240, k=d>want?1:d<want-70?-.6:0;
+      e.x+=(dx/d)*e.spd*k*dt; e.y+=(dy/d)*e.spd*k*dt;
+      e.cool-=dt;
+      if(e.cool<=0&&d<680){
+        e.cool=2.8*(e.rof||1);
+        for(const o of [-.09,.09]){ const a=leadAngle(e,CRUSH_BOLT_V,.6)+o;
+          ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*CRUSH_BOLT_V,vy:Math.sin(a)*CRUSH_BOLT_V,r:8,
+            dmg:13*EASE(),col:'#ffe45c',stun:1,src:e}); }
+        burst(e.x,e.y,'#ffe45c',10,200); SFX.crack();
       }
     }
     else if(e.t==='glacier'){
@@ -7177,27 +7322,22 @@ function update(dt){
       e.x+=Math.cos(a)*sp2*dt; e.y+=Math.sin(a)*sp2*dt;
     }
     else if(e.t==='boss'){
-      /* MELTDOWN means MELTDOWN: not only the heavy three, but every round it
-         fires at all. Patching what bossAI just created is how that stays one
-         rule instead of a special case threaded through every attack. */
       const n0=ebullets.length;
       // a climb owes a strike, paid the moment no cutscene is playing
       if(e.strikeDue&&!phaseCut){ strikeStart(e,e.strikeDue===2?STRIKE_RIDE:0); e.strikeDue=0; }
       if(e.chain) levStep(e,dt);
       else if(e.station) omegaStep(e,dt);
       else if(e.strike) strikeStep(e,dt); else bossAI(e,dt,dx,dy,d);
-      if(inMeltdown(e)) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg=ONE_SHOT;
       // a boss can hit harder than the shared numbers without editing every attack
-      else if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
+      if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
     }
-    else if(e.t==='echo'){ echoStep(e,dt,dx,dy,d); }
     /* Nothing fires from off screen: a round from something you cannot see is
        not a shot you can be asked to read. Whatever a hostile fired this frame
        while its middle was still outside the arena is taken back; its cooldown
-       has already reset, so it simply fires once it is in. Bosses and their
-       echoes are left alone — their fights are authored on their own terms. */
+       has already reset, so it simply fires once it is in. Bosses are left
+       alone — their fights are authored on their own terms. */
     for(let q=n0;q<ebullets.length;q++) if(!ebullets[q].src) ebullets[q].src=e;
-    if(e.t!=='boss'&&e.t!=='echo'&&ebullets.length>n0&&(e.x<0||e.x>W||e.y<0||e.y>H)) ebullets.length=n0;
+    if(e.t!=='boss'&&ebullets.length>n0&&(e.x<0||e.x>W||e.y<0||e.y>H)) ebullets.length=n0;
     if(lowgOn()) lowgDrift(e,ox,oy,dt);
     // Nothing leaves the arena. An enemy is free until it has arrived, and
     // is then held inside the walls for the rest of its life.
@@ -7208,7 +7348,7 @@ function update(dt){
        only ever moves it while it is still out of sight, so once you can see
        it, it is exactly as far from you, and as slow, as it always was.
        Bosses keep their own entrances. */
-    else if(e.t!=='boss'&&e.t!=='echo'){
+    else if(e.t!=='boss'){
       const cx=W/2-e.x, cy=H/2-e.y, cd=Math.hypot(cx,cy)||1;
       e.x+=cx/cd*ENTER_V*dt; e.y+=cy/cd*ENTER_V*dt;
     }
@@ -7244,7 +7384,7 @@ function update(dt){
     if(b.x<-30||b.x>W+30||b.y<-30||b.y>H+30){bullets.splice(i,1);continue;}
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
-      if(e.t==='echo'||e.gone) continue;  // a quotation cannot be shot, nor a phantom that is not there
+      if(e.gone) continue;                // a phantom that is not there cannot be shot
       if(b.hit.includes(e)) continue;
       const rr=e.r+b.r;
       if(dist2(b,e)<rr*rr){
@@ -7277,7 +7417,7 @@ function update(dt){
         flare(b.x,b.y, e.open>0?'#ffd24d':'#ffffff', e.open>0?14:9, .09);
         if(e.hp<=0){
           score+=e.val; shake=Math.max(shake,e.t==='boss'?26:5);
-          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier');
+          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier'||e.t==='crusher');
           if(e.val) drop(e);
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
           else killFx(e,ecolOf(e),e.t==='heavy'?40:22,e.t==='heavy'?370:300);
@@ -7302,7 +7442,7 @@ function update(dt){
     }
   }
 
-  // an echo is a quotation, not a unit: when it is done it simply is not there
+  // a drone whose parent is gone simply is not there
   for(let i=enemies.length-1;i>=0;i--) if(enemies[i].dead) enemies.splice(i,1);
 
   /* --- enemy bullets vs player --- */
@@ -7348,6 +7488,18 @@ function update(dt){
         continue;
       }
     }
+    // a ZAPPER dart homes for a moment, then comes apart into three that fly straight
+    if(b.zap){
+      b.fuse-=dt;
+      if(b.fuse<=0){
+        const base=Math.atan2(b.vy,b.vx);
+        for(let k=0;k<ZAP_SPLIT;k++){ const a=base+(k-(ZAP_SPLIT-1)/2)*ZAP_SPREAD;
+          ebullets.push({x:b.x,y:b.y,vx:Math.cos(a)*ZAP_SHARD_V,vy:Math.sin(a)*ZAP_SHARD_V,r:4.5,
+            dmg:8*EASE(),col:'#bff9ff',src:b.src}); }
+        burst(b.x,b.y,'#5ff2ff',10,220);
+        ebullets.splice(i,1); continue;
+      }
+    }
     if(b.seek){
       b.age+=dt;
       if(b.age>4.5) b.seek=0;                      // burns out, flies straight
@@ -7366,6 +7518,7 @@ function update(dt){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
       P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12;
       killer=b.src?unitName(b.src):'ENEMY FIRE'; hitTag=b.tag||''; pilotHurt();
+      if(b.stun){ P.stun=STUN_T; P.dashT=0; burst(P.x,P.y,'#ffe45c',16,260); }
       if(b.rkt&&mission&&mission.k==='hunt') mission.rh++;
       burst(b.x,b.y,'#ff4d5e',8,200);
       ebullets.splice(i,1);
@@ -7375,11 +7528,12 @@ function update(dt){
   /* --- contact damage --- */
   for(let j=enemies.length-1;j>=0;j--){
     const e=enemies[j], rr=e.r+13;
-    if(e.t==='echo'||e.gone) continue;    // it has no body to hit you with
+    if(e.gone) continue;                  // it has no body to hit you with
     if(dist2(e,P)<rr*rr){
       if(P.inv<=0&&buffs.shield<=0){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
-              :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:e.t==='cloner'?24:e.t==='corona'?18:10)
+              :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:e.t==='cloner'?24:e.t==='corona'?18
+              :e.t==='crusher'?26:e.t==='zapper'?9:10)
                *DIFF().dmgIn*P.st.armour*WV().dmg;
         killer=unitName(e); pilotHurt();
         P.inv=.5;
@@ -7472,7 +7626,7 @@ function retryButton(){
 
 const DEATH_TIP={'SOLAR FLARE':'Look for the gaps, then dash through them.', 'FIRE VENT':'Try figuring out the pattern, then staying away.', 'RING DEBRIS':'Try looking for the golden lines, then avoiding them.',
   'STORM FRONT':'Try getting the BLINK DASH skill and dashing through the fronts.', 'LASER RAIDER':'You can kill them before they shoot.',
-  'ENEMY FIRE':'ERROR'};
+  'ENEMY FIRE':''};
 function deathTip(){
   if(!killer) return '';
   const r=CODEX.hostiles.rows.find(x=>x.n===killer);
@@ -7592,6 +7746,8 @@ const LOWG_CARRY=.9, LOWG_MAXV=260;
 const STORM_HW=95, STORM_V=300, STORM_WARN=1.2, STORM_GAP=[5,8], STORM_HIT=5, STORM_TICK=.5;
 const STORM_FOG_R=150;
 const RAID_HP=46, RAID_AIM=.75, RAID_BEAM=.22, RAID_DMG=26, RAID_W=15;
+// how many beams a raider fires before it leaves, the pause between them, and how many at once
+const RAID_SHOTS=3, RAID_REST=.5, RAID_MAX=4;
 /* Europa's geysers: a patch of ice cracks for GEY_WARN, then blows for
    GEY_BLOW. Caught in it you are frozen for GEY_FRZ: no thrust, no gun, no
    dash, and almost no drag (GEY_DRAG of the usual), so you drift on whatever
@@ -7701,7 +7857,7 @@ function inLowG(o){
    A jump bigger than anything can fly (a blink, a phantom's new seat) is not
    motion and is not carried. */
 function lowgDrift(e,ox,oy,dt){
-  if(e.t==='echo'||e.t==='drone'||e.t==='meteor'||e.hidden||e.gone||!dt) return;
+  if(e.t==='drone'||e.t==='meteor'||e.hidden||e.gone||!dt) return;
   const mx=(e.x-ox)/dt, my=(e.y-oy)/dt;
   e.dvx=e.dvx||0; e.dvy=e.dvy||0;
   if(Math.hypot(mx,my)>1400){ e.dvx=e.dvy=0; return; }
@@ -7746,7 +7902,7 @@ function worldWave(){
   world.t=0;
   if(world.h==='vents') world.vents=ventRing();
   if(world.h==='well'){ world.well=null; world.gap=rand(1.6,3); }
-  if(world.h==='raiders') world.next=rand(3.5,6)/HAZ_RATE();
+  if(world.h==='raiders') world.next=rand(2,3.5)/HAZ_RATE();
   if(world.h==='storm'&&!world.front) world.next=rand(1.6,2.6)/HAZ_RATE();
   if(world.h==='rings'){ world.lane=null; world.bits=[]; world.next=rand(2.4,3.6)/HAZ_RATE(); }
   if(world.h==='geysers'){ world.gey=[]; world.next=rand(2,3.5)/HAZ_RATE(); }
@@ -8395,7 +8551,7 @@ function hazBossKill(e){
 // a tool, not a second gun
 function hazKill(e,j,col){
   killFx(e,col,e.t==='heavy'?36:20,320);
-  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier');
+  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier'||e.t==='crusher');
   enemies.splice(j,1);
 }
 
@@ -8515,7 +8671,7 @@ function worldStep(dt){
           hazHurt(RING_DMG,L.x+L.cx*al,L.y+L.cy*al,'#e8d9a8',260); }
         for(let j=enemies.length-1;j>=0;j--){
           const e=enemies[j];
-          if(e.inv>0||e.t==='echo'||!inLane(e,e.r*.6)) continue;
+          if(e.inv>0||!inLane(e,e.r*.6)) continue;
           e.hp-=RING_DMG*(e.t==='boss'?RING_BOSS:3)*HAZ_ENEMY*dt;
           if(Math.random()<.3) parts.push({x:e.x,y:e.y,vx:L.cx*200,vy:L.cy*200,life:.3,t:0,col:'#e8d9a8',r:2});
           if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#e8d9a8'); }
@@ -8561,7 +8717,7 @@ function worldStep(dt){
     // weather; they fly through it untouched, or they would never reach you
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
-      if(e.inv>0||e.ward||e.gone||e.hidden||e.t==='echo'||!(inFront(e)||(eyeRun&&eyeFrontHit(e)))) continue;
+      if(e.inv>0||e.ward||e.gone||e.hidden||!(inFront(e)||(eyeRun&&eyeFrontHit(e)))) continue;
       e.hp-=STORM_HIT*(e.t==='boss'?3:2)*HAZ_ENEMY*dt;
       if(Math.random()<.15) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#dff4ff',r:2});
       if(e.hp<=0){ if(e.t==='boss'){ hazBossKill(e); break; } hazKill(e,j,'#dff4ff'); }
@@ -8591,7 +8747,7 @@ function worldStep(dt){
         burst(P.x,P.y,'#dff4ff',22,260); SFX.crack();
       }
       for(const e of enemies){
-        if(e.t==='boss'||e.t==='echo'||e.gone||e.frz>0||!e.on) continue;
+        if(e.t==='boss'||e.gone||e.frz>0||!e.on) continue;
         const er=r+e.r;
         if(dist2(g,e)>=er*er) continue;
         const a=Math.atan2(e.y-g.y,e.x-g.x)||rand(0,TAU);
@@ -8620,7 +8776,7 @@ function worldStep(dt){
     }
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
-      if(e.t==='boss'||e.t==='echo'||e.gone||e.hidden||!world.fl.some(F=>inFlare(F,e))) continue;
+      if(e.t==='boss'||e.gone||e.hidden||!world.fl.some(F=>inFlare(F,e))) continue;
       e.hp-=FLARE_DMG*2*HAZ_ENEMY*dt;
       if(Math.random()<.2) parts.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),life:.3,t:0,col:'#ffb347',r:2});
       if(e.hp<=0) hazKill(e,j,'#ffb347');
@@ -8630,8 +8786,8 @@ function worldStep(dt){
   /* ---- Icarus: raiders ---- */
   if(world.h==='raiders'){
     world.next-=dt;
-    if(world.next<=0 && world.raid.length<3){
-      world.next=rand(6,9.5)/HAZ_RATE();
+    if(world.next<=0 && world.raid.length<RAID_MAX){
+      world.next=rand(3,5)/HAZ_RATE();
       const p=edgeSpawn();
       // it takes station at arm's length: a beam fired from your own hull is not
       // a shot you can be asked to read
@@ -8641,7 +8797,7 @@ function worldStep(dt){
         if((tx-P.x)*(tx-P.x)+(ty-P.y)*(ty-P.y)>190*190) break;
       }
       world.raid.push({x:p.x,y:p.y,a:0,r:RAID_W,st:'in',t:0,tx,ty,
-        hp:RAID_HP*DIFF().ehp, max:RAID_HP*DIFF().ehp, ba:0, spin:0});
+        hp:RAID_HP*DIFF().ehp, max:RAID_HP*DIFF().ehp, ba:0, spin:0, shots:RAID_SHOTS});
     }
     for(let i=world.raid.length-1;i>=0;i--){
       const R=world.raid[i]; R.t+=dt; R.spin+=dt*3;
@@ -8665,8 +8821,10 @@ function worldStep(dt){
       }
       else if(R.st==='fire'){
         R.a=R.ba;
-        if(R.t>=RAID_BEAM){ R.st='out'; R.t=0;
-          R.fa=Math.atan2(R.y-H/2,R.x-W/2); }
+        if(R.t>=RAID_BEAM){
+          // it stays for RAID_SHOTS beams, re-aiming between them, then leaves
+          if(--R.shots>0){ R.st='aim'; R.t=-RAID_REST; R.ba=Math.atan2(P.y-R.y,P.x-R.x); }
+          else{ R.st='out'; R.t=0; R.fa=Math.atan2(R.y-H/2,R.x-W/2); } }
       }
       else{                                        // leaving, and unkillable once gone
         R.x+=Math.cos(R.fa)*470*dt; R.y+=Math.sin(R.fa)*470*dt;
@@ -9570,7 +9728,7 @@ function missionTick(dt){
     // and neither do the rammers, which came for it
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j], rr=e.r+w.r;
-      if(e.gone||e.t==='echo') continue;
+      if(e.gone) continue;
       if(dist2(e,w)<rr*rr){
         w.hp-=(e.t==='dart'||e.t==='meteor')?40:e.t==='heavy'||e.t==='lander'?34:24;
         burst(e.x,e.y,'#ffd24d',16,300);
@@ -9844,6 +10002,21 @@ function unitPath(g,kind,r,spin,morph){
     for(let i=0;i<10;i++){const a=i/10*TAU, rr=i%2?r*.48:r;
       i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
     g.closePath();
+  }else if(kind==='zapper'){
+    // a small lightning flash: a notched diamond
+    g.rotate(spin*.2);
+    g.beginPath(); g.moveTo(r,0); g.lineTo(r*.1,r*.35); g.lineTo(r*.25,r*.95); g.lineTo(-r,0);
+    g.lineTo(-r*.1,-r*.35); g.lineTo(-r*.25,-r*.95); g.closePath();
+  }else if(kind==='crusher'){
+    // a heavy octagon with a square core, turning slowly
+    g.rotate(spin*.4);
+    g.beginPath();
+    for(let i=0;i<8;i++){const a=i/8*TAU+Math.PI/8;
+      i?g.lineTo(Math.cos(a)*r,Math.sin(a)*r):g.moveTo(Math.cos(a)*r,Math.sin(a)*r);}
+    g.closePath();
+    for(let i=0;i<4;i++){const a=i/4*TAU+Math.PI/4, rr=r*.45;
+      i?g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):g.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
+    g.closePath();
   }else if(kind==='glacier'){
     // a six-point ice crystal round a hex core
     g.rotate(spin*.3);
@@ -10009,7 +10182,7 @@ function unitPath(g,kind,r,spin,morph){
     g.closePath();
   }
 }
-const unitKind=e=> e.chain ? 'lev_'+e.kind : (e.t==='boss'||e.t==='echo')?'b_'+e.k:e.t;
+const unitKind=e=> e.chain ? 'lev_'+e.kind : e.t==='boss'?'b_'+e.k:e.t;
 
 // one silhouette per hull, so you can tell what you are flying at a glance
 function shipPath(g,r,hull){
@@ -10072,8 +10245,18 @@ function draw(){
         ctx.beginPath(); ctx.arc(b.x,b.y,b.r+3,0,TAU); ctx.stroke();
         if(b.ghost>0){ ctx.globalAlpha=1; continue; }
       }
-      ctx.fillStyle=b.col; ctx.shadowColor=b.col; ctx.shadowBlur=12;
-      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill();
+      ctx.shadowBlur=0;
+      const g=glowDot(b.col,b.r,12);
+      if(g) ctx.drawImage(g,b.x-g.o,b.y-g.o);
+      else{ ctx.fillStyle=b.col; ctx.shadowColor=b.col; ctx.shadowBlur=12;
+            ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill(); }
+      if(b.stun){                                 // a bolt: sparks jumping off it
+        ctx.strokeStyle='#fffbe0'; ctx.lineWidth=1.4; ctx.beginPath();
+        for(let k=0;k<3;k++){ const a=rand(0,TAU); ctx.moveTo(b.x,b.y);
+          ctx.lineTo(b.x+Math.cos(a)*b.r*1.6+rand(-3,3),b.y+Math.sin(a)*b.r*1.6+rand(-3,3));
+          ctx.lineTo(b.x+Math.cos(a)*b.r*2.4,b.y+Math.sin(a)*b.r*2.4); }
+        ctx.stroke();
+      }
     }
     ctx.shadowBlur=0;
 
@@ -10098,12 +10281,21 @@ function draw(){
 
     // player bullets
     const BT=cosOf('bolt');
+    // every bolt of a kind goes into one path, so the glow is worked out once
+    // a frame rather than once a bolt
     ctx.shadowBlur=10;
-    for(const b of bullets){
-      ctx.lineWidth=b.hot?2.4:(BT.w||2.4);
-      ctx.strokeStyle=b.hot?'#ffd0d4':BT.c; ctx.shadowColor=b.hot?'#ff4d5e':BT.g;
-      const L=b.hot?.022:.016*(BT.len||1);
-      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.x-b.vx*L,b.y-b.vy*L); ctx.stroke();
+    for(const hot of [false,true]){
+      let any=false;
+      ctx.beginPath();
+      for(const b of bullets){
+        if(!!b.hot!==hot) continue;
+        const L=hot?.022:.016*(BT.len||1);
+        ctx.moveTo(b.x,b.y); ctx.lineTo(b.x-b.vx*L,b.y-b.vy*L); any=true;
+      }
+      if(!any) continue;
+      ctx.lineWidth=hot?2.4:(BT.w||2.4);
+      ctx.strokeStyle=hot?'#ffd0d4':BT.c; ctx.shadowColor=hot?'#ff4d5e':BT.g;
+      ctx.stroke();
     }
     ctx.shadowBlur=0;
 
@@ -10162,6 +10354,80 @@ function draw(){
           ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(a)*1300,e.y+Math.sin(a)*1300); ctx.stroke(); }
         ctx.restore(); ctx.shadowBlur=0;
       }
+      if(m.k==='decree'){
+        // gold lanes filling in, then a white-gold flash where they went off
+        const k=clamp(m.t/DECREE_TEL,0,1), boom=m.hit?1-clamp((m.t-DECREE_TEL)/.3,0,1):0;
+        ctx.save();
+        const lane=(x,y,w,h)=>{
+          ctx.fillStyle=m.hit?'rgba(255,240,190,'+(.75*boom)+')':'rgba(255,210,77,'+(.08+.22*k*k)+')';
+          ctx.fillRect(x,y,w,h);
+          if(!m.hit){ ctx.strokeStyle='rgba(255,210,77,'+(.45+.5*k)+')'; ctx.lineWidth=1.6; ctx.strokeRect(x,y,w,h); }
+        };
+        for(const x of m.vx) lane(x-DECREE_W/2,-4,DECREE_W,H+8);
+        for(const y of m.hy) lane(-4,y-DECREE_W/2,W+8,DECREE_W);
+        ctx.restore();
+      }
+      if(m.k==='rlash'){
+        ctx.save(); ctx.lineCap='round';
+        for(const L of m.l){
+          const u=m.t-L.at; if(u<0||L.aim) continue;
+          if(u<LASH_TEL){
+            // where it starts, and the arc it is about to cover
+            const k=u/LASH_TEL;
+            ctx.strokeStyle='rgba(201,184,255,'+(.25+.5*k)+')'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(L.a0)*m.len,e.y+Math.sin(L.a0)*m.len); ctx.stroke();
+            ctx.fillStyle='rgba(201,184,255,'+(.04+.08*k)+')';
+            const a1=L.a0+L.dir*LASH_ARC;
+            ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.arc(e.x,e.y,m.len,Math.min(L.a0,a1),Math.max(L.a0,a1)); ctx.closePath(); ctx.fill();
+          }else{
+            const k=clamp((u-LASH_TEL)/LASH_SWEEP,0,1); if(k>=1) continue;
+            const a=L.a0+L.dir*LASH_ARC*k;
+            ctx.strokeStyle='#e6dcff'; ctx.lineWidth=7; ctx.shadowColor='#9d86e8'; ctx.shadowBlur=22;
+            ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(a)*m.len,e.y+Math.sin(a)*m.len); ctx.stroke();
+            ctx.shadowBlur=0;
+          }
+        }
+        ctx.restore();
+      }
+      if(m.k==='rthrone'){
+        ctx.save();
+        if(m.t<THRONE_IN){                          // the seat it is making for
+          const k=m.t/THRONE_IN;
+          ctx.strokeStyle='rgba(230,220,255,'+(.2+.4*k)+')'; ctx.lineWidth=2; ctx.setLineDash([8,8]);
+          ctx.beginPath(); ctx.arc(W/2,H/2,e.r*1.2,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+        }else if(m.blades){
+          ctx.strokeStyle='rgba(157,134,232,.18)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.arc(e.x,e.y,m.R,0,TAU); ctx.stroke();
+          ctx.fillStyle='#14102a'; ctx.strokeStyle='#e6dcff'; ctx.lineWidth=2; ctx.shadowColor='#9d86e8'; ctx.shadowBlur=14;
+          // the whole ring as one path: one glow pass instead of one a blade
+          ctx.beginPath();
+          for(const b of m.blades){
+            const a=m.rot+b, c=Math.cos(a), s=Math.sin(a), x=e.x+c*m.R, y=e.y+s*m.R;
+            // long axis points out from the hull, short axis along the ring
+            ctx.moveTo(x+c*18,y+s*18); ctx.lineTo(x-s*9,y+c*9);
+            ctx.lineTo(x-c*18,y-s*18); ctx.lineTo(x+s*9,y-c*9); ctx.closePath();
+          }
+          ctx.fill(); ctx.stroke();
+          ctx.shadowBlur=0;
+        }
+        ctx.restore();
+      }
+      if(m.k==='rtether'){
+        const P=player; ctx.save();
+        if(m.t<TETHER_TEL){
+          if(Math.floor(m.t*14)%2){ ctx.strokeStyle='rgba(201,184,255,.55)'; ctx.lineWidth=1.4;
+            ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(P.x,P.y); ctx.stroke(); }
+        }else{
+          // a taut beam with a wave running down it toward the Ruler
+          const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1, nx=-dy/d, ny=dx/d;
+          ctx.strokeStyle='#c9b8ff'; ctx.lineWidth=3.5; ctx.shadowColor='#9d86e8'; ctx.shadowBlur=18;
+          ctx.beginPath();
+          for(let i=0;i<=24;i++){ const f=i/24, w=Math.sin(f*18-m.t*22)*5*(1-Math.abs(f-.5)*2);
+            const x=e.x+dx*f+nx*w, y=e.y+dy*f+ny*w; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+          ctx.stroke(); ctx.shadowBlur=0;
+        }
+        ctx.restore();
+      }
       if(m.k==='slam'&&!m.hit){
         const k=clamp(m.t/SLAM_TEL,0,1);
         ctx.save();
@@ -10193,7 +10459,7 @@ function draw(){
       if(e.hidden) continue;                 // still arriving; the scene draws it
       if(e.station) continue;                // Omega draws itself, arms and all
       const col=ecolOf(e);
-      if(e.t==='boss'||e.t==='echo'){         // the light it bends around itself
+      if(e.t==='boss'){                       // the light it bends around itself
         const g=ctx.createRadialGradient(e.x,e.y,e.r*.4,e.x,e.y,e.r*(2.6+(e.flare>0?.9:0)));
         ctx.globalAlpha=.34+(e.flare>0?.3:0);
         g.addColorStop(0,col); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -10212,7 +10478,6 @@ function draw(){
       if(e.t==='glacier') glacierArms(e);
       if(e.k==='triton'&&tetherOn(e)) tetherDraw(e,e.twin);
       ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
-      if(e.t==='echo') ctx.globalAlpha=.42+.28*(e.fade||0);
       if(e.t==='phantom') ctx.globalAlpha=e.vis;
       ctx.strokeStyle=col; ctx.fillStyle=e.t==='heavy'?'rgba(255,77,94,.13)':'rgba(0,0,0,.55)';
       // the last thing in the game has a heartbeat, and it is always running
@@ -10234,12 +10499,14 @@ function draw(){
         ctx.shadowBlur=0;
         if(e.k==='ruler'){
           ctx.lineWidth=1.4; ctx.strokeStyle='rgba(180,156,245,.55)';
+          ctx.beginPath();
           for(let i=0;i<9;i++){                    // tendrils, longer as it fails
             const a=i/9*TAU+e.morph*.6,
                   l=e.r*(1.15+.5*(1-e.hp/e.max)+.18*Math.sin(e.morph*3+i));
-            ctx.beginPath(); ctx.moveTo(Math.cos(a)*e.r*.9,Math.sin(a)*e.r*.9);
-            ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke();
+            ctx.moveTo(Math.cos(a)*e.r*.9,Math.sin(a)*e.r*.9);
+            ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l);
           }
+          ctx.stroke();
         }
         if(e.k==='archive'){                       // the Mindframes it holds
           ctx.lineWidth=2; ctx.shadowColor=col; ctx.shadowBlur=12;
@@ -10360,7 +10627,7 @@ function draw(){
         ctx.shadowColor=sc; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
       }
       ctx.restore(); ctx.shadowBlur=0; ctx.globalAlpha=1;
-      if(e.t!=='boss'&&e.t!=='echo'&&!(e.t==='phantom'&&e.vis<.5)) hpbar(e.x,e.y-e.r-11,e.r*2.3,e.hp/e.max,col);
+      if(e.t!=='boss'&&!(e.t==='phantom'&&e.vis<.5)) hpbar(e.x,e.y-e.r-11,e.r*2.3,e.hp/e.max,col);
     }
 
     iceDraw();
@@ -10387,6 +10654,14 @@ function draw(){
       }
       ctx.restore(); ctx.shadowBlur=0; ctx.globalAlpha=1;
       if(P.frz>0) iceShell(P.x,P.y,24,P.frz);
+      if(P.stun>0){                                 // crackling while it lasts
+        ctx.strokeStyle='#ffe45c'; ctx.lineWidth=1.6; ctx.shadowColor='#ffe45c'; ctx.shadowBlur=12;
+        for(let k=0;k<4;k++){ let a=rand(0,TAU), r=rand(10,14);
+          ctx.beginPath(); ctx.moveTo(P.x+Math.cos(a)*r,P.y+Math.sin(a)*r);
+          for(let j=0;j<3;j++){ a+=rand(-.5,.5); r+=rand(5,8); ctx.lineTo(P.x+Math.cos(a)*r,P.y+Math.sin(a)*r); }
+          ctx.stroke(); }
+        ctx.shadowBlur=0;
+      }
       if(buffs.shield>0){
         ctx.beginPath(); ctx.arc(P.x,P.y,25+Math.sin(waveTimer*7)*1.6,0,TAU);
         ctx.strokeStyle='rgba(63,216,224,'+(buffs.shield<1.6?.35+.35*Math.sin(waveTimer*22):.8)+')';
@@ -11558,6 +11833,12 @@ const CODEX={
      t:'Throws a heavy violet orb that breaks into a five-shard fan partway to '+
        'you. Those shards continue to break until an unstoppable torrent of shards are coming. '+
        'It stays away, then fires the orbs.'},
+    {c:'#5ff2ff', n:'ZAPPER', tag:'ICARUS  \u00b7  SPLITTER', sys:8,
+     u:'zapper', a:[cxEnemy('zapper',8),150,10,.37,9], ctr:'\u00abWRITE: Zapper tip\u00bb',
+     t:'A small enemy that fires 1 splitting dart that homes. It splits into 3.'},
+    {c:'#ffe45c', n:'CRUSHER', tag:'ICARUS  \u00b7  HEAVY', sys:8,
+     u:'crusher', a:[cxEnemy('crusher',8),40,13,.36,26], ctr:'\u00abWRITE: Crusher tip\u00bb',
+     t:'A big tanky enemy that fires electric bolts that briefly stun the player.'},
     {c:'#ff4d5e', n:'ITERATION 3296', tag:'EARTH  ·  WAVE 5', sys:0,
      u:'b_primary', a:[cxHull(cxBoss('primary'),cxSys('primary')),62,24,.45,15], ctr:'Dodge its red bullets and blast it while it is not attacking.',
      t:'A tougher Primary that has different attacks.'},
