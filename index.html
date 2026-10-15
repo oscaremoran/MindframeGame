@@ -47,8 +47,8 @@
   .overlay>button.back{position:absolute; top:min(2.2vw,3.2vh); left:min(2.2vw,3.2vh); z-index:6;
     margin:0; padding:8px 18px; font-size:calc(clamp(10px,1.15vw,12px) + 2px)}
   .overlay>button.back:hover{transform:none}
-  /* Not full screen: one card over everything until it is (fitCheck in the
-     script decides). On a phone or tablet the game is not playable at all,
+  /* A window too small to play in: one card over everything until it is not
+     (fitCheck in the script decides). On a phone or tablet the game is not playable at all,
      so that card wins over this one. */
   #tooSmall{position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center;
     background:#05060d; padding:16px}
@@ -367,7 +367,7 @@
     /* flex rather than line-height: the gear glyph's own metrics do not centre
        it in its box, and a box this size shows the drift */
     display:flex; align-items:center; justify-content:center;
-    line-height:1; letter-spacing:.2em; font-size:clamp(9px,1.05vw,12px);
+    line-height:1; letter-spacing:.2em; font-size:min(1.05vw,1.55vh);   /* scales with the rest, so it never creeps */
     clip-path:none; border-radius:3px;
     background:rgba(10,16,30,.85); border:1px solid #2c3a5c; color:#8fb6e6;
   }
@@ -1568,6 +1568,7 @@ const SFX={
 const MENU_LIFT=1.9;
 const MUS={
   step:0, next:0, on:false, cur:'', crit:false,
+  abs:0, spb:0,          // sixteenths since boot (never wraps), and how long one is right now (RHY reads both)
   ROOTS:[220,233.1,246.9,261.6],
   PHRY:[0,1,3,5,7,8,10],
 
@@ -1882,6 +1883,7 @@ const MUS={
     }
 
     const bpm=(P.bpm+depth*4)*(this.crit?.94:1), spb=60/bpm/4;
+    this.spb=spb;
     const root=P.root||this.ROOTS[depth];
     const HOOK=this.HOOKS[P.hook];
 
@@ -1893,7 +1895,9 @@ const MUS={
       const bar32=Math.floor(this.step/16)%32, phr=bar32%8;
       const rOff=P.prog[phr], minor=!P.qual[phr];
       const f0=root*Math.pow(2,rOff/12);
-      const SEC = P.sec!==undefined ? P.sec : I<=1 ? 3 : this.FORM[bar32];
+      let SEC = P.sec!==undefined ? P.sec : I<=1 ? 3 : this.FORM[bar32];
+      // a boss fought to the music only breaks down when it opens up
+      if(RHY.on && this.cur==='boss:primary') SEC=RHY.sec(this.abs,SEC);
       const DROP=SEC===2, BUILD=SEC===1, BREAK=SEC===3;
       const drums = !P.calm && !P.nodrums && I>=2;
       const KICKS = P.kicks || (P.half ? [0,8] : [0,4,8,12]);
@@ -1984,7 +1988,7 @@ const MUS={
 
       if(drums && BUILD && bar32%8===7 && b===8) this.riser(t,spb,.1,f0/2);
 
-      this.next+=spb; this.step=(this.step+1)%512;
+      this.next+=spb; this.step=(this.step+1)%512; this.abs++;
     }
   },
 };
@@ -1993,6 +1997,9 @@ const MUS={
 const SAVE='mindframe.001';
 // set when the game is running inside the Mac app rather than a browser
 const APP=!!window.MF_APP;
+/* indexthree.html opens the game as index.html?proto=3296: straight into
+   Iteration 3296, fought to the music (RHY). Nothing it does is saved. */
+const PROTO=new URLSearchParams(location.search).get('proto')==='3296';
 /* CREDITS are what a system pays out: two per wave held in Earth, four
    per wave in 002, and so on, plus ten for putting down a system's boss —
    so a system pays a round 20, 30, 40 ... 100.
@@ -2071,7 +2078,7 @@ if(!save.swapRB){
 }
 fixSave();
 SND.vol=save.vol; SND.on=save.sound;
-const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
+const persist=()=>{ if(PROTO) return; try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
    The skill tree is the pilot's, not the ship's: whatever is in the bay flies
    with every skill you have bought. It lives in save.trees[0] — the slot hull
@@ -2292,7 +2299,7 @@ const hupBuy=(i,key)=>shipOwned(i) && hupLv(i,key)<hupCap(i,key) && save.credits
 const shipStat=(i,key)=>SHIPS[i][key]+HUP_STEP*hupLv(i,key);
 
 /* ================= player stats ================= */
-const BASE={dmg:10, delay:.19, maxHp:100, speed:250, bspeed:640};
+const BASE={dmg:10, delay:.19, maxHp:100, speed:250, bspeed:720};
 /* Bullet magnetism — how forgiving the aim is. A round bends toward an enemy
    within MAGNET_R that is ahead of it and inside MAGNET_CONE radians of where
    it is already going, at up to MAGNET_TURN rad/sec. Small numbers on purpose:
@@ -2650,9 +2657,9 @@ function beginSystem(){
   clearBuffs();
   worldStart(); sceneStart();
   toast=''; toastT=0; crToastT=0;
-  wave=0; nextWave();
+  wave=PROTO?4:0; nextWave();                 // the prototype is the boss and nothing else
   state='play';
-  launchStart();
+  if(!PROTO) launchStart();
 }
 
 /* Clearing a system hands you the map, with the node you just took now green. */
@@ -5466,7 +5473,7 @@ function entranceDraw(){
 /* The punish window. A boss's authored line ends in one, so every fight has a
    beat where the right answer is to stop dodging and commit. It is worth
    PUNISH_MULT rounds for the price of one, which is the whole point.        */
-const OPENING=tier=> (tier===2?1.15 : tier===1?1.4 : 1.7) * DIFF().open;
+const OPENING=tier=> (tier===2?1.45 : tier===1?1.7 : 2.0) * DIFF().open;
 /* Two dials over the whole boss roster, so a fight keeps its authored shape
    and only its weight changes. BOSS_BUFF lifts hull, speed and reach a step;
    BOSS_DMG is what every round a boss fires is multiplied by. A boss is the
@@ -5478,6 +5485,124 @@ const PUNISH_MULT=2;
    the window is OPENING / (marks + 1): full for a clean combo, a half after
    one hit, a third after two, and none at all after GUARD_MARKS. */
 const GUARD_MARKS=3;
+// the arena's edge keeps time while a boss is fought to the music
+function rhyEdge(){
+  const e=enemies.find(o=>o.t==='boss'&&RHY.boss(o)&&!o.hidden); if(!e) return;
+  const pu=RHY.pulse(); if(pu<=.01) return;
+  const col=e.open>0?'255,210,77':'255,77,94';
+  ctx.save();
+  ctx.strokeStyle='rgba('+col+','+(.55*pu)+')'; ctx.lineWidth=4+10*pu;
+  ctx.shadowColor='rgb('+col+')'; ctx.shadowBlur=30*pu;
+  ctx.strokeRect(0,0,W,H);
+  ctx.restore();
+}
+
+/* ══════════ RHY: a boss fought to the music ══════════
+   Prototype, on Iteration 3296 only (PROTO). The score is generated live on
+   a sixteenth-note clock (MUS), so the fight can run off that clock instead
+   of its own:
+     when     an attack lands on a beat, but not always the same one: beat
+              one or beat three of a bar, whichever is nearer where its rest
+              would have ended, and now and then a whole bar later. Musical,
+              but not something you can count along to.
+     what     the attack itself is a dice roll from the tier's pool. The
+              punish windows still come after as many attacks as the
+              authored line has between them.
+     warning  the ring closing on the boss and the charge's count-in last
+              warnBeats(): one beat on a slow tempo, up to four on a fast
+              one, and never under WARN_MIN seconds.
+     strict   only the showpieces sit exactly on the bar: the punish window
+              (a breakdown, two bars, one after a hit, two beats after two;
+              the drums drop out for exactly that long), and a tier climb,
+              which brings the full band in on the next bar line and, in the
+              last tier, keeps it there.
+   What comes next is decided as the rest starts, so the music can get ready.
+   pos() is the sixteenth the player is HEARING, so it is behind what the
+   scheduler has queued by the look-ahead and the output latency. With no
+   music running, pos() is null and the boss keeps its own clock. */
+const WARN_MIN=.6;      // no warning shorter than this, in seconds, whatever the tempo
+const RHY_LATE=.25;     // how often an attack waits a whole extra bar
+const RHY={
+  on:PROTO,
+  brk:null,                                   // [from,to) sixteenths of breakdown
+  boss:e=>RHY.on && e.k==='primary',
+  pos(){
+    const c=SND.ctx;
+    if(!MUS.on||!c||!MUS.spb) return null;
+    const lat=(c.outputLatency||0)+(c.baseLatency||0);
+    return MUS.abs-(MUS.next-(c.currentTime-lat))/MUS.spb;
+  },
+  // the audio time a sixteenth is (or was) scheduled at
+  at(step){ return Math.max(SND.ctx.currentTime, MUS.next+(step-MUS.abs)*MUS.spb); },
+  // how many beats a warning gets at this tempo: 1 at 90bpm and under, 4 at
+  // 170 and over, and as many more as it takes to last WARN_MIN seconds
+  warnBeats(){
+    const beat=MUS.spb*4, bpm=60/beat;
+    let n=Math.round(1+3*clamp((bpm-90)/80,0,1));
+    while(n<4 && n*beat<WARN_MIN) n++;
+    return n;
+  },
+  /* where a rest of `sec` seconds ends. Strict: the nearest bar line. Loose:
+     the nearest beat one or beat three, and one time in four a bar after that.
+     Never so soon that its warning would not fit. */
+  snap(sec,strict){
+    const p=this.pos(), grid=strict?16:8;
+    let g=Math.round((p+sec/MUS.spb)/grid)*grid;
+    if(!strict && Math.random()<RHY_LATE) g+=16;
+    while(g<p+this.warnBeats()*4) g+=grid;
+    return g;
+  },
+  drop:null,                                  // [from,to) sixteenths the full band is held in
+  // a tier climb: the band comes in hard on the next bar line
+  climb(last){
+    const p=this.pos(); if(p==null) return;
+    let g=Math.ceil(p/16)*16; while(g<p+4) g+=16;
+    this.brk=null; this.drop=[g, last?Infinity:g+16*8];
+    MUS.drum(this.at(g),'crash',.22); MUS.drum(this.at(g),'kick',.6); MUS.drum(this.at(g),'hit',.26);
+  },
+  openLen:marks=>[32,16,8][Math.min(marks,2)],
+  sec(abs,SEC){
+    if(this.brk && abs>=this.brk[0] && abs<this.brk[1]) return 3;
+    if(this.drop && abs>=this.drop[0] && abs<this.drop[1]) return 2;
+    return SEC===3 ? 2 : SEC;                 // the score's own breakdowns are kept for the window
+  },
+  // what the boss will do on the bar line `g`, got ready for now: and every
+  // attack lands with a hit in the score, so you hear it fire on the one
+  cue(e,g,k){
+    if(k==='|'){
+      const to=g+this.openLen(e.marked||0);
+      this.brk=[g,to];
+      MUS.drum(this.at(g),'crash',.12);
+      // the band comes back in on the bar the window shuts
+      MUS.drum(this.at(to),'crash',.2); MUS.drum(this.at(to),'kick',.55); MUS.drum(this.at(to),'hit',.24);
+    }
+    if(k==='ring'){ MUS.drum(this.at(g),'crash',.16); MUS.drum(this.at(g),'hit',.22); }
+    if(k==='shell'){ MUS.drum(this.at(g),'hit',.2); }
+    if(k==='charge'){
+      const w=this.warnBeats()*4;
+      for(let n=0;n<w;n+=4) MUS.v(1320,this.at(g+n),'square',.07,.05);
+      MUS.drum(this.at(g+w),'hit',.26); MUS.drum(this.at(g+w),'kick',.5);
+    }
+  },
+  /* A punish hit is a note. Each one plays the next step up the scale, on the
+     next free sixteenth, so a window you hit well is a run you played. One
+     note a sixteenth, however many rounds land in it. */
+  run:0, lastNote:-1,
+  note(){
+    const c=SND.ctx; if(!c||!MUS.spb) return;
+    const s=Math.ceil(MUS.abs-(MUS.next-c.currentTime)/MUS.spb);
+    if(s<=this.lastNote) return;
+    this.lastNote=s;
+    const i=this.run++, semi=MUS.PHRY[i%7]+12*Math.min(2,Math.floor(i/7));
+    MUS.saw(MUS.ROOTS[0]*Math.pow(2,semi/12), this.at(s), MUS.spb*1.6, .075, null, false);
+  },
+  // a pulse on every beat, bigger on the bar
+  pulse(){
+    const p=this.pos(); if(p==null) return 0;
+    const f=(p%4)/4, down=Math.floor(p/4)%4===0;
+    return Math.pow(1-f,3)*(down?1:.5);
+  },
+};
 /* Getting hit is told by the edge of the screen, not by shaking it: a red
    pulse round the border for HURT_T seconds. Below a sixth of your hull it
    keeps coming on its own, a beat every HURT_BEAT seconds, until you are
@@ -5503,7 +5628,7 @@ function hurtDraw(){
 }
 function pilotHurt(){
   medalHit(); hitTag='';
-  SFX.hurt(); hurtT=HURT_T;
+  SFX.hurt(); hurtT=HURT_T; hitstop();
   for(const e of enemies) if(e.t==='boss') e.marked=(e.marked||0)+1;
 }
 const GUARD_HELD=.6;
@@ -6430,6 +6555,7 @@ function bossAI(e,dt,dx,dy,d){
   const tier=B.duoPart ? duoTier(e)
             : Math.min(hpf<.15?3 : hpf<.28?2 : hpf<.62?1 : 0, B.tiers.length-1);
   if(tier!==e.tier){
+    const up=tier>e.tier;
     // only a climb gets the cutscene: the Archive dropping back to 0 has its own
     const cut = tier>e.tier && phaseStart(e,tier);
     // every climb owes a strike. One that rode along in its twin's cutscene
@@ -6439,6 +6565,8 @@ function bossAI(e,dt,dx,dy,d){
     if(tier>e.tier && TITAN_COMBO[B.k]){ e.combo=TITAN_COMBO[B.k]; e.guard=1; }
     e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
+    e.openEnd=null; e.gate=null; e.nextK=null; e.since=0; e.segI=0;
+    if(RHY.boss(e) && up) RHY.climb(tier===B.tiers.length-1);
     // the Archive starts its clock here, and re-arms it if it ever recalls
     e.recall = (B.k==='archive' && B.tiers[tier].last) ? RECALL_T : 0;
     ebullets.length=0;                        // the shockwave wipes the screen
@@ -6457,6 +6585,12 @@ function bossAI(e,dt,dx,dy,d){
   if(e.guard){ if(e.combo||e.act) e.inv=Math.max(e.inv,.15); else e.guard=0; }
   if(e.inv>0) e.inv-=dt;
   if(e.open>0) e.open=Math.max(0,e.open-dt);
+  // to the music, the window closes on the bar line, not on its own clock
+  if(e.openEnd!=null){
+    const p=RHY.pos();
+    if(p==null) e.openEnd=null;
+    else{ e.open=Math.max(0,(e.openEnd-p)*MUS.spb); if(!e.open) e.openEnd=null; }
+  }
   if(e.held>0) e.held-=dt;
   const T=B.tiers[e.tier];
   /* the Archive's clock. It runs only in the last tier and only for the Archive;
@@ -6536,14 +6670,20 @@ function bossAI(e,dt,dx,dy,d){
     if(e.act.k==='rthrone'){ actThrone(e,dt,T);      return; }
     if(e.act.k==='rtether'){ actTether(e,dt,T);      return; }
     if(e.act.k==='charge'){
-      // 3296 braces, aims itself, and rams down the line it showed you
-      if(e.act.t<.75){ e.tel={a:e.act.a, t:e.act.t*1.27, len:560}; SFX.warn(); }
+      // 3296 braces, aims itself, and rams down the line it showed you.
+      // To the music it aims for two beats and goes on the third (act.cue)
+      const cue=e.act.cue, p=cue!=null?RHY.pos():null, w=e.act.span||8;
+      if(p!=null ? p<cue : e.act.t<.75){
+        e.tel={a:e.act.a, t:p!=null ? .95*clamp((p-(cue-w))/w,0,1) : e.act.t*1.27, len:560};
+        if(p==null) SFX.warn();
+      }
       else{
         e.tel=null;
+        if(e.act.go==null) e.act.go=e.act.t;
         const v=560;
         e.x=clamp(e.x+Math.cos(e.act.a)*v*dt,60,W-60);
         e.y=clamp(e.y+Math.sin(e.act.a)*v*dt,60,H-60);
-        if(e.act.t>1.35){ e.act=null; e.cool=bossRest(T)+.5; }
+        if(e.act.t-e.act.go>.6){ e.act=null; e.cool=bossRest(T)+.5; }
       }
       return;
     }
@@ -6564,9 +6704,23 @@ function bossAI(e,dt,dx,dy,d){
   }
 
   // ---- pick the next one ----
-  e.cool-=dt;
   if(e.busy>0) e.busy-=dt;
-  if(e.cool>0) return;
+  e.beatAt=null;
+  if(RHY.boss(e) && RHY.pos()!=null){
+    // a fresh rest: land it on a bar line, and decide now what happens there.
+    // No rest at all (a strike handing back) still waits for the next bar
+    if(e.cool>0||e.gate==null){
+      e.nextK=bossPick(e,T,B);
+      e.gate=RHY.snap(Math.max(0,e.cool),e.nextK==='|'); e.cool=0;
+      RHY.cue(e,e.gate,e.nextK);
+    }
+    // a beat missed while something else had the boss (a strike): the next one
+    if(e.gate!=null && RHY.pos()>e.gate+2){ e.gate=RHY.snap(0,e.nextK==='|'); RHY.cue(e,e.gate,e.nextK); }
+    if(e.gate!=null){ if(RHY.pos()<e.gate) return; e.beatAt=e.gate; e.gate=null; }
+  }else{
+    e.cool-=dt;
+    if(e.cool>0) return;
+  }
   // the Titans take turns: nothing starts while the other is mid-attack or
   // has only just finished one. The climb's combo is the one time they don't.
   if(B.duoPart && !e.combo){
@@ -6574,6 +6728,27 @@ function bossAI(e,dt,dx,dy,d){
     if(tw&&(tw.act||tw.busy>0)){ e.cool=.12; return; }
   }
   let k;
+  if(e.nextK!=null){ k=e.nextK; e.nextK=null; }
+  else k=bossPick(e,T,B);
+  e.last=k;
+  if(B.duoPart&&k!=='|') e.busy=DUO_GAP+(k==='walls'?.4:0);
+  bossAct(e,T,B,k,dx,dy,d);
+}
+
+// which attack comes next: the combo owed, the authored line, or the pool
+function bossPick(e,T,B){
+  let k;
+  // fought to the music: the windows keep the authored line's spacing, and
+  // everything between them is drawn from the pool
+  if(RHY.boss(e) && T.seq && T.seq.length && T.pool && T.pool.length){
+    const segs=T.seq.join(',').split('|').map(x=>x.split(',').filter(Boolean).length).filter(n=>n>0);
+    e.since=e.since||0; e.segI=e.segI||0;
+    if(e.since>=segs[e.segI%segs.length]){ e.since=0; e.segI++; return '|'; }
+    e.since++;
+    k=T.pool[Math.floor(Math.random()*T.pool.length)];
+    if(k===e.last && Math.random()<.7) k=T.pool[Math.floor(Math.random()*T.pool.length)];
+    return k;
+  }
   if(e.combo){ k=e.combo; e.combo=null; }
   else if(T.seq && T.seq.length){
     // an authored line, not a dice roll: the same boss opens the same way
@@ -6594,18 +6769,29 @@ function bossAI(e,dt,dx,dy,d){
     k=T.pool[Math.floor(Math.random()*T.pool.length)];
     if(k===e.last && Math.random()<.7) k=T.pool[Math.floor(Math.random()*T.pool.length)];
   }
-  e.last=k;
-  if(B.duoPart&&k!=='|') e.busy=DUO_GAP+(k==='walls'?.4:0);
+  return k;
+}
 
+// the attack itself, started
+function bossAct(e,T,B,k,dx,dy,d){
+  const P=player;
   // '|' is the price of the line it just fired: it stops, drops its guard, and
   // for a moment every round you land on it counts double
   if(k==='|'){
     const marks=e.marked||0; e.marked=0;
     if(marks>=GUARD_MARKS){                   // hit too often this line: no window at all
       e.held=1.4; e.cool=GUARD_HELD;
+      if(RHY.boss(e)) RHY.brk=null;
       return;
     }
-    e.open=e.openMax=OPENING(e.tier)/(marks+1);
+    const p=RHY.boss(e)?RHY.pos():null;
+    if(p!=null){
+      // to the music: a breakdown from this bar line, as long as it was earned
+      const from=e.beatAt!=null?e.beatAt:Math.round(p/16)*16, len=RHY.openLen(marks);
+      RHY.brk=[from,from+len]; e.openEnd=from+len; RHY.run=0;
+      e.open=e.openMax=Math.max(.01,(from+len-p)*MUS.spb);
+    }
+    else e.open=e.openMax=OPENING(e.tier)/(marks+1);
     e.cool=e.open; SFX.expose();
     shock(e.x,e.y,'#ffd24d',e.r,e.r*2.3,.5,4);
     return;
@@ -6650,7 +6836,13 @@ function bossAI(e,dt,dx,dy,d){
   else if(k==='brand'){  e.act={k:'brand', t:0,a:Math.atan2(dy,dx)}; }
   else if(k==='hammer'){ e.act={k:'hammer',t:0,x:e.x+dx,y:e.y+dy,r:104,hit:0}; }
   else if(k==='cross'){  e.act={k:'cross', t:0,a:e.spin,hit:0,lines:[]}; }
-  else if(k==='charge'){ e.act={k:'charge',t:0,a:Math.atan2(dy,dx)}; }
+  else if(k==='charge'){
+    e.act={k:'charge',t:0,a:Math.atan2(dy,dx)};
+    if(RHY.boss(e)&&RHY.pos()!=null){
+      e.act.span=RHY.warnBeats()*4;
+      e.act.cue=(e.beatAt!=null?e.beatAt:Math.ceil(RHY.pos()))+e.act.span;
+    }
+  }
   else if(k==='dash'){
     // a point out past you, so the run carries through where you are
     const P2=player, ux=(P2.x-e.x)/d, uy=(P2.y-e.y)/d;
@@ -6760,9 +6952,27 @@ function shred(x,y,col,n,sp,size){
 // time leans on the brakes, then lets go
 function slow(sec){ if(sec>slowT){ slowT=sec; slowMax=sec; } }
 const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
+/* Hitstop: the world stops dead for a beat when something lands hard (a
+   punish hit, a heavy going down, a boss going down, the pilot hit). The
+   screen still draws; nothing moves. Two at once do not add up. */
+const HITSTOP=.04;
+let stopT=0;
+function hitstop(sec){ stopT=Math.max(stopT,sec||HITSTOP); }
+/* A punish window takes a stream of rounds, and a stop on every one of them
+   stutters. It stops on the first, then no more than once every PUNISH_STOP_GAP
+   seconds of real time. */
+const PUNISH_STOP_GAP=.3;
+let punishStopAt=-1e9;
+function punishStop(){
+  const now=performance.now()/1000;
+  if(now-punishStopAt<PUNISH_STOP_GAP) return;
+  punishStopAt=now; hitstop();
+}
+// the big ones: their kill has its own weight, and a hitstop
+const HEAVY=new Set(['heavy','overseer','orbiter','splinter','lander','quarry','glacier','crusher']);
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ winScene=null; waves.length=0; shards.length=0; timers.length=0; slowT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
+function fxClear(){ winScene=null; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -6786,6 +6996,7 @@ function timerStep(dt){
    over a second and a half, and the last ring crosses the whole arena.      */
 function bossDeathFx(e){
   const x=e.x, y=e.y, col=e.col;
+  hitstop();
   spawnQ.length=0; ebullets.length=0;
   /* ...and it holds until the last of it has settled, not on a fixed clock —
      the level-complete card used to land on top of the tail. Two seconds past
@@ -7522,13 +7733,16 @@ function update(dt){
           }
         }
         e.hp-= b.dmg * (e.open>0?player.st.punish:1); b.hit.push(e);
+        if(e.open>0&&RHY.boss(e)) RHY.note();
+        if(e.t==='boss'&&e.open>0) punishStop();
         e.knit=0;                              // pressure held: it cannot knit
         SFX.hit();
         burst(b.x,b.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?14:7, e.open>0?300:190);
         flare(b.x,b.y, e.open>0?'#ffd24d':'#ffffff', e.open>0?14:9, .09);
         if(e.hp<=0){
           shake=Math.max(shake,e.t==='boss'?26:5);
-          if(e.t!=='boss') SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier'||e.t==='crusher');
+          if(e.t!=='boss') SFX.kill(HEAVY.has(e.t));
+          if(HEAVY.has(e.t)) hitstop();
           if(e.val) drop(e);
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
           else killFx(e,ecolOf(e),e.t==='heavy'?40:22,e.t==='heavy'?370:300);
@@ -8661,7 +8875,7 @@ function hazBossKill(e){
 // a tool, not a second gun
 function hazKill(e,j,col){
   killFx(e,col,e.t==='heavy'?36:20,320);
-  SFX.kill(e.t==='heavy'||e.t==='overseer'||e.t==='orbiter'||e.t==='splinter'||e.t==='lander'||e.t==='quarry'||e.t==='glacier'||e.t==='crusher');
+  SFX.kill(HEAVY.has(e.t));
   enemies.splice(j,1);
 }
 
@@ -10401,6 +10615,19 @@ function draw(){
     }
     ctx.shadowBlur=0;
 
+    // fought to the music: a ring closes on the boss over the last beat before it
+    // acts, gold before a window, red before a charge
+    for(const e of enemies){
+      if(!RHY.boss(e)||e.gate==null) continue;
+      const p=RHY.pos(); if(p==null) continue;
+      const k=clamp((e.gate-p)/(RHY.warnBeats()*4),0,1); if(k>=1) continue;
+      const col=e.nextK==='|'?'255,210,77':e.nextK==='charge'?'255,77,94':'230,220,255';
+      ctx.save();
+      ctx.strokeStyle='rgba('+col+','+(.25+.65*(1-k))+')'; ctx.lineWidth=2+3*(1-k);
+      ctx.shadowColor='rgb('+col+')'; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+8+k*150,0,TAU); ctx.stroke();
+      ctx.restore();
+    }
     // the Ruler's charged line, drawn before it fires down it. A heavy one is
     // drawn fatter, redder and with its edges marked, because what comes down
     // it is worth most of a hull and the read has to be unmistakable.
@@ -10597,6 +10824,7 @@ function draw(){
           ctx.strokeStyle='rgb(255,'+Math.round(34+90*pu)+','+Math.round(51+70*pu)+')';
         }
         ctx.lineWidth=e.tier===2?4:3;
+        if(RHY.boss(e)){ const pu=RHY.pulse(); ctx.shadowBlur+=34*pu; ctx.lineWidth+=2.5*pu; }
         ctx.stroke();                              // shimmering rim
         ctx.shadowBlur=0;
         if(e.k==='ruler'){
@@ -10775,6 +11003,7 @@ function draw(){
 
   if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+fxFlash()*.75+')'; ctx.fillRect(0,0,W,H); }
   if(state==='play') hurtDraw();
+  if(state==='play'&&!paused) rhyEdge();
   if((state==='play'||state==='over'||state==='dying')&&!launchCut) hud();
 }
 
@@ -11025,7 +11254,8 @@ function frame(now){
   const raw=gearIsOpen() ? 0 : clamp((now-last)/1000,0,.033); last=now;
   timerStep(raw);                                  // scheduled beats keep real time
   if(slowT>0) slowT=Math.max(0,slowT-raw);
-  const dt=raw*timeScale();                        // the world can be slowed; the clock cannot
+  const stopped=stopT>0; if(stopped) stopT=Math.max(0,stopT-raw);
+  const dt=stopped ? 0 : raw*timeScale();          // the world can be slowed, or stopped; the clock cannot
   frameDt=dt;
   /* Each stage is guarded on its own. One bad frame used to throw straight out
      of here, the next frame was never asked for, and the whole game stopped
@@ -11033,7 +11263,7 @@ function frame(now){
      (frameFault) and the loop carries on. */
   try{
   if(state==='finale'){ finaleStep(raw); }
-  else if(state==='play'&&!paused&&raw){ sceneT+=raw; update(dt); }
+  else if(state==='play'&&!paused&&raw&&!stopped){ sceneT+=raw; update(dt); }
   else if(state==='over'||state==='dying'){
     for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}}
     fxStep(dt);
@@ -11087,25 +11317,20 @@ function setPause(on){
   }else hideAll();
 }
 // leaving a run early still banks what you earned — the run is what ends
-/* The game is played full screen. In a browser that means real full screen,
-   or a browser window that covers the whole display: the Mac's green button
-   does that and keeps the toolbar, while an ordinary window, however big,
-   always leaves the menu bar showing, so its outer height falls short.
-   Anything less shows #tooSmall with a FULL SCREEN button. The Mac app has
-   no full-screen API, so there only the floor applies.
-   Below MIN_W x MIN_H nothing fits at all (680 is the arena's own height, and
-   under it the skill tree runs together). Full screen on a display that small
-   cannot help, so the card says so instead of offering the button. */
-const MIN_W=1200, MIN_H=680;
+/* Any window big enough plays: full screen, the Mac's green button, or an
+   ordinary maximised browser window, since a link is usually opened in one.
+   Below MIN_W x MIN_H (the size of the title screen as Oscar set it), a window shows
+   #tooSmall with a FULL SCREEN button. When full screen cannot help (the app,
+   already full screen, or a display that small), the card says so instead of
+   offering the button. */
+const MIN_W=1000, MIN_H=677;
 const fullNow=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
-const coversScreen=()=>outerWidth>=screen.width-2&&outerHeight>=screen.height-2;
 function fitCheck(){
   const floor=innerWidth>=MIN_W&&innerHeight>=MIN_H;
-  const whole=APP||fullNow()||coversScreen();
-  const tooSmallScreen=(whole&&!floor)||screen.width<MIN_W||screen.height<MIN_H;   // full screen cannot help
+  const tooSmallScreen=((APP||fullNow())&&!floor)||screen.width<MIN_W||screen.height<MIN_H;   // full screen cannot help
   $('fitMsg').textContent = tooSmallScreen ? 'Play on a computer, desktop is best.' : 'Please play in full screen mode.';
   $('btnFull').style.display = tooSmallScreen||APP ? 'none' : '';
-  $('tooSmall').classList.toggle('on', !(floor&&whole));
+  $('tooSmall').classList.toggle('on', !floor);
 }
 $('btnFull').onclick=()=>{
   const el=document.documentElement, go=el.requestFullscreen||el.webkitRequestFullscreen;
@@ -11124,7 +11349,7 @@ fitCheck();
    only scaled to fit, so nothing about the fight changes; the pause is for the
    player, who has just had the window move under them (Escape leaving full
    screen in Safari or Firefox, the green button). If the window is now too
-   small, the full-screen card sits over the pause menu until it is not. */
+   small, the too-small card sits over the pause menu until it is not. */
 let winSize=[innerWidth,innerHeight];
 addEventListener('resize',()=>{
   const changed=innerWidth!==winSize[0]||innerHeight!==winSize[1];
@@ -12839,6 +13064,7 @@ addEventListener('keydown',e=>{
    in Earth: a new player has nothing to choose yet and should be flying, not
    reading. Every LAUNCH after that opens the map as usual. */
 $('btnStart').onclick=()=>{
+  if(PROTO){ mapPick=0; mapPickK=null; newRun(); return; }
   if(!save.flown){ mapPick=0; mapPickK=null; newRun(); return; }
   openMap('menu');
 };

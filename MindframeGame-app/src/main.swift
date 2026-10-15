@@ -4,8 +4,19 @@
 // What the app adds over a browser:
 //   - the game pauses when you switch away or minimise
 //   - sound is allowed from launch, so the menu theme starts straight away
+//   - keys the page does not use (arrows, mostly) make no error beep
 import Cocoa
 import WebKit
+
+// A key the page lets go by climbs to the window, and a plain NSWindow
+// answers it with the system error beep. The game is the whole window, so a
+// key nobody wanted is simply dropped.
+final class GameWindow: NSWindow {
+    override func noResponder(for eventSelector: Selector) {
+        if eventSelector == #selector(NSResponder.keyDown(with:)) { return }
+        super.noResponder(for: eventSelector)
+    }
+}
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
@@ -25,9 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         web = WKWebView(frame: rect, configuration: cfg)
         if #available(macOS 12.0, *) { web.underPageBackgroundColor = .black }
 
-        window = NSWindow(contentRect: rect,
-                          styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                          backing: .buffered, defer: false)
+        window = GameWindow(contentRect: rect,
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                             backing: .buffered, defer: false)
         window.title = "Mindframe"
         window.backgroundColor = .black
         window.contentAspectRatio = NSSize(width: 1000, height: 680)
