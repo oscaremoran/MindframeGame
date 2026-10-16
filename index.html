@@ -55,6 +55,13 @@
   #tooSmall .card{border:1px solid #2c3d61; background:rgba(8,12,24,.95); padding:28px 34px;
     color:#dfe9ff; letter-spacing:.16em; font-size:clamp(14px,2.4vw,18px); text-align:center}
   #tooSmall.on{display:flex}
+  /* Playable but cramped: a quiet line along the bottom of the menus, never
+     over a flight, until the window is FIT_W x FIT_H (fitCheck decides). */
+  #fitHint{position:absolute; left:50%; bottom:1.6%; transform:translateX(-50%); z-index:29;
+    display:none; pointer-events:none; white-space:nowrap;
+    font-size:min(1.15vw,1.7vh); letter-spacing:.16em; color:#7d8bb0;
+    padding:6px 14px; border:1px solid #1e2a46; background:rgba(5,6,13,.85)}
+  #fitHint.on{display:block}
   #tooSmall .card button{display:block; margin:20px auto 0}
   #mobileOnly{position:fixed; inset:0; z-index:210; display:none; align-items:center; justify-content:center;
     background:#05060d; padding:16px}
@@ -989,6 +996,7 @@
 <body>
 <div id="wrap">
   <canvas id="c" width="1000" height="680"></canvas>
+  <div id="fitHint">Expanding your window will improve your experience</div>
   <!-- the victory panel, in pieces. Empty and inert until the Ruler falls. -->
   <div id="shatter"></div>
   <button id="gearBtn" title="Settings"><svg viewBox="-12 -12 24 24" aria-hidden="true">
@@ -1123,12 +1131,19 @@
     <p id="doneKind">LEVEL COMPLETE</p>
     <h1 id="doneTitle" style="font-size:clamp(22px,3.6vw,40px)">EARTH</h1>
     <h2 id="doneSub">HELD</h2>
-    <div id="doneStats"></div>
-    <!-- PROSE: your line(s) for clearing this system — SYS_CLEAR_TEXT below -->
-    <div class="prose" id="doneText"></div>
-    <div class="row" style="margin-top:20px">
-      <button id="btnDoneGo">SPACE MAP</button>
-      <button id="btnDoneMenu" class="ghost">MAIN MENU</button>
+    <!-- step 1: what it was for: your line, and the fragment it recovered -->
+    <div id="doneS1" class="overStep">
+      <!-- PROSE: your line(s) for clearing this system — SYS_CLEAR_TEXT below -->
+      <div class="prose" id="doneText"></div>
+      <div class="row" style="margin-top:20px"><button id="btnDoneNext">CONTINUE</button></div>
+    </div>
+    <!-- step 2: what it paid, and where to go from here -->
+    <div id="doneS2" class="overStep">
+      <div id="doneStats"></div>
+      <div class="row" style="margin-top:20px">
+        <button id="btnDoneGo">SPACE MAP</button>
+        <button id="btnDoneMenu" class="ghost">MAIN MENU</button>
+      </div>
     </div>
   </div>
 
@@ -2546,6 +2561,14 @@ function overStep(n){
   $('overS1').classList.toggle('off',n!==1);
   $('overS2').classList.toggle('off',n!==2);
 }
+/* The win screen comes in the same two steps: first what it was for (the
+   line, and a held system's fragment of the report), then CONTINUE to what
+   it paid and the ways on. With no line to show it opens on the second. */
+function doneStep(n){
+  if(n===1&&!$('doneText').innerHTML.trim()) n=2;
+  $('doneS1').classList.toggle('off',n!==1);
+  $('doneS2').classList.toggle('off',n!==2);
+}
 
 /* The launching screen for a system. Big, bright and plain: a difficulty
    meter instead of a multiplier, names in their own colours, the reward in
@@ -2969,6 +2992,7 @@ function rushWin(){
   $('doneStats').innerHTML='<div class="crLines"><div>Time: '+secs(t)+'</div><div>Best: '+secs(save.rushBest)+'</div></div>';
   $('doneText').innerHTML='';
   doneTreeBtn();
+  doneStep(1);                                // no line: straight to the times
   state='done'; show('done');
 }
 
@@ -3003,6 +3027,7 @@ function systemCleared(){
   if(!fake) fragHandOver(i);
   doneTreeBtn();
   if(finaleArmed) $('btnDoneMenu').style.display='none';   // this card is about to be taken away
+  doneStep(1);
   state='done';
   // the real ending: the thing behind the Ruler is down. The credits roll first.
   if(last&&!fake&&finaleDone) creditsRoll(()=>show('done'));
@@ -10258,6 +10283,7 @@ function missionVictory(M){
   const t=SIDE_CLEAR_TEXT[M.k];
   $('doneText').innerHTML = t?'<p>'+t+'</p>':'';
   doneTreeBtn();
+  doneStep(1);
   state='done'; show('done');
 }
 
@@ -11377,13 +11403,28 @@ function setPause(on){
    already full screen, or a display that small), the card says so instead of
    offering the button. */
 const MIN_W=1000, MIN_H=677;
+/* The wall itself is HARD_W x HARD_H, but never more than a maximised window
+   on this display can show inside (the screen, less the menu bar and dock,
+   less the browser's own bars, which outer minus inner measures), and never
+   less than MIN_W x MIN_H. So a maximised window always plays, and only a
+   window that could be bigger is stopped.
+   Above the wall but under FIT_W x FIT_H it plays, with #fitHint on the
+   menus. Not when the display itself is smaller: expanding cannot help. */
+const HARD_W=1275, HARD_H=965;
+const FIT_W=1425, FIT_H=965;
+let fitSoft=false;
 const fullNow=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
 function fitCheck(){
-  const floor=innerWidth>=MIN_W&&innerHeight>=MIN_H;
+  const roomW=(screen.availWidth||screen.width)-(outerWidth-innerWidth);
+  const roomH=(screen.availHeight||screen.height)-(outerHeight-innerHeight);
+  const needW=Math.max(MIN_W,Math.min(HARD_W,roomW)), needH=Math.max(MIN_H,Math.min(HARD_H,roomH));
+  const floor=innerWidth>=needW-2&&innerHeight>=needH-2;
   const tooSmallScreen=((APP||fullNow())&&!floor)||screen.width<MIN_W||screen.height<MIN_H;   // full screen cannot help
   $('fitMsg').textContent = tooSmallScreen ? 'Play on a computer, desktop is best.' : 'Please play in full screen mode.';
   $('btnFull').style.display = tooSmallScreen||APP ? 'none' : '';
   $('tooSmall').classList.toggle('on', !floor);
+  fitSoft = floor && (innerWidth<FIT_W||innerHeight<FIT_H)
+                  && screen.width>=FIT_W && screen.height>=FIT_H;
 }
 $('btnFull').onclick=()=>{
   const el=document.documentElement, go=el.requestFullscreen||el.webkitRequestFullscreen;
@@ -11532,6 +11573,7 @@ function gearHome(){
   $('gearPanel').classList.toggle('mid',m);
   const gone=(m&&!$('pause').classList.contains('on'))||!!roll;   // nothing over the credits
   $('gearBtn').classList.toggle('gone',gone);
+  $('fitHint').classList.toggle('on',fitSoft&&!m&&!roll);      // the cramped-window line, on the menus only
   if(gone&&gearIsOpen()&&!gearHeld) gearClose();
 }
 const gearIsOpen=()=>$('gearPanel').classList.contains('on');
@@ -13251,6 +13293,7 @@ function mapLaunch(i,k){
 $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
 /* The card after the first Ruler is the lie the finale breaks a second later.
    It has to still be on screen when it breaks, so nothing takes you off it. */
+$('btnDoneNext').onclick=()=>{ SFX.ui(); doneStep(2); };
 $('btnDoneGo').onclick=()=>{ if(finaleArmed) return; hideAll(); openMap('menu'); };
 $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
 $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
