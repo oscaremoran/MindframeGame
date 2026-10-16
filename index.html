@@ -91,10 +91,6 @@
     animation:hScan 5.2s linear infinite;
   }
   @keyframes hScan{ 0%{top:-64px} 100%{top:100%} }
-  /* a labelled hairline, the way every readout on this ship is titled */
-  .hrule{display:flex; align-items:center; gap:10px; width:100%;
-    font-size:12.5px; letter-spacing:.24em; color:#6b7ba0; margin:0}
-  .hrule::after{content:''; flex:1; height:1px; background:#2c3a5c}
   /* a value in a box: the only way this game states a number */
   .chip{display:inline-flex; flex-direction:column; gap:3px; padding:7px 15px;
     border:1px solid #2c3a5c; background:rgba(17,24,41,.8); text-align:left;
@@ -158,6 +154,7 @@
   .redact{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px}
   .redact i{display:block; height:9px; background:#1b2540}
   .prose .live{color:#dfe9ff}
+  .prose .gold{color:#ffd24d; text-shadow:0 0 12px rgba(255,210,77,.25)}
   a.storylink{color:#7d8bb0; text-decoration:none; border-bottom:1px solid #263050;
     letter-spacing:.16em; font-size:calc(clamp(10px,1.2vw,12.5px) + 2px); cursor:pointer; margin-top:20px;
     display:inline-block; transition:color .15s, border-color .15s}
@@ -168,8 +165,6 @@
     padding:11px 14px; width:min(580px,84vw); text-align:center; margin-top:12px;}
   input:focus{outline:none; border-color:#4d9dff}
   #codeMsg{min-height:1.7em}
-  .legend{display:flex; gap:26px; margin-top:22px; flex-wrap:wrap; justify-content:center; font-size:calc(clamp(10px,1.2vw,12.5px) + 2px)}
-  .legend div{display:flex; align-items:center; gap:9px; color:#7d8bb0}
 
   /* ---- highlighted (attention) buttons ---- */
   button.hot{background:#ffb44d; color:#05060d}
@@ -195,7 +190,6 @@
     font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.06em}
   #raMiss .mm s{color:#ff8a99; text-decoration:none; letter-spacing:.16em; flex:none}
   #raMiss .mm em{font-style:normal; color:#a9bad9}
-  .askNote{margin-top:10px; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.2em; color:#ff8a99}
   .askBox .row{margin-top:6px; justify-content:stretch} .askBox .row button{flex:1}
   button.hot:hover{box-shadow:0 6px 26px rgba(255,180,77,.5)}
 
@@ -374,11 +368,9 @@
      the bestiary, save codes and the wipe. It sits in the same place on every
      screen so it is never somewhere new. */
   #gearBtn{
-    /* Two homes. On a menu it sits top right, where a settings control
-       belongs and where nothing else is drawn. In a level the top right is the
-       SCORE / system / HOSTILES / CREDITS readout, so it moves to top centre —
-       the one strip of the HUD nothing is using, with the hull bar to its left
-       and the readout to its right. `.mid` is the in-level state.
+    /* On the menus only, top right, where a settings control belongs and
+       nothing else is drawn. In a flight there is no gear: the pause menu has
+       everything it does.
 
        These are in vw/vh rather than px on purpose. #wrap is
        min(100vw, 100vh*1000/680) wide and the canvas fills it, so a canvas
@@ -426,13 +418,10 @@
   #launchPick .pw{margin-top:8px; font-size:12px; letter-spacing:.12em; color:#6b7ca3}
   #gearBtn svg{display:block; flex:none; width:min(2.9vw,4.3vh); height:min(2.9vw,4.3vh);
     transition:transform .09s cubic-bezier(.2,.9,.3,1)}
-  /* in a level: top centre, out of the readout's way */
-  #gearBtn.mid{right:auto; left:50%; transform:translateX(-50%)}
   #gearBtn:hover{border-color:#4d9dff; color:#dfe9ff; transform:none}
   #gearBtn:hover svg{transform:rotate(90deg)}
   #gearBtn:active svg{transform:rotate(90deg) scale(.92)}
-  #gearBtn.mid:hover{transform:translateX(-50%)}
-  /* in a wave there is no gear at all; P opens the pause menu */
+  /* in a flight there is no gear at all; P opens the pause menu */
   #gearBtn.gone{display:none}
   #gearBtn{transition:transform .09s cubic-bezier(.2,.9,.3,1),
                       border-color .09s, color .09s}
@@ -445,7 +434,6 @@
     clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   }
   #gearPanel.on{display:block}
-  #gearPanel.mid{right:auto; left:50%; transform:translateX(-50%)}
   #gearHead{
     font-size:15px; letter-spacing:.3em; color:#4d9dff;
     border-bottom:1px solid #1b2540; padding-bottom:10px; margin-bottom:12px;
@@ -602,25 +590,6 @@
   .rwLock{display:flex; align-items:center; gap:10px; color:#7d8bb0; font-size:16px}
   .rwLock span{font-size:calc(clamp(10px,1.1vw,12px) + 2px); letter-spacing:.06em}
   .rwBest{margin-top:10px; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.2em; color:#7d8bb0}
-  .mdSys.lock{opacity:.55}
-  .mdLock{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-    min-height:150px; font-size:22px; color:#5d6c8f}
-  .mdLock span{font-size:calc(clamp(8px,.92vw,10px) + 3px); letter-spacing:.3em}
-  .mdSys h4{margin:0 0 6px; font-weight:400; font-size:calc(clamp(9px,1vw,11px) + 3px); letter-spacing:.28em; color:#5d6c8f}
-  .lr{display:flex; align-items:baseline; gap:10px; padding:7px 0}
-  .lr + .lr{border-top:1px solid rgba(27,37,64,.6)}
-  .lr span{
-    flex:0 0 auto; font-size:calc(clamp(7.5px,.86vw,9px) + 3px); letter-spacing:.2em; color:#5d6c8f;
-  }
-  .lr i{flex:1 1 auto; border-bottom:1px dotted #1b2540; transform:translateY(-3px)}
-  .lr b{
-    flex:0 0 auto; font-weight:400; font-size:calc(clamp(10px,1.25vw,13px) + 2px);
-    letter-spacing:.08em; color:#cfe0f8; text-align:right;
-  }
-  .lr b.warn{color:#ffd24d} .lr b.good{color:#46e39b} .lr b.bad{color:#ff6b8a}
-  /* a row whose value is a sentence rather than a figure */
-  .lr.col{flex-direction:column; align-items:stretch; gap:5px; padding:9px 0}
-  .lr.col b{text-align:left; line-height:1.65; font-size:calc(clamp(10px,1.15vw,12.5px) + 2px)}
 
 
   /* ══════════ space map ══════════
@@ -819,7 +788,6 @@
   #skillInfo .si-s{font-size:calc(clamp(8px,.92vw,10px) + 3px); letter-spacing:.18em; color:#a3b2d3}
   #skillInfo .si-s.own{color:#46e39b} #skillInfo .si-s.can{color:#6fb2ff} #skillInfo .si-s.no{color:#ff6b8a}
   #skillInfo p{margin:8px 0 0; font-size:calc(clamp(10px,1.15vw,12.5px) + 3px); line-height:1.55; color:#b9c8e6}
-  #skillInfo .lr{padding:4px 0}
   #skillInfo .si-hint{grid-column:1 / -1; align-self:center; justify-self:center; font-size:calc(clamp(8px,.92vw,10px) + 3px); letter-spacing:.24em; color:#8b9ac0}
   #skillInfo .si-d{font-size:calc((clamp(14px,1.8vw,19px) + 3px) * .72); letter-spacing:.08em; color:#ffd24d; margin:0 0 6px;
     text-shadow:0 0 14px rgba(255,210,77,.45)}
@@ -942,9 +910,6 @@
   }
   .lockwrap .lockover b{font-size:22px; font-weight:400; line-height:1; color:#4a5878}
   .ship.locked .sn, .ship.locked .sc{filter:blur(3.5px); opacity:.5}
-  .asNodata{display:flex; flex-direction:column; align-items:center; justify-content:center;
-    flex:1; gap:10px; color:#6b7ba0; letter-spacing:.24em; font-size:12px; text-align:center}
-  .asNodata span{font-size:30px; letter-spacing:.1em; color:#3d5077}
   .storylink.danger{color:#7a4550}
   .storylink.danger:hover{color:#ff4d5e}
   .storylink.armed{color:#ff4d5e; text-shadow:0 0 14px rgba(255,77,94,.7)}
@@ -1009,8 +974,8 @@
     <div class="snd" id="sndGear"></div>
     <div class="diff" id="diffGear"></div>
     <div class="diff" id="fxGear"></div>
+    <div class="diff" id="rhyGear"></div>
     <div id="gearBtns">
-      <button id="gearQuit" class="ghost">QUIT LEVEL</button>
       <button id="gearCode" class="ghost">SAVE CODE</button>
       <button id="gearWipe" class="ghost danger">WIPE ALL PROGRESS</button>
     </div>
@@ -1079,10 +1044,16 @@
     <div class="row">
       <button id="btnResume">RESUME</button>
       <button id="btnPauseCodex" class="ghost">BESTIARY</button>
-      <button id="btnQuit" class="ghost">QUIT TO TITLE</button>
+      <button id="btnQuit" class="ghost">MAIN MENU</button>
     </div>
     <div class="snd" id="sndPause"></div>
     <div class="diff" id="diffPause"></div>
+    <div class="diff" id="fxPause"></div>
+    <div class="diff" id="rhyPause"></div>
+    <div class="row">
+      <button id="btnPauseCode" class="ghost">SAVE CODE</button>
+      <button id="btnPauseWipe" class="ghost danger">WIPE ALL PROGRESS</button>
+    </div>
     <p style="margin-top:20px"><span class="key">P</span> or <span class="key">ESC</span> resumes.</p>
   </div>
 
@@ -1363,7 +1334,7 @@ const REGIONS=[
 
 const SYS=()=>SYSTEMS[Math.min(sysIdx,SYSTEMS.length-1)];
 /* The system's wave dials, live only on waves 1-4 of a real system: the boss
-   wave, its escorts and every side branch keep their own tuning. A pilot who
+   wave and every side branch keep their own tuning. A pilot who
    gets to Solar System 2 is carrying most of the tree, and hull scaling alone
    could not keep up with that without making the bosses sponges too. */
 const NOWAVE={hp:1, dmg:1, rof:1, more:0, gap:1, live:10};
@@ -1536,7 +1507,6 @@ const SFX={
     SND.tone('sawtooth', hot?520:660, hot?150:230, .003, .075, .085);
     SND.tone('square', 1300, 700, .002, .035, .028); },
   hit(){ if(!SND.gate('h',28)) return; SND.noise(.055,1900,700,.16,1.6); },
-  shield(){ if(!SND.gate('sh',60)) return; SND.tone('triangle',900,1500,.004,.09,.07); },
   kill(big){ if(!SND.gate('k',35)) return;
     SND.noise(big?.36:.19, big?820:1500, big?90:200, big?.34:.2, .9);
     SND.tone('sine', big?150:260, big?45:80, .004, big?.34:.16, big?.3:.16); },
@@ -1562,6 +1532,10 @@ const SFX={
   wave(){ SND.tone('square',420,630,.01,.16,.09);
     setTimeout(()=>SND.tone('square',630,840,.01,.2,.08),120); },
   warn(){ if(!SND.gate('w',180)) return; SND.tone('square',210,210,.01,.16,.07); },
+  // a shell volley leaving the boss: low, heavy, and falling, so it reads as big and slow
+  shell(){ if(!SND.gate('sh',150)) return;
+    SND.tone('sine',150,42,.004,.36,.26); SND.tone('square',240,80,.004,.16,.045);
+    SND.noise(.12,500,120,.16,1.2); },
   ui(){ SND.tone('square',740,740,.002,.035,.05); },
   // a broken chord: root, fifth, third, then home on the octave, each note
   // its own, spaced so you hear them one at a time
@@ -1931,7 +1905,7 @@ const MUS={
       const f0=root*Math.pow(2,rOff/12);
       let SEC = P.sec!==undefined ? P.sec : I<=1 ? 3 : this.FORM[bar32];
       // a boss fought to the music only breaks down when it opens up
-      if(RHY.on && this.cur==='boss:primary') SEC=RHY.sec(this.abs,SEC);
+      if(RHY.on && this.cur.indexOf('boss:')===0) SEC=RHY.sec(this.abs,SEC);
       const DROP=SEC===2, BUILD=SEC===1, BREAK=SEC===3;
       const drums = !P.calm && !P.nodrums && I>=2;
       const KICKS = P.kicks || (P.half ? [0,8] : [0,4,8,12]);
@@ -1942,7 +1916,7 @@ const MUS={
       }
       if(drums && !BREAK && b===14 && !P.half && !P.kicks) this.drum(t,'kick',.34);
       if(drums && (DROP||BUILD)){
-        if(b===8)   this.drum(t,'hit',.2);
+        if(b===8 && bar32%2===0) this.drum(t,'hit',.12);   // the pump: every other bar, and under the rest
         if(b%2===0) this.drum(t,'ride',.026);
         if(P.ride && b%2===1) this.drum(t,'ride',.016);
       }
@@ -1954,25 +1928,25 @@ const MUS={
       // ── the ostinato ─────────────────────────────────────────────────
       if(I>=2 && !BREAK && b%(P.ostEvery||2)===0 && !(P.bursts&&b>=8)){
         const n=P.ost[b/2];
-        this.v(f0/4*Math.pow(2,n/12), t, 'sawtooth', spb*1.6, P.calm?.08:.115, 0, SND.pump);
+        this.v(f0/4*Math.pow(2,n/12), t, 'sawtooth', spb*1.6, P.calm?.08:.13, 0, SND.pump);
         if(I>=3 && DROP) this.v(f0/8*Math.pow(2,n/12), t, 'square', spb*1.4, .05, 0, SND.pump);
       }
 
       // ── the choir ────────────────────────────────────────────────────
       if(b===0){
         const dur=spb*16;
-        const q = P.calm?.02 : P.quiet?.026 : BREAK?.05 : DROP?.055 : .03;
+        const q = P.calm?.02 : P.quiet?.026 : BREAK?.056 : DROP?.064 : .036;
         this.choir(f0/2, t, dur, q*(P.choirUp?1.5:1), minor);
       }
       if(I>=3 && (DROP||BUILD) && !P.calm && (b===2||b===6||b===10||b===14))
-        this.chord(f0/2, t, spb*2.2, DROP?.042:.026, minor);
+        this.chord(f0/2, t, spb*2.2, DROP?.05:.032, minor);
       // the Garage plays its chords on the beat, unhurried
       if(P.calm && (b===0||b===8)) this.chord(f0/2, t, spb*6, .03, minor);
 
       // ── arp ──────────────────────────────────────────────────────────
       if(I>=3 && (BUILD||DROP) && !P.calm){
         const third=minor?3:4, sh=[0,1,third,7, 12,7,third,1], n=sh[s%8];
-        this.saw(f0*Math.pow(2,n/12), t, spb*1.05, BUILD?.028:.02, SND.sweep, false);
+        this.saw(f0*Math.pow(2,n/12), t, spb*1.05, BUILD?.034:.026, SND.sweep, false);
       }
       // the Hive and 3295 swarm: a fast figure that never settles
       if(P.swarm && DROP){
@@ -1994,7 +1968,7 @@ const MUS={
       if(P.bursts && !BREAK && bar32%2===0 && b<6){
         const sh=[0,3,7,12,7,3];
         this.saw(f0*Math.pow(2,sh[b]/12), t, spb*.6, .03, SND.sweep, false);
-        if(b===0) this.drum(t,'hit',.24);
+        if(b===0) this.drum(t,'hit',.14);
       }
 
       // ── the hook ─────────────────────────────────────────────────────
@@ -2003,7 +1977,7 @@ const MUS={
         for(const [at,d,len] of HOOK[phr%HOOK.length]) if(b===at){
           const semi=this.PHRY[((d%7)+7)%7]+12*Math.floor(d/7);
           const f=root*Math.pow(2,semi/12);
-          const pk = P.calm?.045 : P.quiet?.04 : BREAK?.05 : .085;
+          const pk = P.calm?.045 : P.quiet?.04 : BREAK?.056 : .1;
           // Luna's lead is a soft sine that comes back twice, fainter
           if(P.ghost){ this.v(f, t, 'sine', spb*len*1.3, pk*.9, 0, null, true, 16);
                        this.v(f, t+spb*3, 'sine', spb*len, pk*.35, 0, null, true, 16);
@@ -2031,9 +2005,6 @@ const MUS={
 const SAVE='mindframe.001';
 // set when the game is running inside the Mac app rather than a browser
 const APP=!!window.MF_APP;
-/* indexthree.html opens the game as index.html?proto=3296: straight into
-   Iteration 3296, fought to the music (RHY). Nothing it does is saved. */
-const PROTO=new URLSearchParams(location.search).get('proto')==='3296';
 /* CREDITS are what a system pays out: two per wave held in Earth, four
    per wave in 002, and so on, plus ten for putting down a system's boss —
    so a system pays a round 20, 30, 40 ... 100.
@@ -2112,7 +2083,7 @@ if(!save.swapRB){
 }
 fixSave();
 SND.vol=save.vol; SND.on=save.sound;
-const persist=()=>{ if(PROTO) return; try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
+const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
    The skill tree is the pilot's, not the ship's: whatever is in the bay flies
    with every skill you have bought. It lives in save.trees[0] — the slot hull
@@ -2525,8 +2496,6 @@ function newRun(){
    taking into it — from the live numbers rather than from prose about them.
    The story text for the system sits underneath, where it always did. */
 // one label-to-value row, with a dotted leader between the two
-const lrow=(k,v,cls,stack)=>'<div class="lr'+(stack?' col':'')+'"><span>'+k+'</span>'+
-  (stack?'':'<i></i>')+'<b'+(cls?' class="'+cls+'"':'')+'>'+v+'</b></div>';
 const lpanel=(title,rows,cls)=>'<section class="lpanel'+(cls?' '+cls:'')+'"><h3>'+title+
   '</h3>'+rows+'</section>';
 
@@ -2702,12 +2671,11 @@ function beginSystem(){
   clearBuffs();
   worldStart(); sceneStart();
   toast=''; toastT=0; crToastT=0;
-  wave=PROTO?4:0; nextWave();                 // the prototype is the boss and nothing else
+  wave=0; nextWave();
   state='play';
-  if(!PROTO) launchStart();
+  launchStart();
 }
 
-/* Clearing a system hands you the map, with the node you just took now green. */
 /* PROSE — your line for clearing each system. Shown on the level complete
    screen, under the result. */
 const SYS_CLEAR_TEXT=[
@@ -3062,18 +3030,8 @@ function nextWave(){
     if(unlockedType('cloner')) for(let i=0;i<(wave>=3?2:1);i++) if(Math.random()<CLONE_ODDS) push(rand(4,12),'cloner');
   }else{
     clearBuffs();                // a boss is fought on your own tree, not on what waves 1-4 dropped
+    // every boss comes alone: no escort wave. What it summons is its own attack
     push(1.2,'boss');
-    // Earth's boss comes alone, as do the Titans, the Leviathan and Omega
-    if(sysIdx>0&&!BOSS(sysIdx).duo&&!BOSS(sysIdx).chain&&!BOSS(sysIdx).station){
-    for(let i=0;i<Math.round(((sysIdx?5:3)+S.extra)*(R.ramK||1));i++) push(8+i*(sysIdx?6.5:8),R.ram);
-    for(let i=0;i<Math.round(((sysIdx?4:2)+S.extra)*(R.lineK||1));i++) push(11+i*(sysIdx?7:9),R.line);
-    for(let i=0;i<1+(S.extra>1?1:0);i++) push(16+i*14,R.heavy);
-    if(unlockedType('tracker'))  { push(13,'tracker'); push(30,'tracker'); }
-    if(unlockedType('overseer')) push(20,'overseer');
-    if(unlockedType('orbiter'))  { push(17,'orbiter'); push(34,'orbiter'); }
-    if(unlockedType('splinter')) { push(24,'splinter'); push(40,'splinter'); }
-    if(unlockedType('glacier'))  push(22,'glacier');
-    }
   }
   kitGive();
   // Earth patches you up between waves. Later systems do not.
@@ -3337,7 +3295,7 @@ function makeBoss(B,S,D,vm){
       tier:0,last:'',act:null,tel:null,flare:2.2};
     // an arc that blocks shots means you have to keep flanking it
     if(B.k==='overseer'||B.k==='archive'){
-      b.sh=B.k==='archive'?1.0:1.25; b.shA=rand(0,TAU); b.shSpin=(Math.random()<.5?-1:1)*.7;
+      b.sh=B.k==='archive'?1.0:.95; b.shA=rand(0,TAU); b.shSpin=(Math.random()<.5?-1:1)*.7;
     }
     return b;
   }
@@ -3460,14 +3418,17 @@ const ICE_HW=11, ICE_LEN=560, ICE_GAP=200, ICE_GROW=.5, ICE_LIFE=5.5, TETHER_W=8
    LEV_HP is each segment's hull before system and difficulty scaling. */
 const LEV_ORDER=['head','b1','b2','b3','b4','tail'];   // nose to tail
 const LEV_ATK={head:'eat', b1:'missile', b2:'bomb', b3:'shotgun', b4:'missile', tail:'laser'};
-const LEV_HP={tail:650, body:850, head:3600};
+/* 2026-10-15: the head's hull down, and every attack slower: its rounds and
+   its lunge travel slower, its wind-ups are longer, and once it is strong it
+   attacks a little less often. */
+const LEV_HP={tail:650, body:850, head:2480};
 const LEV_R={tail:22, body:30, head:40}, LEV_GAP=.85;   // spacing, in the pair's radii
 const LEV_VPOW=.12;                    // how much faster each fallen segment makes it swim
-const LEV_LASER_CD=[3.2,1.3], LEV_LASER_TEL=[.85,.45], LEV_LASER_DMG=[15,31], LEV_LASER_W=14, LEV_BEAM=.22;
-const LEV_MIS_CD=[3,1.3], LEV_MIS_N=[2,4], LEV_MIS_DMG=[12,19], LEV_MIS_V=205;
-const LEV_BOMB_CD=[3.6,1.7], LEV_BOMB_T=1.0, LEV_BOMB_R=[95,135], LEV_BOMB_DMG=[19,38];
-const LEV_SHOT_CD=[2.7,1.2], LEV_SHOT_N=[7,11], LEV_SHOT_DMG=[8,13], LEV_SHOT_V=390, LEV_SHOT_TEL=.3;
-const LEV_EAT_CD=[6.5,2.2], LEV_EAT_TEL=[1.1,.6], LEV_EAT_V=1050, LEV_EAT_RUN=.55, LEV_EAT_REST=.55;
+const LEV_LASER_CD=[3.2,1.55], LEV_LASER_TEL=[.9,.55], LEV_LASER_DMG=[15,31], LEV_LASER_W=14, LEV_BEAM=.22;
+const LEV_MIS_CD=[3,1.55], LEV_MIS_N=[2,4], LEV_MIS_DMG=[12,19], LEV_MIS_V=175;
+const LEV_BOMB_CD=[3.6,2.0], LEV_BOMB_T=1.15, LEV_BOMB_R=[95,135], LEV_BOMB_DMG=[19,38];
+const LEV_SHOT_CD=[2.7,1.45], LEV_SHOT_N=[7,11], LEV_SHOT_DMG=[8,13], LEV_SHOT_V=330, LEV_SHOT_TEL=.38;
+const LEV_EAT_CD=[6.5,2.6], LEV_EAT_TEL=[1.15,.75], LEV_EAT_V=900, LEV_EAT_RUN=.64, LEV_EAT_REST=.55;
 /* The phase change: when the tail falls, and again when the last body segment
    does, it swims a circle round the middle of the arena for LEV_SPIN_T and
    every living segment fires its attack straight out from the circle, once
@@ -3556,7 +3517,7 @@ function levSwim(e,dt){
     e.x+=Math.cos(e.hd)*v*dt; e.y+=Math.sin(e.hd)*v*dt;
     if(Math.random()<dt*.15) e.dir*=-1;
     if(!(C.rest>0)) e.lcd-=dt;
-    if(e.lcd<=0&&d<560&&!(P.frz>0)){
+    if(e.lcd<=0&&d<560&&!(P.frz>0)&&!rhyWait(e.bite||(e.bite={}),e)){
       e.st='aim'; e.t0=0; e.la=Math.atan2(dy,dx); e.tel=levL(e,LEV_EAT_TEL); SFX.crack();
     }
   }else if(e.st==='aim'){
@@ -3600,6 +3561,7 @@ function levGun(e,g,atk,dt){
   if(g.st==='swim'){
     g.lcd-=dt;
     if(g.lcd>0) return;
+    if(rhyWait(g,e)) return;
     if(atk==='laser'){ g.st='aim'; g.t0=0; g.tel=levL(e,LEV_LASER_TEL); g.la=Math.atan2(P.y-e.y,P.x-e.x); }
     else if(atk==='shotgun'){ g.st='aim'; g.t0=0; g.tel=LEV_SHOT_TEL; }
     else if(atk==='missile'){
@@ -3677,6 +3639,10 @@ function levSpinStep(C,dt){
 function levStep(e,dt){
   e.pt+=dt; if(e.flare>0) e.flare-=dt;
   const C=e.chain;
+  if(RHY.boss(e)){                                         // the warning ring: its soonest waiting attack
+    const gs=(e.kind==='head'?e.heir.concat([e.bite||{}]):[e]).map(g=>g.rg).filter(x=>x!=null);
+    e.gate=gs.length?Math.min(...gs):null; e.nextK=null;
+  }
   if(e.kind==='head'){
     levSwim(e,dt);
     if(C.spin) levSpinStep(C,dt);
@@ -3847,11 +3813,13 @@ function levBar(C){
    (OM_MOVES), one every OM_MV_CD; its guns hold fire while one is under way.
      A  fan, shell      B  slam, hammer      C  lance, trident      D  spiral, cross
    It comes alone. OM_HP is each wing's hull before scaling. */
-const OM_HP=3450, OM_ARM=470, OM_R=72, OM_OY=-250;     // wing hull; arm length; wing radius; hub height
+/* 2026-10-16: bigger volleys from every wing (wing D too, at its usual
+   slower pace), and a little less hull a wing so the fight does not drag. */
+const OM_HP=2950, OM_ARM=470, OM_R=72, OM_OY=-250;     // wing hull; arm length; wing radius; hub height
 const OM_TURN=3.2, OM_FLARES=[.3,1.2,2.1];               // the turn, and when its flares go out
-const OM_MIS_CD=2.3, OM_MIS_N=4, OM_MIS_DMG=16, OM_MIS_V=210, OM_MIS_SEEK=2.2;
-const OM_AOE_CD=2.7, OM_AOE_N=3, OM_AOE_R=95, OM_AOE_T=1.1, OM_AOE_DMG=26;
-const OM_LAS_CD=2.5, OM_LAS_N=3, OM_LAS_TEL=.75, OM_LAS_DMG=28, OM_LAS_SPREAD=.32, OM_LAS_W=14;
+const OM_MIS_CD=2.3, OM_MIS_N=6, OM_MIS_DMG=16, OM_MIS_V=210, OM_MIS_SEEK=2.2;
+const OM_AOE_CD=2.7, OM_AOE_N=4, OM_AOE_R=95, OM_AOE_T=1.1, OM_AOE_DMG=26;
+const OM_LAS_CD=2.5, OM_LAS_N=5, OM_LAS_TEL=.75, OM_LAS_DMG=28, OM_LAS_SPREAD=.32, OM_LAS_W=14;
 const OM_ALL_SLOW=1.4;
 const OM_COL='#ffcf5a';
 const OM_HUB=340, OM_JUNK=22;                            // the hub's rim, so its underside shows; debris at once
@@ -3887,8 +3855,15 @@ function omegaStep(e,dt){
   if(e.ward||S.turn){ e.act=null; e.tel=null; return; }
   const slow=e.wing==='D'?OM_ALL_SLOW:1, P=player;
   if(omegaMove(e,dt,slow)) return;
+  // to the music, a gun that is ready waits for its beat, and the ring closes on the wing for it
+  const rp=RHY.boss(e)?RHY.pos():null;
   for(const g of e.guns){
     g.cd-=dt; if(g.cd>0) continue;
+    if(rp!=null){
+      if(g.gate==null) g.gate=RHY.snap(0,false);
+      if(rp<g.gate) continue;
+      g.gate=null;
+    }
     if(g.k==='mis'){
       const base=Math.atan2(P.y-e.y,P.x-e.x);
       for(let i=0;i<OM_MIS_N;i++){ const a=base+(i-(OM_MIS_N-1)/2)*.5;
@@ -3910,6 +3885,9 @@ function omegaStep(e,dt){
       g.cd=OM_LAS_CD*slow;
     }
   }
+  // the warning ring reads e.gate: the soonest of whatever this wing has waiting
+  if(rp!=null){ const gs=e.guns.map(g=>g.gate).concat([e.mvGate]).filter(x=>x!=null);
+    e.gate=gs.length?Math.min(...gs):null; e.nextK=null; }
 }
 // a borrowed move: start one when its clock runs out, step it while it runs.
 // True while one is under way, so the wing's own guns wait for it
@@ -3917,6 +3895,13 @@ function omegaMove(e,dt,slow){
   const P=player, dx=P.x-e.x, dy=P.y-e.y, a=Math.atan2(dy,dx);
   if(!e.act){
     e.mvcd-=dt; if(e.mvcd>0) return false;
+    // to the music, a borrowed move starts on its beat
+    const rp=RHY.boss(e)?RHY.pos():null;
+    if(rp!=null){
+      if(e.mvGate==null) e.mvGate=RHY.snap(0,false);
+      if(rp<e.mvGate) return false;
+      e.mvGate=null;
+    }
     const k=e.mv[e.mvi++%e.mv.length];
     e.mvcd=rand(OM_MV_CD[0],OM_MV_CD[1])*slow;
     if(k==='fan'){ shotFan(e,leadAngle(e,290,.6)); return false; }
@@ -4157,7 +4142,11 @@ const BOSSES=[
        pool:['shell','ring','charge','fan'],  rest:[1.15,1.75], spd:1.45},
     ]},
 
-  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1617, val:1400,
+  /* Nerfed 2026-10-15: less hull, fewer adds from every source, and a little
+     more air in its last tier. Its difficulty is the crowd, so the crowd is
+     what came down. Then given a little back (hull, leak rate), and its
+     phase-change rings hit for 6 a round instead of 10. */
+  { k:'hive', n:'THE HIVE MIND', col:'#46e39b', r:70, hp:1530, val:1400,
     spd:64, want:360, strafe:.9, sum:'dart',
     mus:{bpm:152, prog:[0,0,3,3, 1,1,10,10], qual:[0,0,0,0, 1,1,1,1],
          ost:[0,3,0,3, 1,3,1,3], hook:'swarm', lead:'square', swarm:1},
@@ -4166,19 +4155,22 @@ const BOSSES=[
       {n:'THE HIVE MIND — SPLITTING', seq:['swarm','lash','lash','ring','|','fan','swarm','ring','|'],
        pool:['swarm','lash','ring','fan'],          rest:[1.4,2.0], spd:1.3},
       {n:'THE HIVE MIND — UNRAVELLING', seq:['blink','lash','swarm','ring','lash','|','blink','fan','lash','ring','swarm','|'],
-       pool:['swarm','lash','ring','fan','blink'], rest:[1.0,1.5], spd:1.7},
+       pool:['swarm','lash','ring','fan','blink'], rest:[1.2,1.7], spd:1.7},
     ]},
 
-  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:2189, val:1500,
-    spd:60, want:300, strafe:.85, sum:'grunt',
+  /* Buffed 2026-10-15 on everything but its climb into UNCOVERED (the hard
+     strike and that cutscene are as they were), and its shield arc nerfed:
+     narrower, and slower to turn onto you. */
+  { k:'overseer', n:'ITERATION 2117', col:'#3fd8e0', r:64, hp:2450, val:1500,
+    spd:68, want:300, strafe:.85, sum:'grunt',
     mus:{bpm:134, prog:[0,0,6,6, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,0,6,0, 0,0,1,0], hook:'watch', lead:'triangle', shimmer:1},
     tiers:[
-      {n:'', seq:['ring','fan','summon','ring','|'], pool:['ring','fan','summon'], rest:[1.8,2.5], spd:1},
+      {n:'', seq:['ring','fan','summon','ring','|'], pool:['ring','fan','summon'], rest:[1.55,2.2], spd:1.1},
       {n:'ITERATION 2117 — EXPOSED',  seq:['ring','fan','sweep','|','summon','ring','fan','sweep','|'],
-       pool:['ring','fan','summon','sweep'],          rest:[1.4,2.0], spd:1.25},
+       pool:['ring','fan','summon','sweep'],          rest:[1.2,1.75], spd:1.35},
       {n:'ITERATION 2117 — UNCOVERED',seq:['sweep','blink','lance','|','ring','fan','sweep','ring','lance','|'],
-       pool:['ring','fan','sweep','lance','blink'],   rest:[1.0,1.5], spd:1.6},
+       pool:['ring','fan','sweep','lance','blink'],   rest:[.85,1.3], spd:1.7},
     ]},
 
   /* THE ARCHITECT — Saturn. An Iteration that builds. It is a square until it
@@ -4203,8 +4195,10 @@ const BOSSES=[
      in front of it: 'zoom' is a run straight through where you are with its
      guns open, and 'beam' / 'tribeam' stop it dead to throw wide lanes of
      light down the arena. Low gravity carries it even further than it meant. */
-  { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:3770, val:2100, dmgX:1.4,
-    spd:178, want:280, strafe:.9, sum:'phantom',
+  /* 2026-10-15: less hull and slower everywhere (its zoom runs off this
+     speed too), and its phase-change moons are more and bigger. */
+  { k:'crescent', n:'THE CRESCENT', col:'#d6d9e0', r:58, hp:3200, val:2100, dmgX:1.4,
+    spd:152, want:280, strafe:.9, sum:'phantom',
     mus:{bpm:150, prog:[0,0,1,1, 6,6,4,4], qual:[0,0,1,1, 1,1,1,1],
          ost:[0,1,0,1, 0,6,4,1], hook:'crescent', lead:'triangle', shimmer:1, ride:1},
     tiers:[
@@ -4380,6 +4374,7 @@ function shotFan(e,base){
 }
 // the Primary's braced spread, but it never stops bracing
 function shotShell(e){
+  SFX.shell();
   const base=leadAngle(e,205,.7), sn=2+DIFF().dense;
   for(let i=-sn;i<=sn;i++){const a=base+i*.155;
     ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*205,vy:Math.sin(a)*205,r:9,dmg:13*BOSS_DMG,col:ink(e,'#ff4d5e')});}
@@ -4482,9 +4477,12 @@ function actCross(e,dt,dx,dy,T){
    are spaced evenly along the outline, so a square's corners are no denser
    than its edges. A built round sits still (`hold`) and cannot hurt you while
    it is still forming (`ghost`), then it is thrown along (gx,gy). */
+/* Nerfed 2026-10-15, then about half of it given back: the cage is wider with a wider
+   way out and holds longer before closing slower; the forge throws fewer,
+   slower shells; both hit softer. The blueprint strike is as it was. */
 const ARCH_FORMS=[4,0,3];                 // sides per tier; 0 is a circle
-const ARCH_CAGE=215, ARCH_GAP=.16, ARCH_GHOST=.15, ARCH_LAY=.2, ARCH_HOLD=.55, ARCH_CLOSE=340;
-const ARCH_FORGE_HOLD=.3, ARCH_BLOOM=265;
+const ARCH_CAGE=225, ARCH_GAP=.19, ARCH_GHOST=.15, ARCH_LAY=.2, ARCH_HOLD=.62, ARCH_CLOSE=315;
+const ARCH_FORGE_HOLD=.35, ARCH_BLOOM=248;
 function formPts(sides,cx,cy,R,n,rot){
   const out=[];
   for(let i=0;i<n;i++){
@@ -4500,11 +4498,11 @@ function formPts(sides,cx,cy,R,n,rot){
 // BUILD — it lays its shape round you, one side after another, then closes it
 function archBuild(e){
   const P=player, sides=ARCH_FORMS[Math.min(e.tier,2)];
-  const n=(sides===3?27:28)+DIFF().dense*4, gap=Math.random();
+  const n=(sides===3?26:27)+DIFF().dense*4, gap=Math.random();
   formPts(sides,P.x,P.y,ARCH_CAGE,n,rand(0,TAU)).forEach((p,i)=>{
     if(((i/n)-gap+1)%1<ARCH_GAP) return;     // the way out
     const dx=P.x-p.x, dy=P.y-p.y, d=Math.hypot(dx,dy)||1;
-    ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:14*BOSS_DMG,col:e.col,
+    ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:12*BOSS_DMG,col:e.col,
       ghost:ARCH_GHOST+i/n*ARCH_LAY, hold:ARCH_GHOST+ARCH_LAY+ARCH_HOLD,
       gx:dx/d*ARCH_CLOSE, gy:dy/d*ARCH_CLOSE});
   });
@@ -4512,11 +4510,11 @@ function archBuild(e){
 }
 // FORGE — the same shape round itself, pointed at you, bloomed outward whole
 function archForge(e){
-  const sides=ARCH_FORMS[Math.min(e.tier,2)], shells=e.tier>=1?3:2;
+  const sides=ARCH_FORMS[Math.min(e.tier,2)], shells=e.tier>=2?3:2;
   for(let q=0;q<shells;q++){
-    const R=e.r+34+q*26, n=(e.tier===2?30:24)+DIFF().dense*4, k=ARCH_BLOOM*(1-q*.25)/R;
+    const R=e.r+34+q*26, n=(e.tier===2?28:22)+DIFF().dense*4, k=ARCH_BLOOM*(1-q*.25)/R;
     for(const p of formPts(sides,e.x,e.y,R,n,e.a+q*Math.PI/Math.max(sides,4)))
-      ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:13*BOSS_DMG,col:'#fff1c8',
+      ebullets.push({x:p.x,y:p.y,vx:0,vy:0,r:6,dmg:11.5*BOSS_DMG,col:'#fff1c8',
         ghost:.1, hold:ARCH_FORGE_HOLD+q*.15, gx:(p.x-e.x)*k, gy:(p.y-e.y)*k});
   }
   shock(e.x,e.y,e.col,e.r,e.r*1.8,.4,4);
@@ -4529,6 +4527,10 @@ function archForge(e){
    A beam is a lane fixed where it was aimed — it stops tracking partway
    through the warning — and it hits once, hard, for its whole length. */
 const CRES_TURN=3.0, CRES_ZOOM=2.6, CRES_GUN=.055;
+/* its third tier's zoom, eased 2026-10-15: slower, shorter, and its gun
+   fires a third less often */
+const CRES_ZOOM3=.85, CRES_GUN3=1.5;
+const cresZoomK=e=>CRES_ZOOM*(e.tier>=2?CRES_ZOOM3:1);
 const BEAM_TEL=.85, BEAM_ON=.5, BEAM_HW=52, BEAM_LEN=1800, BEAM_DMG=24, BEAM_SPREAD=.62;
 function crescentWaypoint(e,through){
   const P=player;
@@ -4542,7 +4544,7 @@ function crescentWaypoint(e,through){
 function crescentMove(e,dt,T){
   if(e.h===undefined){ e.h=Math.PI/2; e.wp=crescentWaypoint(e); }
   const beam=e.act&&e.act.k==='beam', zoom=e.act&&e.act.k==='zoom';
-  const v=e.spd*T.spd*(beam?.12 : zoom?CRES_ZOOM : 1)*(e.open>0?.22:1);
+  const v=e.spd*T.spd*(beam?.12 : zoom?cresZoomK(e) : 1)*(e.open>0?.22:1);
   if(!beam){
     const want=Math.atan2(e.wp.y-e.y,e.wp.x-e.x);
     e.h+=clamp(angDiff(want,e.h),-1,1)*CRES_TURN*T.spd*(zoom?1.25:1)*dt;
@@ -4563,8 +4565,8 @@ function actZoom(e,dt,T){
   const m=e.act;
   m.fire-=dt;
   while(m.fire<=0){
-    m.fire+=CRES_GUN/(1+.25*DIFF().dense);
-    const v=e.spd*T.spd*CRES_ZOOM, sp=360+v;
+    m.fire+=CRES_GUN*(e.tier>=2?CRES_GUN3:1)/(1+.25*DIFF().dense);
+    const v=e.spd*T.spd*cresZoomK(e), sp=360+v;
     const a=e.h+rand(-.06,.06);
     ebullets.push({x:e.x+Math.cos(e.h)*e.r*.7,y:e.y+Math.sin(e.h)*e.r*.7,
       vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:5,dmg:8*BOSS_DMG,col:'#eef0f5'});
@@ -4927,7 +4929,7 @@ function iceDraw(){
   }
 }
 
-// escorts never pile up on top of a boss fight
+// what a boss summons never piles up: five on the field with it at most
 function bossSummon(e,type,n){
   const room=Math.max(0,5-(enemies.length-1));
   const k=Math.min(n,room);
@@ -4941,8 +4943,8 @@ function bossSummon(e,type,n){
    the moment the hull is truly there; from then on they all share one ending:
    rings close onto it, its outline is traced, and the name card rises with
    the hull it brought. The fight is frozen throughout — you can fly, nothing
-   shoots, and the spawn queue is held so its escorts do not walk in over the
-   top of it. It is never skippable: this is the part people come back for.
+   shoots, and the spawn queue is held. It plays in full the first time; after
+   that any key but the flying ones skips it (entranceSkip).
    Beats fire off the entrance's own clock rather than after(), so pausing
    halfway through cannot pull the sound away from the picture.            */
 let entrance=null;
@@ -5432,7 +5434,7 @@ function entranceStep(dt){
     const b=E.b;
     save.entered=save.entered||[];
     if(!save.entered.includes(b.k)){ save.entered.push(b.k); persist(); }
-    waveTimer=E.wt;                    // its escorts start their clock now
+    waveTimer=E.wt;                    // the wave's clock picks up where it was
     entrance=null;
     b.hidden=false; b.flare=2.2; b.cool=1.6;
     if(b.twin){ b.twin.hidden=false; b.twin.flare=2.2; b.twin.cool=2.6; }
@@ -5533,11 +5535,23 @@ const PUNISH_MULT=2;
    the window is OPENING / (marks + 1): full for a clean combo, a half after
    one hit, a third after two, and none at all after GUARD_MARKS. */
 const GUARD_MARKS=3;
+/* For the bosses that keep their own timers (the Leviathan): `o` has an attack
+   ready, and to the music it waits for its beat. True while it is waiting. A
+   beat missed while the attack could not go (out of range) moves on to the next. */
+function rhyWait(o,e){
+  const p=RHY.boss(e)?RHY.pos():null;
+  if(p==null){ o.rg=null; return false; }
+  if(o.rg==null||p>o.rg+2) o.rg=RHY.snap(0,false);
+  if(p<o.rg) return true;
+  o.rg=null; return false;
+}
 // the arena's edge keeps time while a boss is fought to the music
 function rhyEdge(){
   const e=enemies.find(o=>o.t==='boss'&&RHY.boss(o)&&!o.hidden); if(!e) return;
   const pu=RHY.pulse(); if(pu<=.01) return;
-  const col=e.open>0?'255,210,77':'255,77,94';
+  // the boss's own colour, gold while it is open
+  const h=(e.col||'#ff4d5e').replace('#',''), col=e.open>0?'255,210,77'
+    : [0,2,4].map(i=>parseInt(h.substr(i,2),16)).join(',');
   ctx.save();
   ctx.strokeStyle='rgba('+col+','+(.55*pu)+')'; ctx.lineWidth=4+10*pu;
   ctx.shadowColor='rgb('+col+')'; ctx.shadowBlur=30*pu;
@@ -5546,7 +5560,7 @@ function rhyEdge(){
 }
 
 /* ══════════ RHY: a boss fought to the music ══════════
-   Prototype, on Iteration 3296 only (PROTO). The score is generated live on
+   The MUSIC SYNC setting, on every boss. The score is generated live on
    a sixteenth-note clock (MUS), so the fight can run off that clock instead
    of its own:
      when     an attack lands on a beat, but not always the same one: beat
@@ -5560,8 +5574,10 @@ function rhyEdge(){
               warnBeats(): one beat on a slow tempo, up to four on a fast
               one, and never under WARN_MIN seconds.
      strict   only the showpieces sit exactly on the bar: the punish window
-              (a breakdown, two bars, one after a hit, two beats after two;
-              the drums drop out for exactly that long), and a tier climb,
+              (a breakdown that starts on the bar and lasts the whole beats
+              nearest the boss's usual window, so a slow song never makes
+              it longer; the drums drop out for exactly that long), and a
+              tier climb,
               which brings the full band in on the next bar line and, in the
               last tier, keeps it there.
    What comes next is decided as the rest starts, so the music can get ready.
@@ -5571,9 +5587,10 @@ function rhyEdge(){
 const WARN_MIN=.6;      // no warning shorter than this, in seconds, whatever the tempo
 const RHY_LATE=.25;     // how often an attack waits a whole extra bar
 const RHY={
-  on:PROTO,
+  // the MUSIC SYNC setting (save.rhythm), off unless chosen
+  get on(){ return !!save.rhythm; },
   brk:null,                                   // [from,to) sixteenths of breakdown
-  boss:e=>RHY.on && e.k==='primary',
+  boss:e=>RHY.on && e.t==='boss',
   pos(){
     const c=SND.ctx;
     if(!MUS.on||!c||!MUS.spb) return null;
@@ -5606,30 +5623,32 @@ const RHY={
     const p=this.pos(); if(p==null) return;
     let g=Math.ceil(p/16)*16; while(g<p+4) g+=16;
     this.brk=null; this.drop=[g, last?Infinity:g+16*8];
-    MUS.drum(this.at(g),'crash',.22); MUS.drum(this.at(g),'kick',.6); MUS.drum(this.at(g),'hit',.26);
+    MUS.drum(this.at(g),'crash',.22); MUS.drum(this.at(g),'kick',.6); MUS.drum(this.at(g),'hit',.15);
   },
-  openLen:marks=>[32,16,8][Math.min(marks,2)],
+  // the punish window in sixteenths: the whole number of beats nearest what the
+  // fight gives anyway (OPENING, shrunk by the hits taken), never under one
+  openLen(e,marks){ return Math.max(1,Math.round(OPENING(e.tier)/(marks+1)/(MUS.spb*4)))*4; },
   sec(abs,SEC){
     if(this.brk && abs>=this.brk[0] && abs<this.brk[1]) return 3;
     if(this.drop && abs>=this.drop[0] && abs<this.drop[1]) return 2;
     return SEC===3 ? 2 : SEC;                 // the score's own breakdowns are kept for the window
   },
-  // what the boss will do on the bar line `g`, got ready for now: and every
-  // attack lands with a hit in the score, so you hear it fire on the one
+  // what the boss will do on the bar line `g`, got ready for now: a ring lands
+  // on a cymbal, the charge on a hit, so you hear them fire on the beat
   cue(e,g,k){
     if(k==='|'){
-      const to=g+this.openLen(e.marked||0);
+      const to=g+this.openLen(e,e.marked||0);
       this.brk=[g,to];
       MUS.drum(this.at(g),'crash',.12);
       // the band comes back in on the bar the window shuts
-      MUS.drum(this.at(to),'crash',.2); MUS.drum(this.at(to),'kick',.55); MUS.drum(this.at(to),'hit',.24);
+      MUS.drum(this.at(to),'crash',.2); MUS.drum(this.at(to),'kick',.55); MUS.drum(this.at(to),'hit',.14);
     }
-    if(k==='ring'){ MUS.drum(this.at(g),'crash',.16); MUS.drum(this.at(g),'hit',.22); }
-    if(k==='shell'){ MUS.drum(this.at(g),'hit',.2); }
+    // the everyday attacks only get a cymbal; the pump-like 'hit' is kept for showpieces
+    if(k==='ring'){ MUS.drum(this.at(g),'crash',.16); }
     if(k==='charge'){
       const w=this.warnBeats()*4;
       for(let n=0;n<w;n+=4) MUS.v(1320,this.at(g+n),'square',.07,.05);
-      MUS.drum(this.at(g+w),'hit',.26); MUS.drum(this.at(g+w),'kick',.5);
+      MUS.drum(this.at(g+w),'hit',.15); MUS.drum(this.at(g+w),'kick',.5);
     }
   },
   /* A punish hit is a note. Each one plays the next step up the scale, on the
@@ -5695,7 +5714,7 @@ const RECALL_T=20.0;
 const RECALL_LABEL='WARNING: ARCHIVE IS REGENERATING';
 /* ---- the walls ----
    Only the Ruler's last stand uses this: the arena closes to WALL_MAX px of
-   inset, and everything — you, it, its escorts — is held inside what is left. */
+   inset, and everything — you, it, what it summons — is held inside what is left. */
 let wallIn=0, wallWant=0;
 const WALL_MAX=132;
 function wallStep(dt){
@@ -6184,12 +6203,12 @@ function segsDraw(segs,q){
   ctx.stroke();
 }
 // cracks: hairlines crawl out, then they break open and burn for a moment
-function crackStrike(col,dmg,waves){
-  const TEL=1.35, BURN=.4;
+function crackStrike(col,dmg,waves,TEL=1.35,more=1.5){
+  const BURN=.4;
   return {
     dur: waves[waves.length-1]+TEL+BURN+.2,
     init(s,e){
-      const ws = s.hard ? waves.concat([waves[waves.length-1]+1.5]) : waves;
+      const ws = s.hard ? waves.concat([waves[waves.length-1]+more]) : waves;
       s.dur = ws[ws.length-1]+TEL+BURN+.2;
       s.w=ws.map(at=>{
         const segs=[], n=(dmg>=ONE_SHOT?CRACKS_FINAL:CRACKS)+(s.hard?4:0), a0=rand(0,TAU);
@@ -6282,7 +6301,7 @@ const STRIKES={
         const N=s.hard?19:14, o=s.n*Math.PI/N+rand(0,.2);
         for(let i=0;i<N;i++){ const a=o+i*TAU/N, sp=s.hard?150:135;
           ebullets.push({x:e.x+Math.cos(a)*e.r,y:e.y+Math.sin(a)*e.r,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-            r:7,dmg:10*BOSS_DMG*(s.hard?STRIKE_HARD:1),col:'#46e39b',seek:s.hard?.75:.52,age:0,trail:'#46e39b',src:e}); }
+            r:7,dmg:6*BOSS_DMG*(s.hard?STRIKE_HARD:1),col:'#46e39b',seek:s.hard?.75:.52,age:0,trail:'#46e39b',src:e}); }
         burst(e.x,e.y,'#46e39b',24,300); SFX.tier(); s.n++;
       }
     },
@@ -6298,7 +6317,7 @@ const STRIKES={
   /* 2117 — a laser through its own hull, both ends, sweeping. It only reaches
      so far: a faint ring marks the reach. Get outside it, or run round with it. */
   overseer:{
-    dur:4.6, LEN:430, TEL:.9, SPIN:1.25,
+    dur:4.6, LEN:490, TEL:.9, SPIN:1.4,
     init(s,e){ s.a0=Math.atan2(player.y-e.y,player.x-e.x)+Math.PI/2; s.dir=Math.random()<.5?-1:1;
       s.len=s.hard?560:this.LEN; s.spin=s.hard?1.6:this.SPIN; s.arms=s.hard?4:2; },
     ang(s){ const k=Math.max(0,s.t-this.TEL); return s.a0+s.dir*s.spin*k*Math.min(1,k/.6+.3); },
@@ -6372,14 +6391,14 @@ const STRIKES={
     dur:2.9, BLOW:1.5, STEP:.28, R:30,
     init(s,e){
       const P=player, moons=[], cs=[[P.x,P.y]];
-      const nM=s.hard?6:4;
-      for(let t=0;cs.length<nM&&t<300;t++){
+      const nM=s.hard?9:6;
+      for(let t=0;cs.length<nM&&t<800;t++){
         const x=rand(W*.12,W*.88), y=rand(H*.15,H*.85);
-        if(cs.every(c=>Math.hypot(c[0]-x,c[1]-y)>(s.hard?220:260))) cs.push([x,y]);
+        if(cs.every(c=>Math.hypot(c[0]-x,c[1]-y)>(s.hard?180:225))) cs.push([x,y]);
       }
       const kinds=['full','gibbous','half','crescent'].sort(()=>Math.random()-.5);
       cs.forEach(([cx,cy],i)=>{
-        const R=s.hard?125:100, a=rand(0,TAU), dx=Math.cos(a), dy=Math.sin(a), kind=kinds[i%4], orbs=[];
+        const R=s.hard?135:112, a=rand(0,TAU), dx=Math.cos(a), dy=Math.sin(a), kind=kinds[i%4], orbs=[];
         for(let y=-R;y<=R;y+=28) for(let x=-R;x<=R;x+=28){
           if(x*x+y*y>R*R) continue;
           const lit = kind==='full' ? true
@@ -6456,37 +6475,60 @@ const STRIKES={
     },
   },
 
-  /* The Archive — it drags you in. You can fly against it, slowly; reach its
-     core and the core takes a piece of you every half second. */
+  /* The Archive — one pocket. The whole arena is marked but for one small
+     circle, placed where this hull can get to in time, and a ring closes on
+     it as the clock runs down. When it fires, anywhere outside that circle is
+     the end of you: no shield or i-frames hold against it. The climb into its
+     last tier gives a smaller pocket, further off, with less time. */
   archive:{
-    dur:3.8, PULL:175, ON:.5, CORE:56,
-    init(s){ s.pull=s.hard?212:this.PULL; s.core=s.hard?80:this.CORE; s.dur=s.hard?5:this.dur; },
-    step(s,e,dt){
-      if(s.t<this.ON) return;
-      const P=player, dx=e.x-P.x, dy=e.y-P.y, d=Math.hypot(dx,dy)||1;
-      const k=Math.min(1,(s.t-this.ON)/.5);
-      // never past what this hull can fly against: barely, on the last climb
-      const pull=Math.min(s.pull,P.st.speed*.9)*k;
-      if(d>e.r*.5){ P.x+=dx/d*pull*dt; P.y+=dy/d*pull*dt; }
-      if(d<e.r+s.core) strikeHurt(e,STRIKE_DMG*1.2);
-      if(Math.random()<dt*40){ const a=rand(0,TAU), r=rand(e.r*2,Math.max(W,H)*.6);
-        parts.push({x:e.x+Math.cos(a)*r,y:e.y+Math.sin(a)*r,vx:-Math.cos(a)*r*1.6,vy:-Math.sin(a)*r*1.6,life:.5,t:0,col:'#c78dff',r:2}); }
+    TEL:1.85, FIRE:.35,
+    init(s,e){
+      const P=player, tel=s.hard?1.55:this.TEL, R=s.hard?44:58;
+      // as far as it can be while still reachable in time, and never on the core
+      const reach=Math.max(160,P.st.speed*tel*.8), d0=s.hard?320:260, d1=Math.min(s.hard?440:380,reach);
+      let px=W/2, py=H/2;
+      for(let t=0;t<80;t++){
+        const a=rand(0,TAU), d=rand(Math.min(d0,d1),d1);
+        const x=clamp(P.x+Math.cos(a)*d,R+30,W-R-30), y=clamp(P.y+Math.sin(a)*d,R+30,H-R-30);
+        if(Math.hypot(x-e.x,y-e.y)<e.r+R+60) continue;
+        if(Math.hypot(x-P.x,y-P.y)>reach) continue;
+        px=x; py=y; break;
+      }
+      s.px=px; s.py=py; s.R=R; s.tel=tel; s.dur=tel+this.FIRE+.3;
+    },
+    step(s,e){
+      if(s.t<s.tel||s.hit) return;
+      s.hit=true; flash=Math.max(flash,.7); shake=Math.max(shake,30); SFX.tier();
+      const P=player;
+      if(P.hp>0 && Math.hypot(P.x-s.px,P.y-s.py)>s.R){
+        P.hp-=ONE_SHOT; killer=unitName(e); hitTag='strike'; pilotHurt();
+        burst(P.x,P.y,e.col,30,360);
+      }
     },
     draw(s,e){
-      const on=s.t>=this.ON, k=on?1:clamp((s.t+STRIKE_GAP)/(this.ON+STRIKE_GAP),0,1);
-      ctx.strokeStyle='rgba(199,141,255,'+(on?.32:.1+.12*k)+')'; ctx.lineWidth=2;
-      for(let i=0;i<4;i++){
-        const q=((s.t*(on?.9:.5)+i/4)%1), r=(e.r+s.core)+(1-q)*Math.max(W,H)*.55;
-        ctx.globalAlpha=q; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,TAU); ctx.stroke();
+      const k=clamp((s.t+STRIKE_GAP)/(s.tel+STRIKE_GAP),0,1);
+      ctx.save();
+      const out=a=>{ ctx.fillStyle=a; ctx.beginPath(); ctx.rect(0,0,W,H);
+        ctx.arc(s.px,s.py,s.R,0,TAU,true); ctx.fill('evenodd'); };
+      if(!s.hit){
+        out('rgba(120,60,190,'+(.08+.22*k)+')');             // everywhere you must not be
+        const pu=.5+.5*Math.sin(s.t*(6+14*k));
+        ctx.strokeStyle='rgba(255,255,255,'+(.55+.45*pu)+')'; ctx.lineWidth=3;
+        ctx.shadowColor='#ffffff'; ctx.shadowBlur=18;
+        ctx.beginPath(); ctx.arc(s.px,s.py,s.R,0,TAU); ctx.stroke(); ctx.shadowBlur=0;
+        ctx.strokeStyle='rgba(226,198,255,'+(.25+.5*k)+')'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(s.px,s.py,s.R+(1-k)*260,0,TAU); ctx.stroke();
+      }else{
+        const f=1-clamp((s.t-s.tel)/this.FIRE,0,1);
+        out('rgba(226,198,255,'+(.75*f)+')');
       }
-      ctx.globalAlpha=1;
-      if(on){ ctx.strokeStyle='rgba(199,141,255,.6)'; ctx.setLineDash([5,7]);
-        ctx.beginPath(); ctx.arc(e.x,e.y,e.r+s.core,0,TAU); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.restore();
     },
   },
 
-  // the real last fight — red cracks, two waves, and any one of them is the end
-  final: crackStrike('#ff2233',ONE_SHOT,[0,1.6]),
+  // the real last fight — red cracks, and any one of them is the end. Faster
+  // than the first Ruler's: they crawl out quicker and the waves come closer
+  final: crackStrike('#ff2233',ONE_SHOT,[0,1.05],1.0,1.05),
 };
 
 function phaseStep(dt){
@@ -6515,7 +6557,7 @@ function phaseStep(dt){
   }
   if(C.t>=C.dur){
     if(sc&&sc.end) sc.end(C,e);
-    waveTimer=C.wt;                   // the escorts' clock did not run while it played
+    waveTimer=C.wt;                   // the wave's clock did not run while it played
     phaseCut=null; bannerT=0; e.flare=1.6;
   }
 }
@@ -6589,9 +6631,9 @@ function bossAI(e,dt,dx,dy,d){
      swarm — so it also sheds a Watcher or two on its own clock, all the way
      through the fight, whatever line it happens to be reciting. */
   if(B.k==='hive'&&!e.hidden){
-    e.leak=(e.leak||rand(2.2,3.6))-dt;
+    e.leak=(e.leak||rand(2.6,4))-dt;
     if(e.leak<=0){
-      e.leak=rand(3.2,5.4)/DIFF().erof*(B.echoTrial?.55:1);
+      e.leak=rand(4,6.2)/DIFF().erof*(B.echoTrial?.55:1);
       bossSummon(e,B.sum,e.tier>=2?2:1);
     }
   }
@@ -6630,7 +6672,7 @@ function bossAI(e,dt,dx,dy,d){
     if(!cut && B.tiers[tier].bare && !e.bare) shellBreak(e,B.tiers[tier].n);
   }
   // a Titan cannot be touched from its climb until its combo has played out
-  if(e.guard){ if(e.combo||e.act) e.inv=Math.max(e.inv,.15); else e.guard=0; }
+  if(e.guard){ if(e.combo||e.comboQ||e.act) e.inv=Math.max(e.inv,.15); else e.guard=0; }
   if(e.inv>0) e.inv-=dt;
   if(e.open>0) e.open=Math.max(0,e.open-dt);
   // to the music, the window closes on the bar line, not on its own clock
@@ -6676,13 +6718,13 @@ function bossAI(e,dt,dx,dy,d){
 
   // ---- the Hive Mind is a swarm before it is a boss: it sheds as it loses hull
   if(B.k==='hive'){
-    const step=Math.floor((1-hpf)*8);
+    const step=Math.floor((1-hpf)*6);
     if(step>e.shed){ e.shed=step; bossSummon(e,'dart',2); }
   }
   // ---- 2117 keeps its arc between you and its core
   if(e.sh){
     const toP=Math.atan2(P.y-e.y,P.x-e.x);
-    e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*.8*AGGR()*DIFF().track*dt;
+    e.shA+=e.shSpin*dt + clamp(angDiff(toP,e.shA),-1,1)*(B.k==='overseer'?.5:.8)*AGGR()*DIFF().track*dt;
   }
 
   // ---- the tether, from Triton's side: it only runs while both are in phase 2
@@ -6739,7 +6781,7 @@ function bossAI(e,dt,dx,dy,d){
       // 2117 rakes a rotating wall of fire across the arena
       e.act.fire-=dt;
       while(e.act.fire<=0){
-        e.act.fire+=.11;
+        e.act.fire+=B.k==='overseer'?.095:.11;
         e.act.a+=e.act.dir*.17;
         for(let i=0;i<3;i++)
           ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.act.a)*(210+i*85),vy:Math.sin(e.act.a)*(210+i*85),
@@ -6771,13 +6813,17 @@ function bossAI(e,dt,dx,dy,d){
   }
   // the Titans take turns: nothing starts while the other is mid-attack or
   // has only just finished one. The climb's combo is the one time they don't.
-  if(B.duoPart && !e.combo){
+  if(B.duoPart && !e.combo && !e.comboQ){
     const tw=e.twin&&enemies.includes(e.twin)?e.twin:null;
-    if(tw&&(tw.act||tw.busy>0)){ e.cool=.12; return; }
+    if(tw&&(tw.act||tw.busy>0)){
+      if(e.nextK!=null&&RHY.boss(e)&&RHY.pos()!=null){ e.gate=RHY.snap(0,e.nextK==='|'); return; }
+      e.cool=.12; return;
+    }
   }
   let k;
   if(e.nextK!=null){ k=e.nextK; e.nextK=null; }
   else k=bossPick(e,T,B);
+  e.comboQ=0;                                 // whatever was queued is under way now
   e.last=k;
   if(B.duoPart&&k!=='|') e.busy=DUO_GAP+(k==='walls'?.4:0);
   bossAct(e,T,B,k,dx,dy,d);
@@ -6786,6 +6832,8 @@ function bossAI(e,dt,dx,dy,d){
 // which attack comes next: the combo owed, the authored line, or the pool
 function bossPick(e,T,B){
   let k;
+  // a climb's combo is owed before anything else (the Titans): its guard holds until it has played
+  if(e.combo){ k=e.combo; e.combo=null; e.comboQ=1; return k; }
   // fought to the music: the windows keep the authored line's spacing, and
   // everything between them is drawn from the pool
   if(RHY.boss(e) && T.seq && T.seq.length && T.pool && T.pool.length){
@@ -6797,8 +6845,7 @@ function bossPick(e,T,B){
     if(k===e.last && Math.random()<.7) k=T.pool[Math.floor(Math.random()*T.pool.length)];
     return k;
   }
-  if(e.combo){ k=e.combo; e.combo=null; }
-  else if(T.seq && T.seq.length){
+  if(T.seq && T.seq.length){
     // an authored line, not a dice roll: the same boss opens the same way
     // every time, so the fight is something you can learn rather than react to
     e.si=(e.si||0)%T.seq.length;
@@ -6835,7 +6882,7 @@ function bossAct(e,T,B,k,dx,dy,d){
     const p=RHY.boss(e)?RHY.pos():null;
     if(p!=null){
       // to the music: a breakdown from this bar line, as long as it was earned
-      const from=e.beatAt!=null?e.beatAt:Math.round(p/16)*16, len=RHY.openLen(marks);
+      const from=e.beatAt!=null?e.beatAt:Math.round(p/16)*16, len=RHY.openLen(e,marks);
       RHY.brk=[from,from+len]; e.openEnd=from+len; RHY.run=0;
       e.open=e.openMax=Math.max(.01,(from+len-p)*MUS.spb);
     }
@@ -6871,12 +6918,12 @@ function bossAct(e,T,B,k,dx,dy,d){
     e.cool=bossRest(T);
   }
   else if(k==='swarm'){
-    bossSummon(e,B.sum,e.tier+2);
+    bossSummon(e,B.sum,e.tier+(B.k==='hive'?1:2));
     e.cool=bossRest(T)+1.6;
   }
   else if(k==='summon'){
     const type = B.k==='ruler' && Math.random()<.35 && e.tier>0 ? 'grunt' : B.sum;
-    bossSummon(e,type,e.tier===2?2:1);
+    bossSummon(e,type,(e.tier===2?2:1)+(B.k==='overseer'?1:0));
     e.cool=bossRest(T)+2.0;
   }
   else if(k==='build'){ archBuild(e); e.cool=bossRest(T)+.25; }
@@ -6901,7 +6948,7 @@ function bossAct(e,T,B,k,dx,dy,d){
   else if(k==='slam'){ e.act={k:'slam',t:0,x:e.x+dx,y:e.y+dy,r:SLAM_R*(e.tier?1.15:1),hit:0}; }
   else if(k==='walls'){ iceRaise(e); e.cool=bossRest(T)+.4; }
   else if(k==='zoom'){
-    e.act={k:'zoom',t:0,fire:.15,dur:e.tier>=2?2.4:e.tier?2.1:1.8};
+    e.act={k:'zoom',t:0,fire:.15,dur:e.tier>=2?1.9:e.tier?2.1:1.8};
     e.wp=crescentWaypoint(e,true); SFX.dash();
   }
   else if(k==='beam'||k==='tribeam'){
@@ -7793,7 +7840,7 @@ function update(dt){
           shake=Math.max(shake,e.t==='boss'?26:5);
           if(e.t!=='boss') SFX.kill(HEAVY.has(e.t));
           if(HEAVY.has(e.t)) hitstop();
-          if(e.val) drop(e);
+          if(e.val&&!e.station) drop(e);          // an Omega wing falling drops nothing
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
           else killFx(e,ecolOf(e),e.t==='heavy'?40:22,e.t==='heavy'?370:300);
           enemies.splice(j,1);
@@ -7802,7 +7849,7 @@ function update(dt){
           if(e.station&&omegaFall(e)) break;
           // a Titan with its twin still standing falls on its own
           if(e.t==='boss'&&e.twin&&enemies.includes(e.twin)){ duoFall(e); break; }
-          if(e.t==='boss'){ // the boss falls: its escorts go with it
+          if(e.t==='boss'){ // the boss falls: whatever it summoned goes with it
             // out of frame, on the route, and not the thing behind it: what
             // comes next is not the victory screen, whatever the screen says
             if(e.B.k==='ruler'&&!e.B.final&&e.B.tiers[e.tier]&&e.B.tiers[e.tier].last)
@@ -10699,12 +10746,13 @@ function draw(){
     for(const e of enemies){
       if(!RHY.boss(e)||e.gate==null) continue;
       const p=RHY.pos(); if(p==null) continue;
+      if(e.gate<p) continue;                    // its beat has been and gone
       const k=clamp((e.gate-p)/(RHY.warnBeats()*4),0,1); if(k>=1) continue;
       const col=e.nextK==='|'?'255,210,77':e.nextK==='charge'?'255,77,94':'230,220,255';
+      // kept quiet: a thin line that starts close in and fades up as it lands
       ctx.save();
-      ctx.strokeStyle='rgba('+col+','+(.25+.65*(1-k))+')'; ctx.lineWidth=2+3*(1-k);
-      ctx.shadowColor='rgb('+col+')'; ctx.shadowBlur=18;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+8+k*150,0,TAU); ctx.stroke();
+      ctx.strokeStyle='rgba('+col+','+(.08+.32*(1-k))+')'; ctx.lineWidth=1+1*(1-k);
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+6+k*36,0,TAU); ctx.stroke();
       ctx.restore();
     }
     // the Ruler's charged line, drawn before it fires down it. A heavy one is
@@ -11392,24 +11440,18 @@ function setPause(on){
       ? (mission.B?mission.B.n:branchName(mission.k))+'  ·  '+(mission.k==='boss'?'SIDE BOSS':'SIDE MISSION')
       : rush ? 'BOSS RUSH  ·  '+(rush.i+1)+' / '+SYSTEMS.length
       : SYS().name+'  ·  WAVE '+wave;
-    buildSound(); buildDiff(); show('pause');
+    buildSound(); buildDiff(); buildFx(); buildMusic(); resetWipeLink(); show('pause');
   }else hideAll();
 }
-// leaving a run early still banks what you earned — the run is what ends
-/* Any window big enough plays: full screen, the Mac's green button, or an
-   ordinary maximised browser window, since a link is usually opened in one.
-   Below MIN_W x MIN_H (the size of the title screen as Oscar set it), a window shows
-   #tooSmall with a FULL SCREEN button. When full screen cannot help (the app,
-   already full screen, or a display that small), the card says so instead of
-   offering the button. */
-const MIN_W=1000, MIN_H=677;
-/* The wall itself is HARD_W x HARD_H, but never more than a maximised window
-   on this display can show inside (the screen, less the menu bar and dock,
-   less the browser's own bars, which outer minus inner measures), and never
-   less than MIN_W x MIN_H. So a maximised window always plays, and only a
-   window that could be bigger is stopped.
+/* Window size. The wall is HARD_W x HARD_H, but never more than a maximised
+   window on this display can show inside (the screen, less the menu bar, the
+   dock and the browser's own bars: outer minus inner), and never less than
+   MIN_W x MIN_H. So a maximised window always plays. Under the wall,
+   #tooSmall covers everything, with a FULL SCREEN button unless full screen
+   cannot help (the app, already full screen, or a display that small).
    Above the wall but under FIT_W x FIT_H it plays, with #fitHint on the
-   menus. Not when the display itself is smaller: expanding cannot help. */
+   menus, where the display could actually go bigger. */
+const MIN_W=1000, MIN_H=677;
 const HARD_W=1275, HARD_H=965;
 const FIT_W=1425, FIT_H=965;
 let fitSoft=false;
@@ -11450,6 +11492,7 @@ addEventListener('resize',()=>{
   winSize=[innerWidth,innerHeight];
   if(changed&&state==='play'&&!paused&&!gearIsOpen()) setPause(true);
 });
+// leaving a run early still banks what you earned — the run is what ends
 function quitRun(){
   paused=false;
   mission=null; fxClear(); flash=0; shake=0; launchCut=null;
@@ -11553,25 +11596,22 @@ let gearFrom=null;
 let gearHeld=false;
 function gearOpen(){
   if(state==='play'&&!paused){ paused=true; gearHeld=true; }
-  $('gearQuit').style.display = (state==='play'||state==='dying'||paused) ? '' : 'none';
-  buildSound(); buildDiff(); buildFx(); resetWipeLink();
+  buildSound(); buildDiff(); buildFx(); buildMusic(); resetWipeLink();
   $('gearPanel').classList.add('on');
 }
 function gearClose(){
   $('gearPanel').classList.remove('on');
   if(gearHeld){ gearHeld=false; if(state==='play'&&paused&&!openOverlay()) paused=false; }
 }
-/* The gear lives top right on a menu and top centre in a level, because in a
-   level the top right is the readout. Driven off the frame rather than off
-   every place state changes, so it can never be left in the wrong home;
-   classList.toggle with the same value is a no-op, so this costs nothing. */
+/* The gear shows on the menus and never in a flight, where the pause menu has
+   everything it does. Driven off the frame rather than off every place state
+   changes, so it can never be left showing; classList.toggle with the same
+   value is a no-op, so this costs nothing. */
 const IN_LEVEL=()=>state==='play'||state==='dying'||state==='finale'||
                    (paused&&!openOverlay())||$('pause').classList.contains('on');
 function gearHome(){
   const m=IN_LEVEL();
-  $('gearBtn').classList.toggle('mid',m);
-  $('gearPanel').classList.toggle('mid',m);
-  const gone=(m&&!$('pause').classList.contains('on'))||!!roll;   // nothing over the credits
+  const gone=m||!!roll;          // in a flight the pause menu has it all; nothing over the credits
   $('gearBtn').classList.toggle('gone',gone);
   $('fitHint').classList.toggle('on',fitSoft&&!m&&!roll);      // the cramped-window line, on the menus only
   if(gone&&gearIsOpen()&&!gearHeld) gearClose();
@@ -12254,8 +12294,8 @@ $('btnRespec').onclick=()=>{
    bottom of the title screen in red, states exactly what it is about to
    destroy, and will not fire until it has been clicked twice.              */
 let wipeArmed=0;
-$('gearWipe').onclick=()=>{
-  const a=$('gearWipe');
+const WIPE_BTNS=['gearWipe','btnPauseWipe'];
+function wipeClick(a){
   if(Date.now()>wipeArmed){
     wipeArmed=Date.now()+5000;
     a.classList.add('armed');
@@ -12275,11 +12315,14 @@ $('gearWipe').onclick=()=>{
   a.classList.add('armed');
   a.textContent='PROGRESS WIPED';
   setTimeout(resetWipeLink,2200);
-};
+}
+WIPE_BTNS.forEach(id=>{ $(id).onclick=()=>wipeClick($(id)); });
 function resetWipeLink(){
-  const a=$('gearWipe');
-  a.classList.remove('armed');
-  a.textContent='WIPE ALL PROGRESS';
+  for(const id of WIPE_BTNS){
+    const a=$(id);
+    a.classList.remove('armed');
+    a.textContent='WIPE ALL PROGRESS';
+  }
 }
 
 
@@ -12788,13 +12831,28 @@ const FX_REDUCED=()=> save.fx ? save.fx==='reduced'
 const fxShake=()=>FX_REDUCED()?0:shake;
 const fxFlash=()=>clamp(flash,0,1)*(FX_REDUCED()?.25:1);
 function buildFx(){
-  const box=$opt('fxGear'); if(!box) return;
   const red=FX_REDUCED();
-  box.innerHTML='<span class="lab">EFFECTS</span><div class="seg">'+
-    '<button data-v="full" class="'+(red?'':'on')+'">FULL</button>'+
-    '<button data-v="reduced" class="'+(red?'on':'')+'">REDUCED</button></div>';
-  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
-    save.fx=b.dataset.v; persist(); SFX.ui(); buildFx(); });
+  for(const id of ['fxGear','fxPause']){
+    const box=$opt(id); if(!box) continue;
+    box.innerHTML='<span class="lab">EFFECTS</span><div class="seg">'+
+      '<button data-v="full" class="'+(red?'':'on')+'">FULL</button>'+
+      '<button data-v="reduced" class="'+(red?'on':'')+'">REDUCED</button></div>';
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      save.fx=b.dataset.v; persist(); SFX.ui(); buildFx(); });
+  }
+}
+/* MUSIC SYNC. On, every boss is fought to the music (RHY): attacks on the
+   beat, the punish window a breakdown. Off by default. */
+function buildMusic(){
+  const on=RHY.on;
+  for(const id of ['rhyGear','rhyPause']){
+    const box=$opt(id); if(!box) continue;
+    box.innerHTML='<span class="lab">MUSIC SYNC</span><div class="seg">'+
+      '<button data-v="0" class="'+(on?'':'on')+'">OFF</button>'+
+      '<button data-v="1" class="'+(on?'on':'')+'">ON</button></div>';
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      save.rhythm=b.dataset.v==='1'; persist(); SFX.ui(); buildMusic(); });
+  }
 }
 function buildSound(){
   for(const id of ['sndGear','sndPause']){
@@ -12818,11 +12876,6 @@ function buildSound(){
   }
 }
 
-/* New pilots fly run after run and never find out credits buy skills. So the
-   SKILL TREE button lights up, the way the Garage does, whenever there is a
-   skill you can buy right now — on the title, and on the result card, where
-   it turns up as its own button beside SPACE MAP.                         */
-const skillReady=()=>SKILLS.some(canBuy);
 function refreshMenu(){
   $('btnTreeMenu').className = 'hot';
   $('btnGarage').className = 'hot';
@@ -12915,9 +12968,10 @@ The panel where Mindframes were stored on 2117 opened.
    One fragment for every system held, nine in all. Every cut falls between
    two paragraphs, so no word of the story changes: STORY_CUTS says which
    paragraphs (0 = the first after the report header) each system recovers.
-   The level complete screen hands the new one over, typed out the first time
-   it is read; READ THE STORY in Extras keeps them all, with the ones still to
-   come blacked out, a bar for every six words, and where to get them. */
+   The level complete screen hands the new one over: its READ shows the whole
+   report so far with the new paragraphs typed out in gold. READ THE STORY in
+   Extras keeps them all, with the ones still to come blacked out, a bar for
+   every six words, and where to get them. */
 const STORY_CUTS=[[0,1],[2,3,4],[5,6],[7],[8],[9,10],[11],[12],[13,14]];
 const REPORT=(()=>{
   const lines=STORY.split('\n').map(t=>t.trim()).filter(Boolean);
@@ -12944,7 +12998,7 @@ function fragHandOver(i){
   rl.appendChild(storyEl('b',null,'DEVIATION REPORT RECOVERED'));
   rl.appendChild(storyEl('span',null,'FRAGMENT '+(i+1)+' / '+REPORT.frags.length));
   const b=storyEl('button',null,'READ');
-  b.onclick=()=>{ gearFrom='done'; storyArchive=false; storyRead([i],true); show('story'); };
+  b.onclick=()=>{ gearFrom='done'; storyArchive=false; show('story'); storyRecovered(i); };
   box.appendChild(rl); box.appendChild(b);
   $('doneText').appendChild(box);
 }
@@ -12985,9 +13039,10 @@ function storyList(){
 }
 
 /* one fragment, or several in order. `typeIt` types the paragraphs out, fast
-   and silent, one after another; a click anywhere on the text finishes them */
+   and silent, one after another; a click anywhere on the text finishes them.
+   `then` runs once the text is all there, typed or skipped */
 let storyType=null;
-function storyRead(ks,typeIt){
+function storyRead(ks,typeIt,then){
   storyType=null;
   const el=$('prose'); el.innerHTML=''; el.onclick=null;
   el.appendChild(storyEl('h3',null,REPORT.title));
@@ -13002,11 +13057,15 @@ function storyRead(ks,typeIt){
     f.post.forEach(t=>el.appendChild(storyEl('p','rep',t)));
   }
   el.scrollTop=0;
-  if(!typeIt){ ps.forEach(([p,t])=>p.textContent=t); return; }
+  if(!typeIt){ ps.forEach(([p,t])=>p.textContent=t); if(then) then(); return; }
+  storyTypeOut(el,ps,then);
+}
+// type [p,text] pairs out in order, fast and silent; a click on the text finishes them
+function storyTypeOut(el,ps,then){
   const job={i:0, c:0, last:performance.now()};
   storyType=job;
   const finish=()=>{ if(storyType!==job) return; storyType=null;
-    ps.forEach(([p,t])=>{ p.textContent=t; p.classList.remove('live'); }); };
+    ps.forEach(([p,t])=>{ p.textContent=t; p.classList.remove('live'); }); if(then) then(); };
   el.onclick=e=>{ if(e.target.tagName!=='BUTTON') finish(); };
   const step=now=>{
     if(storyType!==job) return;
@@ -13017,10 +13076,36 @@ function storyRead(ks,typeIt){
       if(n<t.length){ p.textContent=t.slice(0,n); break; }
       p.textContent=t; p.classList.remove('live'); job.c-=t.length; job.i++;
     }
-    if(job.i>=ps.length){ storyType=null; return; }
+    if(job.i>=ps.length){ finish(); return; }
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+}
+/* a fragment just recovered: the whole report as far as it goes, with that
+   fragment's paragraphs typed out in gold where they sit in the story */
+function storyRecovered(k){
+  storyType=null;
+  const el=$('prose'); el.innerHTML=''; el.onclick=null;
+  const got=REPORT.frags.map((f,i)=>i).filter(fragHeld);
+  el.appendChild(storyEl('h3',null,REPORT.title));
+  el.appendChild(storyEl('p','by','FRAGMENTS RECOVERED \u00b7 '+got.length+' OF '+REPORT.frags.length));
+  const ps=[];
+  for(const i of got){
+    const f=REPORT.frags[i];
+    f.pre.forEach(t=>el.appendChild(storyEl('p','rep',t)));
+    f.paras.forEach(t=>{
+      if(i!==k){ el.appendChild(storyEl('p',null,t)); return; }
+      const p=storyEl('p','gold'); el.appendChild(p); ps.push([p,t]);
+    });
+    f.post.forEach(t=>el.appendChild(storyEl('p','rep',t)));
+  }
+  el.scrollTop=0;
+  if(ps.length){
+    // bring the new part up to the top of the reader, then type it
+    const top=ps[0][0].offsetTop-el.offsetTop-24;
+    el.scrollTop=Math.max(0,top);
+    storyTypeOut(el,ps);
+  }
 }
 function buildStory(){ storyArchive=false; storyList(); }
 /* ---- save codes: MF8-<base64 payload>-<checksum> ----
@@ -13244,7 +13329,6 @@ $('medalTabs').onclick=ev=>{ const b=ev.target.closest('button'); if(!b||b.datas
   medalTab=b.dataset.tab; SFX.ui(); buildMedals(); };
 $('gearCode').onclick=()=>gearGo(openCode);
 $('btnMedalsBack').onclick=()=>{ if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
-$('gearQuit').onclick=()=>{ gearClose(); quitRun(); };
 
 $('btnStoryBack').onclick=()=>{
   if(storyArchive){ storyArchive=false; storyList(); return; }
@@ -13261,7 +13345,6 @@ addEventListener('keydown',e=>{
    in Earth: a new player has nothing to choose yet and should be flying, not
    reading. Every LAUNCH after that opens the map as usual. */
 $('btnStart').onclick=()=>{
-  if(PROTO){ mapPick=0; mapPickK=null; newRun(); return; }
   if(!save.flown){ mapPick=0; mapPickK=null; newRun(); return; }
   openMap('menu');
 };
@@ -13315,6 +13398,7 @@ const openOverlay=()=>['menu','over','skills','story','credits','medals','extras
 /* ---- pause menu ---- */
 $('btnResume').onclick=()=>setPause(false);
 $('btnQuit').onclick=quitRun;
+$('btnPauseCode').onclick=()=>{ gearFrom='pause'; openCode(); };
 $('btnPauseCodex').onclick=()=>{ codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
 
 /* ---- bestiary ---- */
