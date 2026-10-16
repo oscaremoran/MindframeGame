@@ -283,6 +283,10 @@
   #menu{justify-content:flex-start; align-items:center; text-align:center;
     flex-direction:column; padding:5% 5% 4%; background:#05070f; backdrop-filter:none}
   #menuTop,#menuBtns,#demoKeys{position:relative; z-index:1}
+  /* difficulty and music sync on the Extras screen: the same controls as Settings */
+  #extrasOpts{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 34px; margin-top:clamp(18px,2.6vw,30px)}
+  #extrasOpts .diff{margin:0; display:flex; flex-direction:column; align-items:center}
+  #extrasOpts .diff .why{text-align:center; max-width:330px}
   /* the death screen's payout, the biggest thing on it after the title */
   #overCr{margin:18px 0 4px; font-size:clamp(20px,3vw,32px); letter-spacing:.08em; color:#ffd24d;
     text-shadow:0 0 18px rgba(255,210,77,.45); line-height:1.4}
@@ -430,6 +434,7 @@
     display:none; position:absolute;
     top:min(7vw,10.4vh); right:min(1.6vw,2.35vh); z-index:31;
     width:min(86vw,400px); padding:20px; text-align:left;
+    max-height:calc(100% - min(7vw,10.4vh) - 12px); overflow-y:auto;   /* never runs off the bottom */
     background:rgba(8,12,24,.97); border:1px solid #2c3a5c;
     clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   }
@@ -1143,6 +1148,10 @@
       <button id="extCodex" class="ghost">BESTIARY &amp; CONTROLS</button>
       <button id="extStory" class="ghost">READ THE STORY</button>
       <button id="extCredits" class="ghost">CREDITS</button>
+    </div>
+    <div id="extrasOpts">
+      <div class="diff" id="diffExtras"></div>
+      <div class="diff" id="rhyExtras"></div>
     </div>
     <div class="ver" id="extrasVer"></div>
   </div>
@@ -12803,7 +12812,7 @@ function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
    already in the air changes, which is the honest behaviour: bullets on screen
    were fired under the old setting. */
 function buildDiff(){
-  for(const id of ['diffGear','diffPause']){
+  for(const id of ['diffGear','diffPause','diffExtras']){
     const box=$(id); if(!box) continue;
     const cur=clamp(save.diff|0,0,DIFFS.length-1);
     box.innerHTML='<span class="lab">DIFFICULTY</span><div class="seg">'+
@@ -12843,13 +12852,16 @@ function buildFx(){
 }
 /* MUSIC SYNC. On, every boss is fought to the music (RHY): attacks on the
    beat, the punish window a breakdown. Off by default. */
+// PROSE — the line under MUSIC SYNC, wherever it is shown
+const RHY_WHY='Sync up boss battles with the music for a better experience. BETA.';
 function buildMusic(){
   const on=RHY.on;
-  for(const id of ['rhyGear','rhyPause']){
+  for(const id of ['rhyGear','rhyPause','rhyExtras']){
     const box=$opt(id); if(!box) continue;
     box.innerHTML='<span class="lab">MUSIC SYNC</span><div class="seg">'+
       '<button data-v="0" class="'+(on?'':'on')+'">OFF</button>'+
-      '<button data-v="1" class="'+(on?'on':'')+'">ON</button></div>';
+      '<button data-v="1" class="'+(on?'on':'')+'">ON</button></div>'+
+      '<span class="why">'+RHY_WHY+'</span>';
     box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
       save.rhythm=b.dataset.v==='1'; persist(); SFX.ui(); buildMusic(); });
   }
@@ -13311,7 +13323,7 @@ $('gearBtn').onclick=()=>{ gearIsOpen()?gearClose():gearOpen(); };
 $('gearClose').onclick=gearClose;
 /* EXTRAS — off the title: medals, the reference and the story. What they open comes
    back here (gearFrom does that for every screen it names). */
-$('btnExtras').onclick=()=>{ $('extCredits').classList.toggle('lock',!creditsOpen()); $('extMedals').classList.toggle('lock',!medalsOn()); show('extras'); };
+$('btnExtras').onclick=()=>{ $('extCredits').classList.toggle('lock',!creditsOpen()); $('extMedals').classList.toggle('lock',!medalsOn()); buildDiff(); buildMusic(); show('extras'); };
 $('btnExtrasBack').onclick=()=>{ refreshMenu(); show('menu'); };
 $('extCodex').onclick=()=>{ gearFrom='extras'; codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
 $('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
