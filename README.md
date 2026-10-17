@@ -5,10 +5,10 @@ You are the last human pilot, flying a route of nine systems from Earth to the
 Icarus, the enemy battleship. Each system is five waves, and the fifth is a boss.
 Clear a system and it is held for good: you can fly it again any time from the map.
 
-**Version 1.0.0.** See [CHANGELOG.md](CHANGELOG.md).
+**Version 1.1.0.** See [CHANGELOG.md](CHANGELOG.md).
 
-**[Play it](index.html)**: no install, no build step, no server. Open `index.html` in any browser. It plays full screen
-(the game offers a FULL SCREEN button), on a desktop or laptop.
+**[Play it](index.html)**: no install, no build step, no server. Open `index.html` in any browser. It plays
+on a desktop or laptop, best in a big window or full screen.
 A Mac app is also available ([download](MindframeGame-app/Mindframe-mac.zip)).
 
 ![Mindframe](mindframe.gif)

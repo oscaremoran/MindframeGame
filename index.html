@@ -351,6 +351,9 @@
   #creditsTrack h1{margin-bottom:8px}
   #creditsTrack .cr{color:#9aa8c8; letter-spacing:.16em; line-height:1.9;
     font-size:calc(clamp(10.5px,1.28vw,13.5px) + 3px)}
+  /* the roll's last line, the biggest thing on it after the title */
+  #creditsTrack .cr.end{color:#dfe9ff; letter-spacing:.2em; font-weight:600;
+    font-size:clamp(22px,3.2vw,36px); text-shadow:0 0 22px rgba(77,157,255,.45)}
   #creditsTrack .cr b{display:block; color:#4d9dff; letter-spacing:.24em; font-weight:600; font-size:.85em}
   #creditsTrack figure{margin:0; display:flex; flex-direction:column; align-items:center; gap:10px}
   #creditsTrack img{display:block; width:min(80vw,760px); height:auto; border:1px solid #1b2540;
@@ -647,6 +650,10 @@
     transition:border-color .15s, box-shadow .15s;
   }
   .mnode .mi{position:absolute; top:8px; left:11px; font-size:12.5px; letter-spacing:.16em; color:#5d6c8f}
+  /* held on Starfarer: a gold galaxy in the corner opposite the number */
+  .mnode .sfMark{position:absolute; top:6px; right:9px; width:22px; height:22px; color:#ffd24d;
+    fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round;
+    filter:drop-shadow(0 0 5px rgba(255,210,77,.55))}
   .mnode .id{font-size:clamp(13px,1.85vw,22px); letter-spacing:.13em; color:#b6c4de}
   .mnode:not(.secret) .id{white-space:nowrap}
   .mnode .st{font-size:calc(clamp(9px,1.1vw,12px) + 3px); letter-spacing:.2em; color:#6b7ca3; margin-top:8px}
@@ -1605,6 +1612,8 @@ const SFX={
    sits on top. You should be able to hear that you are dying.               */
 // how much louder the theme plays on the title screen than in a run
 const MENU_LIFT=1.9;
+// Starfarer's score: this much of the tempo, this far down (a minor third), this loud a drone
+const DARK_BPM=.86, DARK_KEY=Math.pow(2,-3/12), DARK_DRONE=.045;
 const MUS={
   step:0, next:0, on:false, cur:'', crit:false,
   abs:0, spb:0,          // sixteenths since boot (never wraps), and how long one is right now (RHY reads both)
@@ -1921,9 +1930,13 @@ const MUS={
       m.linearRampToValueAtTime(hurt?.34:.5, now+.5);
     }
 
-    const bpm=(P.bpm+depth*4)*(this.crit?.94:1), spb=60/bpm/4;
+    /* Starfarer, in a flight: slower, a minor third lower, every chord minor,
+       and a low drone with a tritone over it under the whole thing (DARK_*) */
+    const dark=STARFARER() && id!=='menu' && id!=='garage';
+    const bpm=(P.bpm+depth*4)*(this.crit?.94:1)*(dark?DARK_BPM:1), spb=60/bpm/4;
     this.spb=spb;
-    const root=P.root||this.ROOTS[depth];
+    const root=(P.root||this.ROOTS[depth])*(dark?DARK_KEY:1);
+    this.key=root;                       // what a punish hit's run is played in
     const HOOK=this.HOOKS[P.hook];
 
     if(this.next < c.currentTime-.3) this.next=c.currentTime+.05;
@@ -1932,9 +1945,14 @@ const MUS={
       // a new piece waits for the bar line rather than cutting in
       if(id!==this.cur && b===0){ this.cur=id; this.step=0; }
       const bar32=Math.floor(this.step/16)%32, phr=bar32%8;
-      const rOff=P.prog[phr], minor=!P.qual[phr];
+      const rOff=P.prog[phr], minor=dark||!P.qual[phr];
       const f0=root*Math.pow(2,rOff/12);
       let SEC = P.sec!==undefined ? P.sec : I<=1 ? 3 : this.FORM[bar32];
+      // the dark: a low drone on every bar, and the tritone above it every other one
+      if(dark && b===0 && !P.calm){
+        this.v(f0/4, t, 'sawtooth', spb*16, DARK_DRONE, -6, null, true, 6);
+        if(bar32%2) this.v(f0/2*Math.pow(2,6/12), t, 'sawtooth', spb*16, DARK_DRONE*.45, 7, null, true, 10);
+      }
       // a boss fought to the music only breaks down when it opens up
       if(RHY.on && this.cur.indexOf('boss:')===0) SEC=RHY.sec(this.abs,SEC);
       const DROP=SEC===2, BUILD=SEC===1, BREAK=SEC===3;
@@ -2194,12 +2212,16 @@ const DIFFS=[
    aim:{r:1, cone:1, turn:1},          lead:1, track:1, dense:0, improv:0, open:1,
    n:'Cadet',
    d:'The intended challenge for players who are good at computer games.'},
-  {k:'high', ehp:1.95,espd:1.20,erof:1.45,dmgIn:1.75,rest:.70,
+  /* 2026-10-16: hull down from 1.95. Starfarer is meant to feel different,
+     not longer: the bosses' hazard attacks, darker music, and the fights
+     themselves are what change (STARFARER()). */
+  {k:'high', ehp:1.25,espd:1.20,erof:1.45,dmgIn:1.75,rest:.70,
    aim:null,                           lead:1.55, track:1.55, dense:1, improv:.72, open:.74,
    n:'Starfarer',
    d:'An extremely hard setting. Take this if you want a challenge.'},
 ];
 const DIFF=()=> DIFFS[clamp(save.diff|0,0,DIFFS.length-1)];
+const STARFARER=()=>DIFF().k==='high';
 // the authored rest window, opened up or closed down by the setting
 const bossRest=T=>rand(T.rest[0],T.rest[1])*DIFF().rest;
 let runCr=0;
@@ -2708,7 +2730,12 @@ function openLaunch(kind,i){
 }
 
 // enter the current system: re-apply skills bought since, then fight
+/* The lowest difficulty this flight has been flown on: a system is only
+   marked held on Starfarer (save.sfHeld, the galaxy on the map) when every
+   second of the flight that held it was. */
+let flightDiff=1;
 function beginSystem(){
+  flightDiff=save.diff|0;
   player.st=stats();
   if(sysIdx>0) player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.4);
   player.hp=Math.min(player.hp,player.st.maxHp);
@@ -2757,6 +2784,7 @@ function medalHit(){
   MR.hits.push({w:wave, n:killer, tag:hitTag});
 }
 function medalTick(dt){
+  flightDiff=Math.min(flightDiff,save.diff|0);
   if(!MR||mission) return;
   MR.diffMin=Math.min(MR.diffMin,save.diff|0);
   if(wave>=5&&!entrance&&!phaseCut&&enemies.some(e=>e.t==='boss'&&!e.hidden)) MR.bossT+=dt;
@@ -3023,6 +3051,8 @@ function systemCleared(){
   const fresh=medalsNow?medalsAward(i):null;
   save.unlocked=true;
   if(!fake) save.deepestSys=Math.max(save.deepestSys,i+1);
+  // held on Starfarer from first wave to last: the galaxy goes on its node
+  if(!fake&&flightDiff>=2){ save.sfHeld=save.sfHeld||[]; if(!save.sfHeld.includes(done.id)) save.sfHeld.push(done.id); }
   persist();
   mission=null;
   $('doneKind').textContent = last?'CAMPAIGN COMPLETE':'LEVEL COMPLETE';
@@ -3565,7 +3595,7 @@ function levSwim(e,dt){
     e.x+=Math.cos(e.hd)*v*dt; e.y+=Math.sin(e.hd)*v*dt;
     if(Math.random()<dt*.15) e.dir*=-1;
     if(!(C.rest>0)) e.lcd-=dt;
-    if(e.lcd<=0&&d<560&&!(P.frz>0)&&!rhyWait(e.bite||(e.bite={}),e)){
+    if(e.lcd<=0&&d<560&&!(P.frz>0)&&!(C.ice>0)&&!rhyWait(e.bite||(e.bite={}),e)){
       e.st='aim'; e.t0=0; e.la=Math.atan2(dy,dx); e.tel=levL(e,LEV_EAT_TEL); SFX.crack();
     }
   }else if(e.st==='aim'){
@@ -3692,10 +3722,16 @@ function levStep(e,dt){
     e.gate=gs.length?Math.min(...gs):null; e.nextK=null;
   }
   if(e.kind==='head'){
+    // Starfarer, the head alone: now and then it stops everything else and throws glaciers
+    if(STARFARER()&&!C.spin&&C.segs.every(g=>g===e||!enemies.includes(g))){
+      if(C.ice>0) C.ice-=dt;
+      else{ e.sfT=(e.sfT||rand(4,6))-dt;
+        if(e.sfT<=0){ e.sfT=rand(SF_CD[0],SF_CD[1]); C.ice=SF_ICE_HOLD; sfIce(e); } }
+    }
     levSwim(e,dt);
     if(C.spin) levSpinStep(C,dt);
     else if(C.rest>0) C.rest-=dt;
-    else for(const g of e.heir) levGun(e,g,g.atk,dt);
+    else if(!(C.ice>0)) for(const g of e.heir) levGun(e,g,g.atk,dt);
     return;
   }
   e.a=e.ha;
@@ -3901,6 +3937,12 @@ function omegaStep(e,dt){
   // the station's own clock runs off whichever wing is first still standing
   if(S.wings.find(w=>enemies.includes(w))===e) omegaStation(S,dt);
   if(e.ward||S.turn){ e.act=null; e.tel=null; return; }
+  if(STARFARER()&&S.wings.find(w=>enemies.includes(w))===e){
+    S.sfT=(S.sfT||rand(5,8))-dt;
+    if(S.sfT<=0){ S.sfT=rand(SF_CD[0],SF_CD[1]);
+      const ws=S.wings.filter(w=>enemies.includes(w)&&!w.ward), w=ws[Math.floor(Math.random()*ws.length)]||e;
+      sfFlare(w,w.x,w.y); }
+  }
   const slow=e.wing==='D'?OM_ALL_SLOW:1, P=player;
   if(omegaMove(e,dt,slow)) return;
   // to the music, a gun that is ready waits for its beat, and the ring closes on the wing for it
@@ -5758,7 +5800,7 @@ const RHY={
     if(s<=this.lastNote) return;
     this.lastNote=s;
     const i=this.run++, semi=MUS.PHRY[i%7]+12*Math.min(2,Math.floor(i/7));
-    MUS.saw(MUS.ROOTS[Math.min(sysIdx,3)]*Math.pow(2,semi/12), this.at(s), MUS.spb*1.6, .075, null, false);
+    MUS.saw((MUS.key||MUS.ROOTS[Math.min(sysIdx,3)])*Math.pow(2,semi/12), this.at(s), MUS.spb*1.6, .075, null, false);
   },
   // a pulse on every beat, bigger on the bar
   pulse(){
@@ -6445,7 +6487,15 @@ const STRIKES={
       s.len=s.hard?560:this.LEN; s.spin=s.hard?1.6:this.SPIN; s.arms=s.hard?4:2; },
     ang(s){ const k=Math.max(0,s.t-this.TEL); return s.a0+s.dir*s.spin*k*Math.min(1,k/.6+.3); },
     armsOf(s){ const a=this.ang(s); return Array.from({length:s.arms},(_,i)=>a+i*TAU/s.arms); },
-    step(s,e){
+    // Starfarer: a gravity well that holds you to the middle of the laser's reach
+    well(s,e,dt){
+      const amp=clamp(s.t/.8,0,1)*clamp(((s.dur||this.dur)-s.t)/.6,0,1); s.amp=amp; if(!amp) return;
+      const P=player, dx=e.x-P.x, dy=e.y-P.y, d=Math.hypot(dx,dy)||1, mid=(e.r+s.len)*.55;
+      const f=SF_WELL_G*amp*clamp((d-mid)/140,-1,1)*dt;     // in from outside it, out from inside it
+      P.vx+=dx/d*f; P.vy+=dy/d*f;
+    },
+    step(s,e,dt){
+      if(STARFARER()) this.well(s,e,dt);
       if(s.t<this.TEL) return;
       if(!s.on){ s.on=true; SFX.tier(); }
       const P=player, dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy);
@@ -6456,6 +6506,17 @@ const STRIKES={
     },
     draw(s,e){
       const S=this;
+      if(s.amp){
+        // the well: rings falling in onto the middle of the reach, Jupiter's blue
+        const mid=(e.r+s.len)*.55;
+        for(let i=0;i<4;i++){
+          const q=((s.t*.55+i/4)%1);
+          ctx.strokeStyle='rgba(143,168,255,'+(.4*(1-q)*s.amp)+')'; ctx.lineWidth=2.4;
+          ctx.beginPath(); ctx.arc(e.x,e.y,mid+(s.len+170-mid)*(1-q),0,TAU); ctx.stroke();
+        }
+        ctx.strokeStyle='rgba(143,168,255,'+(.3*s.amp)+')'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(e.x,e.y,mid,0,TAU); ctx.stroke();
+      }
       ctx.strokeStyle='rgba(63,216,224,.16)'; ctx.lineWidth=1.5; ctx.setLineDash([6,10]);
       ctx.beginPath(); ctx.arc(e.x,e.y,s.len,0,TAU); ctx.stroke(); ctx.setLineDash([]);
       for(const b of S.armsOf(s)){
@@ -6742,6 +6803,262 @@ function shellBreak(e,name){
   wallWant=WALL_MAX;
 }
 
+/* ══════════ STARFARER: the bosses' hazard attacks ══════════
+   On Starfarer a boss brings the arena with it:
+     THE HIVE MIND   spits a spore pod on its own clock (SPORE_CD), never while
+                     it is open. The pod arcs to where you were, its landing
+                     marked from the moment it leaves, and roots into a volcano
+                     vent, Venus's but green, that creeps (SPORE_DRIFT), lives
+                     SPORE_LIFE seconds and bursts every SPORE_CYC.
+                     SPORE_MAX at once; the oldest goes.
+     ITERATION 2117  climbing a tier, its sweeping laser comes with a gravity
+                     well: you are pulled to the middle of the laser's reach
+                     (SF_WELL_G at most, which every hull can fly against).
+                     That one lives in STRIKES.overseer.
+     THE ARCHITECT   now and then drops SF_AOE_N blast rings round you (Saturn's
+                     debris); each blows after SF_AOE_T and bursts outward into
+                     SF_AOE_BITS rounds of rubble.
+     THE CRESCENT    every zoom fills the arena with Luna's low gravity, for the
+                     run and SF_LOWG_HOLD after it.
+     THE TITANS      let Neptune's fronts back in while they stand, slower
+                     (SF_STORM_V) and less often (SF_STORM_RATE). In worldStep.
+     THE LEVIATHAN   with only its head left, now and then it holds every other
+                     attack for SF_ICE_HOLD and throws SF_ICE_N glaciers, which
+                     land, tick, and burst: inside SF_ICE_R you are frozen as a
+                     Europa geyser freezes you.
+     OMEGA           now and then a wing throws a solar flare that swells as it
+                     flies and splits in three (SF_FL_*).
+     THE RULER       (both of it) and THE ARCHIVE: one of those at random, now
+                     and then (SF_PICK). Neptune's fronts stay Neptune's.
+   3296 and 3295 bring nothing. Everything here goes when the boss does. */
+const SPORE_CD=[7.5,10.5], SPORE_FLY=1.15, SPORE_LIFE=20, SPORE_CYC=5.2, SPORE_MAX=3, SPORE_DMG=15;
+const SPORE_DRIFT=22;  // px a second a spore vent creeps
+const SF_WELL_G=900;
+const SF_AOE_N=3, SF_AOE_R=85, SF_AOE_T=1.1, SF_AOE_DMG=22, SF_AOE_BITS=8, SF_AOE_V=190;
+const SF_LOWG_HOLD=1.5;
+const SF_STORM_V=.55, SF_STORM_RATE=.5;
+const SF_ICE_HOLD=2.6, SF_ICE_N=3, SF_ICE_FLY=1.0, SF_ICE_FUSE=.7, SF_ICE_R=90;
+const SF_FL_V=210, SF_FL_R=[18,64], SF_FL_GROW=1.4, SF_FL_SPLIT=.6, SF_FL_DMG=18;
+const SF_CD=[9,13];                              // how often one of these comes, for the bosses on a clock
+const SF_PICK=['aoe','lowg','spore','ice','flare'];
+let sfLowT=0, sfLowA=0;                          // the Crescent's low gravity: seconds left, and how much of it there is
+let bossHaz=[];        // pods in the air ({k:'pod'}) and the vents they became ({k:'vent'})
+// a hit from a boss's hazard: the boss's damage, the hazard's place
+function bossHazHurt(e,dmg,x,y,col='#ffb44d'){
+  const P=player; if(P.inv>0||buffs.shield>0||P.hp<=0) return;
+  P.hp-=dmg*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5;
+  killer=unitName(e); hitTag='haz'; pilotHurt(x,y);
+  burst(P.x,P.y,col,14,260);
+}
+function sporeLaunch(e){
+  const P=player, m=VENT_R+10;
+  bossHaz.push({k:'pod', src:e, x0:e.x, y0:e.y, x:clamp(P.x,m,W-m), y:clamp(P.y,m,H-m), t:0});
+  SFX.shell();
+}
+// where a spore vent is in its cycle: as ventPhase, but on its own clock from the moment it roots
+function sporePhase(h){
+  const p=h.t%SPORE_CYC;
+  if(p<VENT_WARN) return {warn:p/VENT_WARN};
+  if(p<VENT_WARN+VENT_BURN) return {burn:(p-VENT_WARN)/VENT_BURN};
+  return null;
+}
+function bossHazStep(dt){
+  sfLowT=Math.max(0,sfLowT-dt);
+  sfLowA+=((sfLowT>0?1:0)-sfLowA)*Math.min(1,dt*4);
+  const P=player;
+  for(let i=bossHaz.length-1;i>=0;i--){
+    const h=bossHaz[i]; h.t+=dt;
+    if(h.k==='aoe'){
+      if(h.t<SF_AOE_T) continue;
+      if(Math.hypot(P.x-h.x,P.y-h.y)<SF_AOE_R+11) bossHazHurt(h.src,SF_AOE_DMG,h.x,h.y);
+      shock(h.x,h.y,'#e8d9a8',10,SF_AOE_R*1.15,.35,4); burst(h.x,h.y,'#e8d9a8',20,280); shake=Math.max(shake,8);
+      const o=rand(0,TAU);
+      for(let q=0;q<SF_AOE_BITS;q++){ const a=o+q*TAU/SF_AOE_BITS;
+        ebullets.push({x:h.x+Math.cos(a)*SF_AOE_R*.6,y:h.y+Math.sin(a)*SF_AOE_R*.6,vx:Math.cos(a)*SF_AOE_V,vy:Math.sin(a)*SF_AOE_V,
+          r:rand(4,6),dmg:8*BOSS_DMG,col:q%3?'#e8d9a8':'#dff4ff',src:h.src}); }
+      bossHaz.splice(i,1); continue;
+    }
+    if(h.k==='ice'){
+      if(h.t<SF_ICE_FLY+SF_ICE_FUSE) continue;
+      // it bursts: inside it, you are iced over the way a geyser does it
+      if(!(P.frz>0)&&!(P.thaw>0)&&P.inv<=0&&buffs.shield<=0&&Math.hypot(P.x-h.x,P.y-h.y)<SF_ICE_R+11){
+        P.frz=GEY_FRZ; if(MR) MR.froze=1;
+        const a=Math.atan2(P.y-h.y,P.x-h.x)||rand(0,TAU);
+        P.vx+=Math.cos(a)*GEY_KICK; P.vy+=Math.sin(a)*GEY_KICK;
+        burst(P.x,P.y,'#dff4ff',22,260);
+      }
+      shock(h.x,h.y,'#8fdcff',10,SF_ICE_R,.35,4); burst(h.x,h.y,'#dff4ff',26,320); SFX.crack();
+      bossHaz.splice(i,1); continue;
+    }
+    if(h.k==='flare'){
+      h.x+=h.vx*dt; h.y+=h.vy*dt;
+      const grow=h.gen?SF_FL_GROW*SF_FL_SPLIT:SF_FL_GROW, R1=h.gen?SF_FL_R[1]*.8:SF_FL_R[1], R0=h.gen?SF_FL_R[1]*.6:SF_FL_R[0];
+      h.r=R0+(R1-R0)*clamp(h.t/grow,0,1);
+      if(Math.hypot(P.x-h.x,P.y-h.y)<h.r+11) bossHazHurt(h.src,SF_FL_DMG,h.x,h.y);
+      if(!h.gen&&h.t>=grow){
+        // it splits: the middle carries on, the two either side fan out
+        const a=Math.atan2(h.vy,h.vx);
+        for(const da of [-.6,0,.6]) bossHaz.push({k:'flare', src:h.src, x:h.x, y:h.y,
+          vx:Math.cos(a+da)*SF_FL_V*1.15, vy:Math.sin(a+da)*SF_FL_V*1.15, r:R1*.6, t:0, gen:1});
+        burst(h.x,h.y,'#ffcf5a',24,300); bossHaz.splice(i,1); continue;
+      }
+      if(h.x<-h.r-40||h.x>W+h.r+40||h.y<-h.r-40||h.y>H+h.r+40) bossHaz.splice(i,1);
+      continue;
+    }
+    if(h.k==='pod'){
+      if(h.t>=SPORE_FLY){
+        const a=rand(0,TAU); h.k='vent'; h.t=0; h.vx=Math.cos(a)*SPORE_DRIFT; h.vy=Math.sin(a)*SPORE_DRIFT;
+        burst(h.x,h.y,'#46e39b',22,260); shake=Math.max(shake,8);
+      }
+      continue;
+    }
+    if(h.t>=SPORE_LIFE){ bossHaz.splice(i,1); continue; }
+    // it creeps, and turns back off the arena's edge
+    const m=VENT_R+10;
+    h.x+=h.vx*dt; h.y+=h.vy*dt;
+    if(h.x<m||h.x>W-m){ h.vx*=-1; h.x=clamp(h.x,m,W-m); }
+    if(h.y<m||h.y>H-m){ h.vy*=-1; h.y=clamp(h.y,m,H-m); }
+    const ph=sporePhase(h);
+    if(ph&&ph.burn!==undefined){
+      const r=VENT_R*(.45+.55*Math.min(1,ph.burn*3.2))+11;
+      if(dist2(h,player)<r*r) bossHazHurt(h.src,SPORE_DMG,h.x,h.y,'#46e39b');
+    }
+  }
+  // the oldest vent gives way to a new one
+  let n=bossHaz.filter(o=>o.k==='vent').length;
+  while(n-->SPORE_MAX) bossHaz.splice(bossHaz.findIndex(o=>o.k==='vent'),1);
+}
+// THE ARCHITECT: blast rings round you, one on you
+function sfAoe(e){
+  const P=player, m=SF_AOE_R+10;
+  for(let i=0;i<SF_AOE_N;i++){
+    const a=rand(0,TAU), d=i?rand(120,190):0;
+    bossHaz.push({k:'aoe', src:e, x:clamp(P.x+Math.cos(a)*d,m,W-m), y:clamp(P.y+Math.sin(a)*d,m,H-m), t:-i*.18});
+  }
+  SFX.warn();
+}
+// THE CRESCENT: the whole arena goes light for `sec`
+function sfLowGrav(sec){ sfLowT=Math.max(sfLowT,sec); }
+// THE LEVIATHAN: glaciers thrown round where you are
+function sfIce(e){
+  const P=player, m=SF_ICE_R;
+  for(let i=0;i<SF_ICE_N;i++){
+    const a=rand(0,TAU), d=i?rand(110,180):0;
+    bossHaz.push({k:'ice', src:e, x0:e.x, y0:e.y, x:clamp(P.x+Math.cos(a)*d,m,W-m), y:clamp(P.y+Math.sin(a)*d,m,H-m), t:-i*.15});
+  }
+  SFX.crack();
+}
+// OMEGA: a flare from (x,y) at you, that swells and splits
+function sfFlare(e,x,y){
+  const P=player, a=Math.atan2(P.y-y,P.x-x);
+  bossHaz.push({k:'flare', src:e, x, y, vx:Math.cos(a)*SF_FL_V, vy:Math.sin(a)*SF_FL_V, r:SF_FL_R[0], t:0, gen:0});
+  SFX.shell();
+}
+// THE RULER and THE ARCHIVE: one of them, any of them
+function sfRandom(e){
+  const k=SF_PICK[Math.floor(Math.random()*SF_PICK.length)];
+  if(k==='aoe') sfAoe(e); else if(k==='lowg') sfLowGrav(4); else if(k==='spore') sporeLaunch(e);
+  else if(k==='ice') sfIce(e); else sfFlare(e,e.x,e.y);
+}
+// how much of a spore vent there is: up as it roots, down over its last second
+const sporeFade=h=>clamp(h.t/.4,0,1)*clamp((SPORE_LIFE-h.t)/.8,0,1);
+// under everything: the vents' grates, and where each pod in the air will land
+function bossHazFloor(){
+  // the Crescent's low gravity: the whole floor goes pale, and dust hangs in it
+  if(sfLowA>.01){
+    ctx.save(); ctx.fillStyle='rgba(214,217,224,'+(.05*sfLowA)+')'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(214,217,224,'+(.35*sfLowA)+')';
+    for(let i=0;i<40;i++){ const x=(i*97.3)%W, y=((i*61.7)-(world?world.t:sceneT)*(8+i%5*3))%H;
+      ctx.beginPath(); ctx.arc(x,(y+H)%H,1.4,0,TAU); ctx.fill(); }
+    ctx.restore();
+  }
+  for(const h of bossHaz){
+    if(h.k==='aoe'||h.k==='ice'){
+      // where it lands, and how close it is: a ring closing on its edge
+      const T=h.k==='aoe'?SF_AOE_T:SF_ICE_FLY+SF_ICE_FUSE, R=h.k==='aoe'?SF_AOE_R:SF_ICE_R, q=clamp(h.t/T,0,1);
+      if(h.t<0) continue;
+      const col=h.k==='aoe'?'232,217,168':'143,220,255';
+      ctx.save();
+      ctx.fillStyle='rgba('+col+','+(.06+.12*q)+')'; ctx.beginPath(); ctx.arc(h.x,h.y,R,0,TAU); ctx.fill();
+      ctx.strokeStyle='rgba('+col+','+(.5+.4*q)+')'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(h.x,h.y,R,0,TAU); ctx.stroke();
+      ctx.strokeStyle='rgba('+col+',.85)'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.arc(h.x,h.y,R*(1-q)+4,0,TAU); ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    if(h.k==='flare') continue;
+    if(h.k==='pod'){
+      const q=clamp(h.t/SPORE_FLY,0,1);
+      ctx.save(); ctx.strokeStyle='rgba(70,227,155,'+(.25+.55*q)+')'; ctx.lineWidth=2; ctx.setLineDash([6,8]);
+      ctx.beginPath(); ctx.arc(h.x,h.y,VENT_R*(1.25-.25*q),0,TAU); ctx.stroke(); ctx.restore();
+      continue;
+    }
+    const ph=sporePhase(h);
+    ctx.save(); ctx.globalAlpha=sporeFade(h);
+    ventGrateDraw(h.x,h.y,ph&&ph.warn!==undefined?ph.warn:0,SPORE_PAL);
+    ctx.restore();
+  }
+}
+// over the fight: the pods in flight, and the vents burning
+function bossHazDraw(){
+  for(const h of bossHaz){
+    if(h.k==='ice'&&h.t>=0){
+      // a glacier: thrown in a low arc, then sat on its mark, blinking faster as it goes
+      const q=clamp(h.t/SF_ICE_FLY,0,1), x=h.x0+(h.x-h.x0)*q, y=h.y0+(h.y-h.y0)*q-Math.sin(Math.PI*q)*70;
+      const blink=h.t>SF_ICE_FLY&&Math.floor(h.t*16)%2;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(h.t*2);
+      ctx.fillStyle=blink?'#ffffff':'#bfeaff'; ctx.strokeStyle='#8fdcff'; ctx.lineWidth=2;
+      ctx.shadowColor='#8fdcff'; ctx.shadowBlur=16;
+      ctx.beginPath(); for(let i=0;i<6;i++){ const a=i/6*TAU, r=i%2?11:16; i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); }
+      ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); ctx.shadowBlur=0;
+      continue;
+    }
+    if(h.k==='flare'){
+      ctx.save();
+      const g=ctx.createRadialGradient(h.x,h.y,h.r*.15,h.x,h.y,h.r);
+      g.addColorStop(0,'rgba(255,246,214,.95)'); g.addColorStop(.45,'rgba('+FLARE_FIRE+',.75)'); g.addColorStop(1,'rgba('+FLARE_FIRE+',0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(h.x,h.y,h.r,0,TAU); ctx.fill();
+      ctx.strokeStyle='rgba(255,207,90,.7)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(h.x,h.y,h.r,0,TAU); ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    if(h.k==='aoe'||h.k==='ice') continue;
+    if(h.k==='pod'){
+      // it arcs: up off the boss and down onto its mark, its shadow on the floor under it
+      const q=clamp(h.t/SPORE_FLY,0,1), gx=h.x0+(h.x-h.x0)*q, gy=h.y0+(h.y-h.y0)*q, lift=Math.sin(Math.PI*q)*90;
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(gx,gy,8,0,TAU); ctx.fill();
+      ctx.fillStyle='#46e39b'; ctx.shadowColor='#46e39b'; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.arc(gx,gy-lift,9+4*Math.sin(Math.PI*q),0,TAU); ctx.fill();
+      ctx.restore(); ctx.shadowBlur=0;
+      continue;
+    }
+    const ph=sporePhase(h);
+    if(ph&&ph.burn!==undefined){
+      ctx.save(); ctx.globalAlpha=sporeFade(h); ventFireDraw(h.x,h.y,ph.burn,h.t,SPORE_PAL); ctx.restore();
+    }
+  }
+}
+
+/* The Hive keeps off vents, Venus's and its own, whatever it is doing: pushed
+   away from any it is near at up to VENT_SHY px a second, at full while one
+   winds up or burns and at a third while it sleeps, and held off the arena
+   edge as the rest of its movement is. */
+const VENT_SHY=260;
+function ventAvoid(e,dt){
+  const vs=[];
+  if(world&&world.h==='vents') for(const o of world.vents) vs.push([o,ventPhase(o)]);
+  for(const h of bossHaz) if(h.k==='vent') vs.push([h,sporePhase(h)]);
+  for(const [o,ph] of vs){
+    const dx=e.x-o.x, dy=e.y-o.y, d=Math.hypot(dx,dy)||1, reach=VENT_R+e.r+70;
+    if(d>=reach) continue;
+    const f=Math.min(1,(1-d/reach)*2)*(ph?1:.33)*VENT_SHY*dt;
+    e.x+=dx/d*f; e.y+=dy/d*f;
+  }
+  const pad=Math.max(60,e.r*.85);
+  e.x=clamp(e.x,pad+wallIn,W-pad-wallIn); e.y=clamp(e.y,pad+wallIn,H-pad-wallIn);
+}
 function bossAI(e,dt,dx,dy,d){
   const P=player, B=e.B;
   e.spin+=dt*1.1; e.pt+=dt;
@@ -6753,6 +7070,16 @@ function bossAI(e,dt,dx,dy,d){
      that only ever spawns on cue is a boss with a swarm attack rather than a
      swarm — so it also sheds a Watcher or two on its own clock, all the way
      through the fight, whatever line it happens to be reciting. */
+  if(B.k==='hive'&&!e.hidden&&STARFARER()&&!(e.open>0)){
+    e.pod=(e.pod||rand(3,5))-dt;
+    if(e.pod<=0){ e.pod=rand(SPORE_CD[0],SPORE_CD[1]); sporeLaunch(e); }
+  }
+  // the bosses whose Starfarer hazard runs on a clock: the Architect's rings,
+  // and one at random from the Ruler and the Archive
+  if(STARFARER()&&!e.hidden&&!(e.open>0)&&(B.k==='architect'||B.k==='ruler'||B.k==='archive')){
+    e.sfT=(e.sfT||rand(4,6))-dt;
+    if(e.sfT<=0){ e.sfT=rand(SF_CD[0],SF_CD[1]); if(B.k==='architect') sfAoe(e); else sfRandom(e); }
+  }
   if(B.k==='hive'&&!e.hidden){
     e.leak=(e.leak||rand(2.6,4))-dt;
     if(e.leak<=0){
@@ -7071,6 +7398,7 @@ function bossAct(e,T,B,k,dx,dy,d){
   else if(k==='zoom'){
     e.act={k:'zoom',t:0,fire:.15,dur:e.tier>=2?1.9:e.tier?2.1:1.8};
     e.wp=crescentWaypoint(e,true); SFX.dash();
+    if(STARFARER()) sfLowGrav(e.act.dur+SF_LOWG_HOLD);
   }
   else if(k==='beam'||k==='tribeam'){
     e.act={k:'beam',t:0,a:Math.atan2(dy,dx),n:k==='tribeam'?3:1,x:e.x,y:e.y};
@@ -7188,7 +7516,7 @@ function punishStop(){
 const HEAVY=new Set(['heavy','overseer','orbiter','splinter','lander','quarry','glacier','crusher']);
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ winScene=null; shipFx.length=0; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
+function fxClear(){ winScene=null; shipFx.length=0; bossHaz.length=0; sfLowT=sfLowA=0; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -7416,7 +7744,7 @@ function update(dt){
   let ay=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
   const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
   // low gravity: less grip on the way in, far less drag on the way out
-  const lg=inLowG(P);
+  const lg=inLowG(P)||sfLowA>.5;
   /* A dash is held, not thrown: for its whole length the ship runs at dash
      speed along the line it took, and drag only gets it back afterwards.
      Thrown, drag ate the speed in a tenth of a second whatever the length,
@@ -7485,6 +7813,8 @@ function update(dt){
   if(entrance){ entranceStep(dt); return; }
   // ...and so does one climbing a tier
   if(phaseCut){ phaseStep(dt); return; }
+
+  bossHazStep(dt);
 
   /* --- fire --- */
   P.cool-=dt;
@@ -7868,6 +8198,7 @@ function update(dt){
       if(e.chain) levStep(e,dt);
       else if(e.station) omegaStep(e,dt);
       else if(e.strike) strikeStep(e,dt); else bossAI(e,dt,dx,dy,d);
+      if(e.B.k==='hive'&&!e.hidden) ventAvoid(e,dt);
       knockStep(e,dt);
       // a boss can hit harder than the shared numbers without editing every attack
       if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
@@ -7974,6 +8305,7 @@ function update(dt){
           // a Titan with its twin still standing falls on its own
           if(e.t==='boss'&&e.twin&&enemies.includes(e.twin)){ duoFall(e); break; }
           if(e.t==='boss'){ // the boss falls: whatever it summoned goes with it
+            bossHaz.length=0; sfLowT=0;
             // out of frame, on the route, and not the thing behind it: what
             // comes next is not the victory screen, whatever the screen says
             if(e.B.k==='ruler'&&!e.B.final&&e.B.tiers[e.tier]&&e.B.tiers[e.tier].last)
@@ -9110,6 +9442,67 @@ function ventPhase(v){
   return null;
 }
 
+/* A vent's colours: Venus's fire, and the Hive's spore vents in its green.
+   Each is an "r,g,b" or a colour, by what it lights. */
+const VENT_PAL={tick:'255,180,77', fill:'255,140,60', line:'255,190,110', glow:'#ff8a3c',
+  a:'255,196,110', b:'255,110,72', edge:'255,214,150', throat:'255,246,214', hot:'#ffd08a'};
+const SPORE_PAL={tick:'70,227,155', fill:'40,200,120', line:'130,240,185', glow:'#2fd889',
+  a:'160,255,200', b:'46,227,140', edge:'190,255,215', throat:'236,255,242', hot:'#8affc4'};
+// a vent's grate and the ticks that mark its reach, lit by k (0..1) as it winds up
+function ventGrateDraw(x,y,k,pal=VENT_PAL){
+  ctx.save(); ctx.translate(x,y);
+  // four corner ticks at the danger radius rather than a full circle: a
+  // closed ring at this size reads as a planet, and the arena already has
+  // stars in it. The ticks mark exactly how far the fire reaches.
+  ctx.strokeStyle='rgba('+pal.tick+','+(.3+.55*k*k)+')';
+  ctx.lineWidth=2+2*k;
+  const tick=15+6*k, pull=VENT_R*(1-.18*k*k);
+  for(let i=0;i<4;i++){
+    const a=i/4*TAU+Math.PI/4;
+    const cx=Math.cos(a)*pull, cy=Math.sin(a)*pull;
+    ctx.beginPath();
+    ctx.moveTo(cx-Math.cos(a)*tick/2, cy-Math.sin(a)*tick/2);
+    ctx.lineTo(cx+Math.cos(a)*tick/2, cy+Math.sin(a)*tick/2);
+    ctx.stroke();
+  }
+  // the grate: a hex with slats across it, lit from underneath as it winds up
+  ctx.rotate(Math.PI/6);
+  ctx.beginPath();
+  for(let i=0;i<6;i++){ const a=i/6*TAU, r=13;
+    i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); }
+  ctx.closePath();
+  ctx.fillStyle='rgba('+pal.fill+','+(.1+.72*k*k)+')';
+  ctx.fill();
+  ctx.strokeStyle='rgba('+pal.line+','+(.42+.5*k)+')'; ctx.lineWidth=1.6; ctx.stroke();
+  ctx.strokeStyle='rgba(6,8,16,.85)'; ctx.lineWidth=2;
+  for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(-9,i*5); ctx.lineTo(9,i*5); ctx.stroke(); }
+  ctx.restore();
+}
+// a vent burning, k (0..1) through its burn; t turns the flames
+function ventFireDraw(x,y,k,t,pal=VENT_PAL){
+  const r=VENT_R*(.45+.55*Math.min(1,k*3.2));
+  const fade=k>.78?(1-k)/.22:1;
+  ctx.save(); ctx.translate(x,y); ctx.globalAlpha=fade;
+  // spokes of flame out to the exact radius that burns, so the shape of
+  // the danger is the shape you see — jittered per frame so it reads as
+  // fire rather than as a wheel
+  ctx.lineCap='round'; ctx.shadowColor=pal.glow; ctx.shadowBlur=18;
+  for(let i=0;i<16;i++){
+    const a=i/16*TAU+t*.7, len=r*rand(.78,1);
+    ctx.strokeStyle=i%2?'rgba('+pal.a+',.85)':'rgba('+pal.b+',.7)';
+    ctx.lineWidth=rand(2.5,5);
+    ctx.beginPath(); ctx.moveTo(Math.cos(a)*11,Math.sin(a)*11);
+    ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len); ctx.stroke();
+  }
+  // the hard edge: this is where it stops hurting
+  ctx.shadowBlur=0; ctx.lineWidth=2.2;
+  ctx.strokeStyle='rgba('+pal.edge+','+(.55*fade)+')';
+  ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke();
+  // white-hot throat
+  ctx.fillStyle='rgba('+pal.throat+',.95)'; ctx.shadowColor=pal.hot; ctx.shadowBlur=22;
+  ctx.beginPath(); ctx.arc(0,0,9+3*Math.sin(t*30),0,TAU); ctx.fill();
+  ctx.restore(); ctx.shadowBlur=0;
+}
 function worldStep(dt){
   if(!world) return;
   const P=player;
@@ -9244,12 +9637,13 @@ function worldStep(dt){
     const eyeRun=mission&&mission.k==='eye';
     if(eyeRun) world.front=null;
     else if(!world.front){
-      // it holds off while a Titan is standing
-      if(!enemies.some(e=>e.B&&e.B.duoPart)) world.next-=dt;
-      if(world.next<=0) world.front=placeFront();
+      // it holds off while a Titan is standing; on Starfarer it comes anyway, slower
+      const titan=enemies.some(e=>e.B&&e.B.duoPart);
+      if(!titan) world.next-=dt; else if(STARFARER()) world.next-=dt*SF_STORM_RATE;
+      if(world.next<=0){ world.front=placeFront(); if(titan) world.front.slow=1; }
     }else{
       const F=world.front; F.t+=dt;
-      if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*dt;
+      if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*(F.slow?SF_STORM_V:1)*dt;
       if(F.s>F.L){ world.front=null; world.next=rand(STORM_GAP[0],STORM_GAP[1])/HAZ_RATE(); }
     }
     const inside=inFront(P)||(eyeRun&&(eyeFrontHit(P)||outsideEye(P)));
@@ -9482,34 +9876,8 @@ function worldFloor(){
   if(world.h==='storm') stormFloor();
   if(world.h==='vents'){
     for(const v of world.vents){
-      const ph=ventPhase(v), k=ph&&ph.warn!==undefined?ph.warn:0;
-      ctx.save(); ctx.translate(v.x,v.y);
-      // four corner ticks at the danger radius rather than a full circle: a
-      // closed ring at this size reads as a planet, and the arena already has
-      // stars in it. The ticks mark exactly how far the fire reaches.
-      ctx.strokeStyle='rgba(255,180,77,'+(.3+.55*k*k)+')';
-      ctx.lineWidth=2+2*k;
-      const tick=15+6*k, pull=VENT_R*(1-.18*k*k);
-      for(let i=0;i<4;i++){
-        const a=i/4*TAU+Math.PI/4;
-        const cx=Math.cos(a)*pull, cy=Math.sin(a)*pull;
-        ctx.beginPath();
-        ctx.moveTo(cx-Math.cos(a)*tick/2, cy-Math.sin(a)*tick/2);
-        ctx.lineTo(cx+Math.cos(a)*tick/2, cy+Math.sin(a)*tick/2);
-        ctx.stroke();
-      }
-      // the grate: a hex with slats across it, lit from underneath as it winds up
-      ctx.rotate(Math.PI/6);
-      ctx.beginPath();
-      for(let i=0;i<6;i++){ const a=i/6*TAU, r=13;
-        i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); }
-      ctx.closePath();
-      ctx.fillStyle='rgba(255,140,60,'+(.1+.72*k*k)+')';
-      ctx.fill();
-      ctx.strokeStyle='rgba(255,190,110,'+(.42+.5*k)+')'; ctx.lineWidth=1.6; ctx.stroke();
-      ctx.strokeStyle='rgba(6,8,16,.85)'; ctx.lineWidth=2;
-      for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(-9,i*5); ctx.lineTo(9,i*5); ctx.stroke(); }
-      ctx.restore();
+      const ph=ventPhase(v);
+      ventGrateDraw(v.x,v.y,ph&&ph.warn!==undefined?ph.warn:0);
     }
   }
   if(world.h==='lowg'){
@@ -9608,29 +9976,7 @@ function worldDraw(){
   if(world.h==='vents'){
     for(const v of world.vents){
       const ph=ventPhase(v);
-      if(!ph||ph.burn===undefined) continue;
-      const k=ph.burn, r=VENT_R*(.45+.55*Math.min(1,k*3.2));
-      const fade=k>.78?(1-k)/.22:1;
-      ctx.save(); ctx.translate(v.x,v.y); ctx.globalAlpha=fade;
-      // spokes of flame out to the exact radius that burns, so the shape of
-      // the danger is the shape you see — jittered per frame so it reads as
-      // fire rather than as a wheel
-      ctx.lineCap='round'; ctx.shadowColor='#ff8a3c'; ctx.shadowBlur=18;
-      for(let i=0;i<16;i++){
-        const a=i/16*TAU+world.t*.7, len=r*rand(.78,1);
-        ctx.strokeStyle=i%2?'rgba(255,196,110,.85)':'rgba(255,110,72,.7)';
-        ctx.lineWidth=rand(2.5,5);
-        ctx.beginPath(); ctx.moveTo(Math.cos(a)*11,Math.sin(a)*11);
-        ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len); ctx.stroke();
-      }
-      // the hard edge: this is where it stops hurting
-      ctx.shadowBlur=0; ctx.lineWidth=2.2;
-      ctx.strokeStyle='rgba(255,214,150,'+(.55*fade)+')';
-      ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke();
-      // white-hot throat
-      ctx.fillStyle='rgba(255,246,214,.95)'; ctx.shadowColor='#ffd08a'; ctx.shadowBlur=22;
-      ctx.beginPath(); ctx.arc(0,0,9+3*Math.sin(world.t*30),0,TAU); ctx.fill();
-      ctx.restore(); ctx.shadowBlur=0;
+      if(ph&&ph.burn!==undefined) ventFireDraw(v.x,v.y,ph.burn,world.t);
     }
   }
   if(world.h==='rings'&&world.lane){
@@ -10799,7 +11145,7 @@ function draw(){
     sceneDraw();
     // particles
     partsDraw();
-    worldFloor();
+    worldFloor(); bossHazFloor();
     fxDraw();
 
     // enemy bullets
@@ -11215,7 +11561,7 @@ function draw(){
     wallDraw();
     if(entrance) entranceDraw();
     if(phaseCut) phaseDraw();
-    worldDraw();
+    worldDraw(); bossHazDraw();
     levBars();
     strikesDraw();
     if(mission) missionDraw();
@@ -11839,6 +12185,12 @@ function mapClip(){
   });
   return true;
 }
+// the Starfarer mark: a spiral galaxy, top right of a node held on Starfarer
+const SF_MARK='<svg class="sfMark" viewBox="0 0 24 24" aria-hidden="true">'+
+  '<ellipse cx="12" cy="12" rx="10" ry="6.5" transform="rotate(-25 12 12)" fill="currentColor" opacity=".14"/>'+
+  '<path d="M12 12c1.6-3.4 6.6-3.6 8.4-.6 1.6 2.8-.6 6.6-4.6 7.2" />'+
+  '<path d="M12 12c-1.6 3.4-6.6 3.6-8.4.6-1.6-2.8.6-6.6 4.6-7.2" />'+
+  '<circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="none"/></svg>';
 function buildMap(){
   mapClipDirty=true;
   const c=$('chart'), svg=$('mlines'), ns='http://www.w3.org/2000/svg';
@@ -11907,6 +12259,7 @@ function buildMap(){
              : 'LOCKED';
     const n=node(MAP_X,y, done?'held':sel?'next':open?'':'locked', sysLabel(i), st,
          String(i+1).padStart(2,'0'));
+    if(done&&(save.sfHeld||[]).includes(sy.id)) n.insertAdjacentHTML('beforeend',SF_MARK);
     // on the title map every unlocked node opens its launching screen
     if(open||done){ n.style.cursor='pointer'; n.onclick=()=>mapLaunch(i); }
   });
@@ -12992,7 +13345,7 @@ refreshMenu();
 /* ---- version and credits ----
    VERSION is shown under the Extras buttons and at the foot of the credits.
    CREDITS is one [heading, names] pair per block, in the order shown. */
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 const CREDITS=[
   ['Mindframe: Defense of Earth', 'By Oscar Moran, with the help of Claude Opus 5.5. Thanks to all the playtesters who helped! Thanks to family, friends, and you for playing this game. I hope you enjoyed it! More is coming soon, so stay tuned. You can contact me at oscar.e.moran20@gmail.com.'],
 ];
@@ -13028,7 +13381,7 @@ function creditsRoll(then){
     if(k<CREDIT_SHOTS.length) html+=fig(CREDIT_SHOTS[k++]);
   });
   while(k<CREDIT_SHOTS.length) html+=fig(CREDIT_SHOTS[k++]);
-  html+='<p class="cr">'+CREDITS_END+'</p><p class="ver">v'+VERSION+'</p>';
+  html+='<p class="cr end">'+CREDITS_END+'</p><p class="ver">v'+VERSION+'</p>';
   $('creditsTrack').innerHTML=html;
   roll={y:innerHeight, then};
   $('creditsTrack').style.transform='translateY('+roll.y+'px)';

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 — 2026-10-16
+
+«WRITE: what 1.1.0 brings, for players»
+
 ## 1.0.0 — 2026-10-12
 
 First release.
