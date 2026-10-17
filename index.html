@@ -47,14 +47,6 @@
   .overlay>button.back{position:absolute; top:min(2.2vw,3.2vh); left:min(2.2vw,3.2vh); z-index:6;
     margin:0; padding:8px 18px; font-size:calc(clamp(10px,1.15vw,12px) + 2px)}
   .overlay>button.back:hover{transform:none}
-  /* A window too small to play in: one card over everything until it is not
-     (fitCheck in the script decides). On a phone or tablet the game is not playable at all,
-     so that card wins over this one. */
-  #tooSmall{position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center;
-    background:#05060d; padding:16px}
-  #tooSmall .card{border:1px solid #2c3d61; background:rgba(8,12,24,.95); padding:28px 34px;
-    color:#dfe9ff; letter-spacing:.16em; font-size:clamp(14px,2.4vw,18px); text-align:center}
-  #tooSmall.on{display:flex}
   /* Playable but cramped: a quiet line along the bottom of the menus, never
      over a flight, until the window is FIT_W x FIT_H (fitCheck decides). */
   #fitHint{position:absolute; left:50%; bottom:1.6%; transform:translateX(-50%); z-index:29;
@@ -62,7 +54,6 @@
     font-size:min(1.15vw,1.7vh); letter-spacing:.16em; color:#7d8bb0;
     padding:6px 14px; border:1px solid #1e2a46; background:rgba(5,6,13,.85)}
   #fitHint.on{display:block}
-  #tooSmall .card button{display:block; margin:20px auto 0}
   #mobileOnly{position:fixed; inset:0; z-index:210; display:none; align-items:center; justify-content:center;
     background:#05060d; padding:16px}
   #mobileOnly .card{border:1px solid #2c3d61; background:rgba(8,12,24,.95); padding:28px 34px;
@@ -174,8 +165,11 @@
   #retryAsk{display:none; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
   #retryAsk.on{display:flex}
   /* the same yes/no for spending in the Garage, over whichever screen asked */
-  #buyAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
-  #buyAsk.on{display:flex}
+  #buyAsk,#syncAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
+  #buyAsk.on,#syncAsk.on{display:flex}
+  /* the first-launch MUSIC SYNC question: a sentence, so it reads as one */
+  #syncAsk .askBox{border-color:#33456d}
+  #syncAsk .askQ{color:#dfe9ff; letter-spacing:.06em; line-height:1.6; margin-bottom:16px}
   #buyAsk .askBox{border-color:#33456d}
   #buyAsk .askQ{color:#dfe9ff}
   .askBox{width:min(92vw,470px); padding:20px 22px; border:1px solid #8d3a55; background:rgba(14,10,20,.97); text-align:left}
@@ -205,6 +199,23 @@
 
   /* ---- pause ---- */
   #pause{background:rgba(5,6,13,.72)}
+  /* the pause menu's cards, over everything and shut by the X in their top
+     left: SETTINGS (the settings and the wipe), and MAIN MENU's are-you-sure */
+  #pauseSet,#quitAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center;
+    background:rgba(5,6,13,.82); padding:16px}
+  #pauseSet.on,#quitAsk.on{display:flex}
+  .setCard{position:relative; display:flex; flex-direction:column; align-items:center;
+    padding:46px 34px 26px; max-height:100%; overflow-y:auto;
+    background:rgba(8,12,24,.97); border:1px solid #2c3a5c;
+    clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))}
+  .setX{position:absolute; top:10px; left:10px; width:34px; height:34px; padding:0; margin:0;
+    font-size:18px; line-height:1; letter-spacing:0}
+  /* every row on the card centred, its label, buttons and line under it too */
+  .setCard{text-align:center}
+  .setCard .diff{display:flex; flex-direction:column; align-items:center}
+  .setCard .diff .why{text-align:center; max-width:330px}
+  #quitAsk .setCard{min-width:min(86vw,320px)}
+  #quitAsk .askQ{color:#dfe9ff; margin:0 0 18px}
 
   /* ---- garage ---- */
   #garage{justify-content:flex-start; padding:3% 4%}
@@ -1004,7 +1015,7 @@
     </div>
     <div id="demoKeys">
       <span><b>WASD</b> THRUST</span><span><b>MOUSE</b> AIM</span>
-      <span><b>CLICK</b> FIRE</span><span><b>P</b> PAUSE</span>
+      <span><b>CLICK</b> FIRE</span><span><b>P/ESC</b> PAUSE</span>
     </div>
   </div>
 
@@ -1049,15 +1060,8 @@
     <div class="row">
       <button id="btnResume">RESUME</button>
       <button id="btnPauseCodex" class="ghost">BESTIARY</button>
+      <button id="btnPauseSet" class="ghost">SETTINGS</button>
       <button id="btnQuit" class="ghost">MAIN MENU</button>
-    </div>
-    <div class="snd" id="sndPause"></div>
-    <div class="diff" id="diffPause"></div>
-    <div class="diff" id="fxPause"></div>
-    <div class="diff" id="rhyPause"></div>
-    <div class="row">
-      <button id="btnPauseCode" class="ghost">SAVE CODE</button>
-      <button id="btnPauseWipe" class="ghost danger">WIPE ALL PROGRESS</button>
     </div>
     <p style="margin-top:20px"><span class="key">P</span> or <span class="key">ESC</span> resumes.</p>
   </div>
@@ -1247,7 +1251,25 @@
   <div class="askRow tot"><span>AFTER</span><b id="baAfter"></b></div>
   <div class="row"><button id="btnBuyYes">CONFIRM</button><button id="btnBuyNo" class="ghost">CANCEL</button></div>
 </div></div>
-<div id="tooSmall"><div class="card"><span id="fitMsg">Please play in full screen mode.</span><button id="btnFull">FULL SCREEN</button></div></div>
+<div id="pauseSet"><div class="setCard">
+  <button id="pauseSetX" class="ghost setX" aria-label="Close">&#x2715;</button>
+  <div class="snd" id="sndPause"></div>
+  <div class="diff" id="diffPause"></div>
+  <div class="diff" id="fxPause"></div>
+  <div class="diff" id="rhyPause"></div>
+  <div class="row">
+    <button id="btnPauseWipe" class="ghost danger">WIPE ALL PROGRESS</button>
+  </div>
+</div></div>
+<div id="quitAsk"><div class="setCard">
+  <button id="quitAskX" class="ghost setX" aria-label="Close">&#x2715;</button>
+  <div class="askQ">Are you sure?</div>
+  <button id="btnQuitYes">YES</button>
+</div></div>
+<div id="syncAsk"><div class="askBox">
+  <div class="askQ" id="saQ"></div>
+  <div class="row"><button id="btnSyncYes">YES</button><button id="btnSyncNo" class="ghost">NO</button></div>
+</div></div>
 <div id="mobileOnly"><div class="card">Please play on Desktop.</div></div>
 <script>
 (()=>{
@@ -2092,7 +2114,9 @@ if(!save.swapRB){
 }
 fixSave();
 SND.vol=save.vol; SND.on=save.sound;
-const persist=()=>{ try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
+// set by the wipe, so nothing writes the old save back while the page restarts
+let wiped=false;
+const persist=()=>{ if(wiped) return; try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
    The skill tree is the pilot's, not the ship's: whatever is in the bay flies
    with every skill you have bought. It lives in save.trees[0] — the slot hull
@@ -2380,8 +2404,13 @@ const PU_LIFE=14;
 
 /* ================= input ================= */
 const keys={}, mouse={x:W/2, y:H/2-140, down:false};
+// the keys that never skip a cutscene: flying, dashing, pausing, and Return, which presses nothing
 const FLY_KEYS=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
-  'ShiftLeft','ShiftRight','KeyP','Escape']);
+  'ShiftLeft','ShiftRight','KeyP','Escape','Enter','NumpadEnter']);
+// Return presses nothing anywhere, not even the button that has focus (a text field keeps it)
+addEventListener('keydown',e=>{
+  if((e.code==='Enter'||e.code==='NumpadEnter')&&!isText(e.target)) e.preventDefault();
+},{capture:true});
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
@@ -2389,7 +2418,7 @@ addEventListener('keydown',e=>{
   // flying, dashing and pausing never skip a launch or a boss's entrance
   if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()&&!FLY_KEYS.has(e.code)) launchSkip();
   else if(entrance&&state==='play'&&!paused&&!e.repeat&&entranceSeen()&&!FLY_KEYS.has(e.code)) entranceSkip();
-  if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()){ e.preventDefault(); setPause(!paused); }
+  if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()&&!isText(e.target)){ e.preventDefault(); setPause(!paused); }
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
 });
@@ -3265,6 +3294,7 @@ function spawn(type,at,def){
       hp:EHULL.cloner*sc,max:EHULL.cloner*sc,spd:CLONE_V*vm,cool:rand(1.2,2)/cd,a:0,val:180,rof:1/cd,
       spin:0,morph:rand(0,9)});
   if(type==='boss'){
+    RHY.brk=RHY.drop=null;             // a fresh fight: nothing held over from the last one's score
     // whichever one this system answers to, unless a mission named one
     const B0=def||BOSS(sysIdx);
     if(B0.station){
@@ -5058,6 +5088,8 @@ const STAGES={
       [this.scan,()=>{ SFX.warn(); shake=Math.max(shake,14); }]]; },
     draw(E,t,col){
       const fade=1-clamp((t-E.land)/.6,0,1); if(!fade) return;
+      // aimed at where you are now, not where you were when it began: you can fly through it
+      if(player) E.fa=Math.atan2(player.y-E.y,player.x-E.x);
       const k=clamp(t/this.scan,0,1), sa=E.fa-TAU*3*(1-eOut(k)), pass=Math.min(2,Math.floor(eOut(k)*3));
       const bright=.45+.25*pass, far=Math.hypot(W,H);
       ctx.save(); ctx.globalAlpha=fade; ctx.translate(E.x,E.y);
@@ -5554,6 +5586,30 @@ function rhyWait(o,e){
   if(p<o.rg) return true;
   o.rg=null; return false;
 }
+/* To the music, the punish window closes on the bar line, not on the fight's
+   own clock: what is left of it is read off the music every frame, paused,
+   in a hitstop or slowed, so it shuts when the drums come back. */
+function rhyOpen(e){
+  if(e.openEnd==null) return;
+  const p=RHY.pos();
+  if(p==null){ e.openEnd=null; return; }
+  e.open=Math.max(0,(e.openEnd-p)*MUS.spb); if(!e.open) e.openEnd=null;
+}
+/* The cue for a boss's next attack goes out as late as the score allows: the
+   sixteenths just before its beat are scheduled. So nothing that changes during
+   the warning (hits taken, the other Titan starting) leaves the music saying
+   something the fight does not do. */
+const CUE_AHEAD=2;      // sixteenths before the beat the cue is scheduled
+function rhyCue(e,B){
+  const strict=e.nextK==='|';
+  if(MUS.abs<e.gate-CUE_AHEAD) return;                          // not yet
+  // the Titans take turns: while the other is mid-attack or has its own beat
+  // cued, this one moves a beat (or a bar) along, before anything is heard
+  const tw=B.duoPart&&!e.combo&&!e.comboQ&&e.twin&&enemies.includes(e.twin)?e.twin:null;
+  if(tw&&(tw.act||tw.busy>0||(tw.gate!=null&&tw.cued===tw.gate))){ e.gate+=strict?16:8; return; }
+  e.cueMarks=e.marked||0; e.cueLen=null;
+  RHY.cue(e,e.gate,e.nextK); e.cued=e.gate;
+}
 // the arena's edge keeps time while a boss is fought to the music
 function rhyEdge(){
   const e=enemies.find(o=>o.t==='boss'&&RHY.boss(o)&&!o.hidden); if(!e) return;
@@ -5646,7 +5702,9 @@ const RHY={
   // on a cymbal, the charge on a hit, so you hear them fire on the beat
   cue(e,g,k){
     if(k==='|'){
+      if((e.marked||0)>=GUARD_MARKS){ this.brk=null; return; }    // no window coming: no breakdown
       const to=g+this.openLen(e,e.marked||0);
+      e.cueLen=to-g;
       this.brk=[g,to];
       MUS.drum(this.at(g),'crash',.12);
       // the band comes back in on the bar the window shuts
@@ -5670,7 +5728,7 @@ const RHY={
     if(s<=this.lastNote) return;
     this.lastNote=s;
     const i=this.run++, semi=MUS.PHRY[i%7]+12*Math.min(2,Math.floor(i/7));
-    MUS.saw(MUS.ROOTS[0]*Math.pow(2,semi/12), this.at(s), MUS.spb*1.6, .075, null, false);
+    MUS.saw(MUS.ROOTS[Math.min(sysIdx,3)]*Math.pow(2,semi/12), this.at(s), MUS.spb*1.6, .075, null, false);
   },
   // a pulse on every beat, bigger on the bar
   pulse(){
@@ -6683,13 +6741,8 @@ function bossAI(e,dt,dx,dy,d){
   // a Titan cannot be touched from its climb until its combo has played out
   if(e.guard){ if(e.combo||e.comboQ||e.act) e.inv=Math.max(e.inv,.15); else e.guard=0; }
   if(e.inv>0) e.inv-=dt;
-  if(e.open>0) e.open=Math.max(0,e.open-dt);
-  // to the music, the window closes on the bar line, not on its own clock
-  if(e.openEnd!=null){
-    const p=RHY.pos();
-    if(p==null) e.openEnd=null;
-    else{ e.open=Math.max(0,(e.openEnd-p)*MUS.spb); if(!e.open) e.openEnd=null; }
-  }
+  if(e.open>0&&e.openEnd==null) e.open=Math.max(0,e.open-dt);
+  rhyOpen(e);
   if(e.held>0) e.held-=dt;
   const T=B.tiers[e.tier];
   /* the Archive's clock. It runs only in the last tier and only for the Archive;
@@ -6811,10 +6864,10 @@ function bossAI(e,dt,dx,dy,d){
     if(e.cool>0||e.gate==null){
       e.nextK=bossPick(e,T,B);
       e.gate=RHY.snap(Math.max(0,e.cool),e.nextK==='|'); e.cool=0;
-      RHY.cue(e,e.gate,e.nextK);
     }
     // a beat missed while something else had the boss (a strike): the next one
-    if(e.gate!=null && RHY.pos()>e.gate+2){ e.gate=RHY.snap(0,e.nextK==='|'); RHY.cue(e,e.gate,e.nextK); }
+    if(e.gate!=null && RHY.pos()>e.gate+2) e.gate=RHY.snap(0,e.nextK==='|');
+    if(e.gate!=null && e.cued!==e.gate) rhyCue(e,B);
     if(e.gate!=null){ if(RHY.pos()<e.gate) return; e.beatAt=e.gate; e.gate=null; }
   }else{
     e.cool-=dt;
@@ -6882,7 +6935,9 @@ function bossAct(e,T,B,k,dx,dy,d){
   // '|' is the price of the line it just fired: it stops, drops its guard, and
   // for a moment every round you land on it counts double
   if(k==='|'){
-    const marks=e.marked||0; e.marked=0;
+    // to the music, the hits counted are the ones the score was cued with (rhyCue)
+    const cued=RHY.boss(e)&&e.beatAt!=null&&e.cueMarks!=null;
+    const marks=cued?e.cueMarks:(e.marked||0); e.marked=0; e.cueMarks=null;
     if(marks>=GUARD_MARKS){                   // hit too often this line: no window at all
       e.held=1.4; e.cool=GUARD_HELD;
       if(RHY.boss(e)) RHY.brk=null;
@@ -6891,7 +6946,8 @@ function bossAct(e,T,B,k,dx,dy,d){
     const p=RHY.boss(e)?RHY.pos():null;
     if(p!=null){
       // to the music: a breakdown from this bar line, as long as it was earned
-      const from=e.beatAt!=null?e.beatAt:Math.round(p/16)*16, len=RHY.openLen(e,marks);
+      const from=e.beatAt!=null?e.beatAt:Math.round(p/16)*16;
+      const len=cued&&e.cueLen!=null?e.cueLen:RHY.openLen(e,marks); e.cueLen=null;
       RHY.brk=[from,from+len]; e.openEnd=from+len; RHY.run=0;
       e.open=e.openMax=Math.max(.01,(from+len-p)*MUS.spb);
     }
@@ -11397,6 +11453,7 @@ function frame(now){
      of here, the next frame was never asked for, and the whole game stopped
      dead while the page around it kept answering clicks. Now a throw is shown
      (frameFault) and the loop carries on. */
+  try{ for(const e of enemies) if(e.t==='boss') rhyOpen(e); }catch(err){ frameFault(err,'window'); }
   try{
   if(state==='finale'){ finaleStep(raw); }
   else if(state==='play'&&!paused&&raw&&!stopped){ sceneT+=raw; update(dt); }
@@ -11444,6 +11501,8 @@ requestAnimationFrame(frame);
 function setPause(on){
   if(state!=='play') return;
   paused=on;
+  // the pause menu's cards never outlive the pause, and every pause opens without them
+  $('pauseSet').classList.remove('on'); $('quitAsk').classList.remove('on');
   if(on){
     $('pauseSub').textContent = mission
       ? (mission.B?mission.B.n:branchName(mission.k))+'  ·  '+(mission.k==='boss'?'SIDE BOSS':'SIDE MISSION')
@@ -11452,40 +11511,14 @@ function setPause(on){
     buildSound(); buildDiff(); buildFx(); buildMusic(); resetWipeLink(); show('pause');
   }else hideAll();
 }
-/* Window size. The wall is HARD_W x HARD_H, but never more than a maximised
-   window on this display can show inside (the screen, less the menu bar, the
-   dock and the browser's own bars: outer minus inner), and never less than
-   MIN_W x MIN_H. So a maximised window always plays. Under the wall,
-   #tooSmall covers everything, with a FULL SCREEN button unless full screen
-   cannot help (the app, already full screen, or a display that small).
-   Above the wall but under FIT_W x FIT_H it plays, with #fitHint on the
+/* Window size. Any window plays. Under FIT_W x FIT_H, #fitHint shows on the
    menus, where the display could actually go bigger. */
-const MIN_W=1000, MIN_H=677;
-const HARD_W=1275, HARD_H=965;
 const FIT_W=1425, FIT_H=965;
 let fitSoft=false;
-const fullNow=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
 function fitCheck(){
-  const roomW=(screen.availWidth||screen.width)-(outerWidth-innerWidth);
-  const roomH=(screen.availHeight||screen.height)-(outerHeight-innerHeight);
-  const needW=Math.max(MIN_W,Math.min(HARD_W,roomW)), needH=Math.max(MIN_H,Math.min(HARD_H,roomH));
-  const floor=innerWidth>=needW-2&&innerHeight>=needH-2;
-  const tooSmallScreen=((APP||fullNow())&&!floor)||screen.width<MIN_W||screen.height<MIN_H;   // full screen cannot help
-  $('fitMsg').textContent = tooSmallScreen ? 'Play on a computer, desktop is best.' : 'Please play in full screen mode.';
-  $('btnFull').style.display = tooSmallScreen||APP ? 'none' : '';
-  $('tooSmall').classList.toggle('on', !floor);
-  fitSoft = floor && (innerWidth<FIT_W||innerHeight<FIT_H)
-                  && screen.width>=FIT_W && screen.height>=FIT_H;
+  fitSoft = (innerWidth<FIT_W||innerHeight<FIT_H)
+            && screen.width>=FIT_W && screen.height>=FIT_H;
 }
-$('btnFull').onclick=()=>{
-  const el=document.documentElement, go=el.requestFullscreen||el.webkitRequestFullscreen;
-  if(!go) return;
-  Promise.resolve(go.call(el)).then(()=>{
-    // in full screen Escape would leave it; Chrome can keep it for the pause key
-    // (hold Escape to leave). Other browsers ignore this and P still pauses.
-    try{ navigator.keyboard&&navigator.keyboard.lock&&navigator.keyboard.lock(['Escape']); }catch(e){}
-  }).catch(()=>{});
-};
 addEventListener('resize',fitCheck);
 document.addEventListener('fullscreenchange',fitCheck);
 document.addEventListener('webkitfullscreenchange',fitCheck);
@@ -11493,8 +11526,7 @@ fitCheck();
 /* A resize mid-flight pauses it. The arena is a fixed 1000x680 canvas that is
    only scaled to fit, so nothing about the fight changes; the pause is for the
    player, who has just had the window move under them (Escape leaving full
-   screen in Safari or Firefox, the green button). If the window is now too
-   small, the too-small card sits over the pause menu until it is not. */
+   screen in Safari or Firefox, the green button). */
 let winSize=[innerWidth,innerHeight];
 addEventListener('resize',()=>{
   const changed=innerWidth!==winSize[0]||innerHeight!==winSize[1];
@@ -12313,17 +12345,11 @@ function wipeClick(a){
     return;
   }
   wipeArmed=0;
+  /* Everything: the save, every setting with it, and whatever run is under
+     way. The page starts over as it did the very first time it was opened. */
+  wiped=true;
   try{ localStorage.removeItem(SAVE); localStorage.removeItem('mf.seen'); }catch(e){}
-  save={points:0, credits:0, owned:[], trees:[], unlocked:true, best:0, deepest:1, deepestSys:0,
-        ships:[0], ship:0, hup:{},
-        branches:[], beaten:[], route:6,
-        vol:SND.vol, sound:SND.on, seen:[], diff:save.diff};
-  persist();
-  landed=null; respecArmed=0;
-  buildTree(); refreshMenu(); resetWipeLink();
-  a.classList.add('armed');
-  a.textContent='PROGRESS WIPED';
-  setTimeout(resetWipeLink,2200);
+  location.reload();
 }
 WIPE_BTNS.forEach(id=>{ $(id).onclick=()=>wipeClick($(id)); });
 function resetWipeLink(){
@@ -12761,8 +12787,8 @@ function buildHull(){
   });
 }
 /* Spending in the Garage asks first, the way the skill tree does: what you
-   have, what it costs, what is left. CONFIRM pays; CANCEL, Escape or a click
-   outside the box leaves everything as it was. */
+   have, what it costs, what is left. CONFIRM pays; CANCEL or a click outside
+   the box leaves everything as it was. */
 let buyYes=null;
 function askBuy(q,cost,yes){
   $('baQ').textContent=q;
@@ -12774,7 +12800,6 @@ function buyAskClose(){ buyYes=null; $('buyAsk').classList.remove('on'); }
 $('btnBuyYes').onclick=()=>{ const f=buyYes; buyAskClose(); if(f) f(); };
 $('btnBuyNo').onclick=buyAskClose;
 $('buyAsk').onclick=e=>{ if(e.target===$('buyAsk')) buyAskClose(); };
-addEventListener('keydown',e=>{ if(e.code==='Escape'&&$('buyAsk').classList.contains('on')){ e.preventDefault(); buyAskClose(); } });
 function closeHull(){ show('garage'); buildGarage(); }
 /* ---- hull respec ----
    The upgrade screen's own RESPEC: every upgrade on that hull comes back as
@@ -12925,7 +12950,7 @@ const CREDITS_SPEED=62;            // px a second the roll climbs
 
 /* ---- the roll ----
    Plays when the thing behind the Ruler goes down, before the victory card,
-   and from Extras. SKIP, Escape, Space or Enter ends it early. */
+   and from Extras. SKIP or Space ends it early. */
 let roll=null;
 function creditsRoll(then){
   const fig=sh=>'<figure><img src="'+sh.src+'" alt="" onerror="this.parentNode.remove()">'+
@@ -13072,8 +13097,9 @@ function storyRead(ks,typeIt,then){
   if(!typeIt){ ps.forEach(([p,t])=>p.textContent=t); if(then) then(); return; }
   storyTypeOut(el,ps,then);
 }
-// type [p,text] pairs out in order, fast and silent; a click on the text finishes them
-function storyTypeOut(el,ps,then){
+// type [p,text] pairs out in order, fast and silent; a click on the text finishes them.
+// `follow(p)`, if given, runs as each frame's text lands in p
+function storyTypeOut(el,ps,then,follow){
   const job={i:0, c:0, last:performance.now()};
   storyType=job;
   const finish=()=>{ if(storyType!==job) return; storyType=null;
@@ -13085,8 +13111,9 @@ function storyTypeOut(el,ps,then){
     while(job.i<ps.length){
       const [p,t]=ps[job.i]; p.classList.add('live');
       const n=Math.floor(job.c);
-      if(n<t.length){ p.textContent=t.slice(0,n); break; }
+      if(n<t.length){ p.textContent=t.slice(0,n); if(follow) follow(p); break; }
       p.textContent=t; p.classList.remove('live'); job.c-=t.length; job.i++;
+      if(follow) follow(p);
     }
     if(job.i>=ps.length){ finish(); return; }
     requestAnimationFrame(step);
@@ -13113,10 +13140,23 @@ function storyRecovered(k){
   }
   el.scrollTop=0;
   if(ps.length){
-    // bring the new part up to the top of the reader, then type it
-    const top=ps[0][0].offsetTop-el.offsetTop-24;
-    el.scrollTop=Math.max(0,top);
-    storyTypeOut(el,ps);
+    /* bring the new part's first line up near the top of the reader, then type
+       it, scrolling on with the typing. Its paragraphs are empty until typed,
+       so a spacer under the report gives the reader room to scroll that far;
+       once the text is all there it shrinks to only what holds the view. */
+    const spacer=document.createElement('div');
+    spacer.style.height=el.clientHeight+'px'; el.appendChild(spacer);
+    const y=p=>p.getBoundingClientRect().top-el.getBoundingClientRect().top+el.scrollTop;
+    el.scrollTop=Math.max(0,y(ps[0][0])-24);
+    const follow=p=>{
+      const bot=y(p)+p.offsetHeight;
+      if(bot>el.scrollTop+el.clientHeight-40) el.scrollTop=bot-el.clientHeight+40;
+    };
+    const trim=()=>{
+      const st=el.scrollTop, end=y(spacer);
+      spacer.style.height=Math.max(0,st+el.clientHeight-end)+'px'; el.scrollTop=st;
+    };
+    storyTypeOut(el,ps,trim,follow);
   }
 }
 function buildStory(){ storyArchive=false; storyList(); }
@@ -13348,17 +13388,20 @@ $('btnStoryBack').onclick=()=>{
   if(gearFrom){ gearBack(); return; } refreshMenu(); show('menu'); };
 $('creditsSkip').onclick=creditsEnd;
 addEventListener('keydown',e=>{
-  if(roll&&(e.code==='Escape'||e.code==='Space'||e.code==='Enter')){ e.preventDefault(); creditsEnd(); return; }
-  // Enter carries on from a result card: on to the map, as SPACE MAP does
-  if(e.code==='Enter'&&!e.repeat&&$('done').classList.contains('on')&&!gearIsOpen()){ e.preventDefault(); $('btnDoneGo').click(); }
+  if(roll&&e.code==='Space'){ e.preventDefault(); creditsEnd(); }
 });
 
 /* The very first LAUNCH skips the chart and the launching screen and puts you
    in Earth: a new player has nothing to choose yet and should be flying, not
-   reading. Every LAUNCH after that opens the map as usual. */
-$('btnStart').onclick=()=>{
+   reading. Every LAUNCH after that opens the map as usual. The first LAUNCH
+   of all asks about MUSIC SYNC first (syncAsk), then goes on. */
+function startLaunch(){
   if(!save.flown){ mapPick=0; mapPickK=null; newRun(); return; }
   openMap('menu');
+}
+$('btnStart').onclick=()=>{
+  if(!save.syncAsked){ $('saQ').textContent=SYNC_ASK; $('syncAsk').classList.add('on'); return; }
+  startLaunch();
 };
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
@@ -13409,8 +13452,12 @@ const openOverlay=()=>['menu','over','skills','story','credits','medals','extras
 
 /* ---- pause menu ---- */
 $('btnResume').onclick=()=>setPause(false);
-$('btnQuit').onclick=quitRun;
-$('btnPauseCode').onclick=()=>{ gearFrom='pause'; openCode(); };
+// MAIN MENU leaves the run, so it asks first
+$('btnQuit').onclick=()=>$('quitAsk').classList.add('on');
+$('quitAskX').onclick=()=>$('quitAsk').classList.remove('on');
+$('btnQuitYes').onclick=()=>{ $('quitAsk').classList.remove('on'); quitRun(); };
+$('btnPauseSet').onclick=()=>{ resetWipeLink(); $('pauseSet').classList.add('on'); };
+$('pauseSetX').onclick=()=>{ $('pauseSet').classList.remove('on'); resetWipeLink(); };
 $('btnPauseCodex').onclick=()=>{ codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
 
 /* ---- bestiary ---- */
@@ -13425,6 +13472,20 @@ $('btnHullBack').onclick=closeHull;
 
 // the app calls this when you switch away from it or minimise it
 window.mfAppBlur=()=>{ if(state==='play'&&!paused) setPause(true); };
+
+/* MUSIC SYNC is off by default and lives in Settings, so the first LAUNCH
+   asks, and the answer carries on into the launch. Either answer is kept
+   (save.syncAsked) and it never asks again; a wipe starts the game over, so
+   it asks again after one. */
+// PROSE — the first-launch MUSIC SYNC question
+const SYNC_ASK='Would you like to enable MUSIC SYNC? This is a BETA feature that improves gameplay against bosses related to music. Try it out!';
+function syncAnswer(on){
+  save.rhythm=on; save.syncAsked=1; persist();
+  $('syncAsk').classList.remove('on'); buildMusic();
+  startLaunch();
+}
+$('btnSyncYes').onclick=()=>syncAnswer(true);
+$('btnSyncNo').onclick=()=>syncAnswer(false);
 
 // the game opens on the menu
 refreshMenu(); state='menu'; show('menu');
