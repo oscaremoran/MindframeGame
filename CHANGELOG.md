@@ -2,7 +2,30 @@
 
 ## 1.1.0 — 2026-10-16
 
-«WRITE: what 1.1.0 brings, for players»
+- **Starfarer, reworked:** enemy hull is down, and the bosses bring hazards
+  instead. The Hive Mind's spore pods root into drifting green vents, 2117's
+  phase change pulls you into its laser, the Architect's blast rings burst
+  into debris, the Crescent's zoom fills the arena with low gravity, storm
+  fronts roll in while the Titans stand, the Leviathan's head throws
+  freezing glaciers, Omega's solar flares swell and split, and the Ruler and
+  the Archive use any of them. The music turns slower and darker.
+- **Galaxy marks:** a system held on Starfarer gets a gold galaxy on the map.
+- **Music Sync (beta):** every boss fought to the music, with attacks on the
+  beat and the punish window as a breakdown. The first LAUNCH asks if you
+  want it on.
+- **Feel:** punish hits knock the boss back; a hit shoves your ship (light
+  hulls further, heavy hulls less) with a faint red pulse; your ship pulses
+  blue when the dash is ready and in a powerup's colour when you take one.
+- **Pause menu:** settings and the wipe are on a SETTINGS card, and MAIN MENU
+  asks first. WIPE ALL PROGRESS now clears everything, settings included.
+- **Controls:** ESC no longer goes back on menus, RETURN presses nothing, and
+  a launch you have already watched can be skipped with a click.
+- **Window size:** any window plays; a cramped one gets a hint on the menus.
+- **Bosses:** retuned across the roster, no escort waves, and the Hive steers
+  clear of vents.
+- **Fixes:** the story's new fragment scrolls into view as it types, 2117's
+  entrance scan lands on you, and a relaunch's launch can be skipped.
+- The credits roll faster and end bigger.
 
 ## 1.0.0 — 2026-10-12
 

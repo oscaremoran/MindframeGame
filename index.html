@@ -650,8 +650,9 @@
     transition:border-color .15s, box-shadow .15s;
   }
   .mnode .mi{position:absolute; top:8px; left:11px; font-size:12.5px; letter-spacing:.16em; color:#5d6c8f}
-  /* held on Starfarer: a small gold galaxy in the top right, just inside the cut corner */
-  .mnode .sfMark{position:absolute; top:4px; right:12px; width:14px; height:14px; color:#ffd24d;
+  /* held on Starfarer: a small gold galaxy in the top right, just inside the cut corner.
+     #chart because the route's own svg rule (#chart svg) would otherwise stretch it over the map */
+  #chart .mnode .sfMark{position:absolute; inset:auto; top:4px; right:12px; width:60px; height:60px; color:#ffd24d;
     fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round;
     filter:drop-shadow(0 0 5px rgba(255,210,77,.55))}
   .mnode .id{font-size:clamp(13px,1.85vw,22px); letter-spacing:.13em; color:#b6c4de}
