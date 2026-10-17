@@ -2447,7 +2447,13 @@ addEventListener('keydown',e=>{
   // flying, dashing and pausing never skip a launch or a boss's entrance
   if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()&&!FLY_KEYS.has(e.code)) launchSkip();
   else if(entrance&&state==='play'&&!paused&&!e.repeat&&entranceSeen()&&!FLY_KEYS.has(e.code)) entranceSkip();
-  if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()&&!isText(e.target)){ e.preventDefault(); setPause(!paused); }
+  if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()&&!isText(e.target)){
+    e.preventDefault();
+    // a card open on the pause menu: the key shuts it, and the pause stays
+    const card=['pauseSet','quitAsk'].find(id=>$(id).classList.contains('on'));
+    if(card&&paused){ $(card).classList.remove('on'); resetWipeLink(); }
+    else setPause(!paused);
+  }
   if(state==='map'&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
     e.preventDefault(); mapRegStep(e.code==='ArrowLeft'?-1:1); }
 });
@@ -3333,7 +3339,7 @@ function spawn(type,at,def){
       hp:EHULL.cloner*sc,max:EHULL.cloner*sc,spd:CLONE_V*vm,cool:rand(1.2,2)/cd,a:0,val:180,rof:1/cd,
       spin:0,morph:rand(0,9)});
   if(type==='boss'){
-    RHY.brk=RHY.drop=null;             // a fresh fight: nothing held over from the last one's score
+    RHY.brk=RHY.drop=RHY.back=null;    // a fresh fight: nothing held over from the last one's score
     // whichever one this system answers to, unless a mission named one
     const B0=def||BOSS(sysIdx);
     if(B0.station){
@@ -5660,8 +5666,9 @@ function rhyWait(o,e){
   o.rg=null; return false;
 }
 /* To the music, the punish window closes on the bar line, not on the fight's
-   own clock: what is left of it is read off the music every frame, paused,
-   in a hitstop or slowed, so it shuts when the drums come back. */
+   own clock: what is left of it is read off the music every frame, in a
+   hitstop or slowed, so it shuts when the drums come back. A pause holds it
+   (RHY.hold). */
 function rhyOpen(e){
   if(e.openEnd==null) return;
   const p=RHY.pos();
@@ -5760,8 +5767,32 @@ const RHY={
   climb(last){
     const p=this.pos(); if(p==null) return;
     let g=Math.ceil(p/16)*16; while(g<p+4) g+=16;
-    this.brk=null; this.drop=[g, last?Infinity:g+16*8];
+    this.brk=null; this.back=null; this.drop=[g, last?Infinity:g+16*8];
     MUS.drum(this.at(g),'crash',.22); MUS.drum(this.at(g),'kick',.6); MUS.drum(this.at(g),'hit',.15);
+  },
+  /* The band comes back in on the bar the window shuts (`back`), scheduled
+     only as that bar comes up, so a pause that holds the window (hold) holds
+     it too. */
+  back:null, heldAt:null,
+  backStep(){
+    if(this.back==null||MUS.abs<this.back-CUE_AHEAD) return;
+    const t=this.at(this.back); this.back=null;
+    MUS.drum(t,'crash',.2); MUS.drum(t,'kick',.55); MUS.drum(t,'hit',.14);
+  },
+  /* Paused, the music plays on but the fight does not: the window, its
+     breakdown and the band's return are all moved on by however far the
+     music got, so the window has as long left after a pause as before it. */
+  hold(paused){
+    const p=this.pos(), held=paused&&p!=null;
+    if(held&&this.heldAt!=null){
+      const d=p-this.heldAt;
+      if(d>0){
+        for(const e of enemies) if(e.openEnd!=null) e.openEnd+=d;
+        if(this.brk) this.brk[1]+=d;
+        if(this.back!=null) this.back+=d;
+      }
+    }
+    this.heldAt=held?p:null;
   },
   // the punish window in sixteenths: the whole number of beats nearest what the
   // fight gives anyway (OPENING, shrunk by the hits taken), never under one
@@ -5775,13 +5806,11 @@ const RHY={
   // on a cymbal, the charge on a hit, so you hear them fire on the beat
   cue(e,g,k){
     if(k==='|'){
-      if((e.marked||0)>=GUARD_MARKS){ this.brk=null; return; }    // no window coming: no breakdown
+      if((e.marked||0)>=GUARD_MARKS){ this.brk=null; this.back=null; return; }    // no window coming: no breakdown
       const to=g+this.openLen(e,e.marked||0);
       e.cueLen=to-g;
-      this.brk=[g,to];
+      this.brk=[g,to]; this.back=to;
       MUS.drum(this.at(g),'crash',.12);
-      // the band comes back in on the bar the window shuts
-      MUS.drum(this.at(to),'crash',.2); MUS.drum(this.at(to),'kick',.55); MUS.drum(this.at(to),'hit',.14);
     }
     // the everyday attacks only get a cymbal; the pump-like 'hit' is kept for showpieces
     if(k==='ring'){ MUS.drum(this.at(g),'crash',.16); }
@@ -7324,7 +7353,7 @@ function bossAct(e,T,B,k,dx,dy,d){
     const marks=cued?e.cueMarks:(e.marked||0); e.marked=0; e.cueMarks=null;
     if(marks>=GUARD_MARKS){                   // hit too often this line: no window at all
       e.held=1.4; e.cool=GUARD_HELD;
-      if(RHY.boss(e)) RHY.brk=null;
+      if(RHY.boss(e)){ RHY.brk=null; RHY.back=null; }
       return;
     }
     const p=RHY.boss(e)?RHY.pos():null;
@@ -7332,7 +7361,7 @@ function bossAct(e,T,B,k,dx,dy,d){
       // to the music: a breakdown from this bar line, as long as it was earned
       const from=e.beatAt!=null?e.beatAt:Math.round(p/16)*16;
       const len=cued&&e.cueLen!=null?e.cueLen:RHY.openLen(e,marks); e.cueLen=null;
-      RHY.brk=[from,from+len]; e.openEnd=from+len; RHY.run=0;
+      RHY.brk=[from,from+len]; RHY.back=from+len; e.openEnd=from+len; RHY.run=0;
       e.open=e.openMax=Math.max(.01,(from+len-p)*MUS.spb);
     }
     else e.open=e.openMax=OPENING(e.tier)/(marks+1);
@@ -11861,7 +11890,13 @@ function frame(now){
      of here, the next frame was never asked for, and the whole game stopped
      dead while the page around it kept answering clicks. Now a throw is shown
      (frameFault) and the loop carries on. */
-  try{ for(const e of enemies) if(e.t==='boss') rhyOpen(e); }catch(err){ frameFault(err,'window'); }
+  try{
+    if(enemies){
+      RHY.hold(state==='play'&&paused);
+      for(const e of enemies) if(e.t==='boss') rhyOpen(e);
+    }
+    RHY.backStep();
+  }catch(err){ frameFault(err,'window'); }
   try{
   if(state==='finale'){ finaleStep(raw); }
   else if(state==='play'&&!paused&&raw&&!stopped){ sceneT+=raw; update(dt); }
