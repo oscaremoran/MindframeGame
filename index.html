@@ -2292,21 +2292,23 @@ const tierOf=id=>{
    hull can be bought at all; `cost` is the price in credits, charged and shown
    exactly as written (it is skills that SKILL_CR doubles, not hulls).
    Multipliers are the truth and the letter grades are derived from them, so a
-   card can never lie about a ship.                                          */
+   card can never lie about a ship. `knock` is how far a hit shoves the
+   hull (HIT_KNOCK times it): the Needle is light, the Bulwark and the
+   Worldbreaker are not.                                                     */
 const SHIPS=[
-  {n:'LANCER',  cls:'STANDARD PATTERN', hp:0.92, dmg:0.92, rate:0.92, spd:0.92, grip:0.92, cost:0,  sys:0,
+  {n:'LANCER',  cls:'STANDARD PATTERN', hp:0.92, dmg:0.92, rate:0.92, spd:0.92, grip:0.92, knock:1,    cost:0,  sys:0,
    up:{hp:3, dmg:3, rate:3, spd:3, grip:3}},
-  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, cost:20, sys:1,
+  {n:'BULWARK', cls:'ASSAULT HULL',     hp:1.45, dmg:1.18, rate:0.82, spd:0.86, grip:0.95, knock:.65,  cost:20, sys:1,
    up:{hp:4, dmg:4, rate:2, spd:2, grip:3}},
-  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:1.02, rate:1.09, spd:1.30, grip:1.35, cost:40, sys:3,
+  {n:'NEEDLE',  cls:'INTERCEPTOR',      hp:0.62, dmg:1.02, rate:1.09, spd:1.30, grip:1.35, knock:1.6,  cost:40, sys:3,
    up:{hp:2, dmg:3, rate:3, spd:4, grip:4}},
-  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:1.02, dmg:1.35, rate:1.14, spd:0.86, grip:0.80, cost:64, sys:4,
+  {n:'VERDICT', cls:'SIEGE GUNSHIP',    hp:1.02, dmg:1.35, rate:1.14, spd:0.86, grip:0.80, knock:1,    cost:64, sys:4,
    up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
   /* The capstone hull, and the only one the campaign cannot hand you: it is
      behind THE ARCHIVE. Every gun stat is pinned at the top of the scale and
      everything about moving it is at the bottom — it does not fly so much as
      get aimed. `gate` is what it wants instead of a system count. */
-  {n:'WORLDBREAKER', cls:'SIEGE PLATFORM', hp:1.28, dmg:1.45, rate:1.45, spd:0.81, grip:0.55,
+  {n:'WORLDBREAKER', cls:'SIEGE PLATFORM', hp:1.28, dmg:1.45, rate:1.45, spd:0.81, grip:0.55, knock:.5,
    cost:120, sys:3, gate:'archive', up:{hp:3, dmg:4, rate:4, spd:2, grip:2}},
 ];
 const STATS=[['HEALTH','hp'],['DAMAGE','dmg'],['FIRE RATE','rate'],['SPEED','spd'],['HANDLING','grip']];
@@ -2411,6 +2413,10 @@ const FLY_KEYS=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','Arrow
 addEventListener('keydown',e=>{
   if((e.code==='Enter'||e.code==='NumpadEnter')&&!isText(e.target)) e.preventDefault();
 },{capture:true});
+// in a flight Space is the game's, never a button's (a button presses on Space's keyup)
+addEventListener('keyup',e=>{
+  if(e.code==='Space'&&state==='play'&&e.target&&e.target.tagName==='BUTTON') e.preventDefault();
+},{capture:true});
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
@@ -2444,7 +2450,9 @@ function ptr(e){
 // a press that lands on the arena or the bars round it, never on a button or panel
 const onField=t=>t===cv||t===document.body||t===document.documentElement||t===$('wrap');
 addEventListener('mousemove',ptr);
-addEventListener('mousedown',e=>{ if(!onField(e.target)) return; SND.boot();SND.resume();ptr(e);mouse.down=true; });
+addEventListener('mousedown',e=>{ if(!onField(e.target)) return; SND.boot();SND.resume();ptr(e);mouse.down=true;
+  // a click on the arena skips a launch already watched once, the way a key does
+  if(launchCut&&state==='play'&&!paused&&launchSeen()) launchSkip(); });
 addEventListener('mouseup',()=>mouse.down=false);
 // any button anywhere clicks — one listener rather than forty
 addEventListener('mousedown',()=>{ SND.boot(); SND.resume(); },{capture:true});
@@ -3375,6 +3383,7 @@ function drop(e){
 function takePup(k){
   SFX.pickup(k);
   const P=PUPS[k];
+  shipPulse(P.col);
   if(k==='repair') player.hp=Math.min(player.st.maxHp,player.hp+player.st.maxHp*.3);
   else buffs[k]=Math.max(buffs[k],P.time);
   toast=P.n; toastT=1.9;
@@ -3505,7 +3514,7 @@ function levLay(C){
 function levHurt(e,dmg,x,y){
   const P=player;
   if(P.inv>0||buffs.shield>0) return;
-  P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=e.bn; pilotHurt();
+  P.hp-=dmg*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=e.bn; pilotHurt(x!=null?x:e.x,y!=null?y:e.y);
   burst(P.x,P.y,'#ff4d5e',12,240);
   const a=Math.atan2(P.y-y,P.x-x); P.vx+=Math.cos(a)*220; P.vy+=Math.sin(a)*220;
 }
@@ -4476,7 +4485,7 @@ function actHammer(e,dt,dx,dy,T){
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y) < rr*rr && P.inv<=0 && buffs.shield<=0){
       P.hp-=heavyDmg(e,55)*DIFF().dmgIn*P.st.armour;
-      P.inv=.5; killer=unitName(e); pilotHurt();
+      P.inv=.5; killer=unitName(e); pilotHurt(m.x,m.y);
       burst(P.x,P.y,ink(e,'#ff2233'),20,320);
     }
     shock(m.x,m.y,ink(e,'#ff2233'),m.r*.3,m.r*1.25,.45,8);
@@ -4635,7 +4644,7 @@ function actBeam(e,dt,dx,dy,T){
       const ox=P.x-m.x, oy=P.y-m.y, al=ox*cx+oy*cy, off=Math.abs(ox*cy-oy*cx);
       if(al>-20&&off<hw+12&&P.inv<=0&&buffs.shield<=0){
         P.hp-=BEAM_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
-        P.inv=.5; killer=unitName(e); pilotHurt();
+        P.inv=.5; killer=unitName(e); pilotHurt(e.x,e.y);
         // thrown out of the lane, to whichever side of it you were on
         const side=Math.sign(oy*cx-ox*cy)||1;
         P.vx+=-cy*side*260; P.vy+=cx*side*260;
@@ -4727,7 +4736,7 @@ function tetherStep(e){
   const u=clamp(((P.x-e.x)*sx+(P.y-e.y)*sy)/L2,0,1);
   const qx=e.x+sx*u-P.x, qy=e.y+sy*u-P.y;
   if(qx*qx+qy*qy<(TETHER_W+13)*(TETHER_W+13)){
-    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt();
+    P.hp-=TETHER_DMG*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt(P.x+qx,P.y+qy);
     // thrown off the line, to whichever side of it you were on
     const L=Math.sqrt(L2), side=Math.sign(sx*(P.y-e.y)-sy*(P.x-e.x))||1;
     P.vx+=-sy/L*side*280; P.vy+=sx/L*side*280;
@@ -4791,7 +4800,7 @@ function actSlam(e,dt,dx,dy,T){
     m.hit=1;
     const P=player, rr=m.r+13;
     if((P.x-m.x)*(P.x-m.x)+(P.y-m.y)*(P.y-m.y)<rr*rr && P.inv<=0 && buffs.shield<=0){
-      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); hitTag='slam'; pilotHurt();
+      P.hp-=24*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); hitTag='slam'; pilotHurt(m.x,m.y);
       burst(P.x,P.y,ink(e,'#9fd8ff'),20,320);
     }
     shock(m.x,m.y,e.col,m.r*.3,m.r*1.3,.45,8); burst(m.x,m.y,ink(e,'#dff4ff'),30,380);
@@ -4820,7 +4829,7 @@ const TETHER_TEL=.6, TETHER_T=2.6, TETHER_PULL=560;
 function rulerHurt(e,dmg,tag,col){
   const P=player; if(P.inv>0||buffs.shield>0) return false;
   P.hp-=dmg*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour; P.inv=.5;
-  killer=unitName(e); hitTag=tag; pilotHurt(); burst(P.x,P.y,col,18,300);
+  killer=unitName(e); hitTag=tag; pilotHurt(e.x,e.y); burst(P.x,P.y,col,18,300);
   return true;
 }
 function actDecree(e,dt,T){
@@ -5571,6 +5580,27 @@ const OPENING=tier=> (tier===2?1.45 : tier===1?1.7 : 2.0) * DIFF().open;
    wall the system is named after and it should hit like one. */
 const BOSS_BUFF=1.15, BOSS_SPD=1.1, BOSS_DMG=1.4;
 const PUNISH_MULT=2;
+/* Every round that lands in the window shoves the boss back along the line it
+   came in on: PUNISH_KB px/s a round, never past PUNISH_KB_MAX, bled off at
+   PUNISH_KB_DRAG a second. A bigger hull moves less (PUNISH_KB_R is the size
+   that takes it all). The Leviathan and Omega hold their own formation and
+   are not shoved. */
+const PUNISH_KB=70, PUNISH_KB_MAX=300, PUNISH_KB_DRAG=7, PUNISH_KB_R=64;
+function punishKnock(e,b){
+  if(e.chain||e.station) return;
+  const v=Math.hypot(b.vx,b.vy)||1, k=PUNISH_KB*Math.min(1.3,PUNISH_KB_R/(e.r||PUNISH_KB_R));
+  const kb=e.kb||(e.kb={x:0,y:0});
+  kb.x+=b.vx/v*k; kb.y+=b.vy/v*k;
+  const sp=Math.hypot(kb.x,kb.y); if(sp>PUNISH_KB_MAX){ kb.x*=PUNISH_KB_MAX/sp; kb.y*=PUNISH_KB_MAX/sp; }
+}
+// the shove plays out, held inside the arena (and the Ruler's walls)
+function knockStep(e,dt){
+  const kb=e.kb; if(!kb) return;
+  e.x=clamp(e.x+kb.x*dt, wallIn+e.r, W-wallIn-e.r);
+  e.y=clamp(e.y+kb.y*dt, wallIn+e.r, H-wallIn-e.r);
+  const f=Math.exp(-PUNISH_KB_DRAG*dt); kb.x*=f; kb.y*=f;
+  if(Math.hypot(kb.x,kb.y)<4) e.kb=null;
+}
 /* The window is earned by how cleanly you flew the combo. Every hit the pilot
    takes adds a mark to every boss on the field; when its line reaches a '|'
    the window is OPENING / (marks + 1): full for a clean combo, a half after
@@ -5737,32 +5767,58 @@ const RHY={
     return Math.pow(1-f,3)*(down?1:.5);
   },
 };
-/* Getting hit is told by the edge of the screen, not by shaking it: a red
-   pulse round the border for HURT_T seconds. Below a sixth of your hull it
-   keeps coming on its own, a beat every HURT_BEAT seconds, until you are
-   patched up or gone. */
-const HURT_T=.2, HURT_BEAT=.6, HURT_LOW=1/6;
-let hurtT=0, hurtBeat=0;
+/* Getting hit is told by the edge of the screen, not by shaking it: a faint
+   red pulse round the border for HURT_T seconds (HURT_HIT of full strength),
+   and the ship is shoved a little away from what hit it (HIT_KNOCK px/s).
+   Below a sixth of your hull the pulse keeps coming on its own, at full
+   strength, a beat every HURT_BEAT seconds, until you are patched up or gone. */
+const HURT_T=.2, HURT_BEAT=.6, HURT_LOW=1/6, HURT_HIT=.4, HIT_KNOCK=150;
+let hurtT=0, hurtBeat=0, hurtA=1;
 function hurtStep(dt){
   hurtT=Math.max(0,hurtT-dt);
   const P=player;
   if(P && P.hp>0 && P.hp<P.st.maxHp*HURT_LOW){
     hurtBeat-=dt;
-    if(hurtBeat<=0){ hurtBeat=HURT_BEAT; hurtT=HURT_T; }
+    if(hurtBeat<=0){ hurtBeat=HURT_BEAT; hurtT=HURT_T; hurtA=1; }
   }else hurtBeat=0;
 }
 function hurtDraw(){
   if(hurtT<=0) return;
-  const k=hurtT/HURT_T;
+  const k=hurtT/HURT_T*hurtA;
   const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.32,W/2,H/2,Math.hypot(W,H)*.55);
   g.addColorStop(0,'rgba(255,34,51,0)');
   g.addColorStop(.6,'rgba(255,34,51,'+(.28*k)+')');
   g.addColorStop(1,'rgba(255,34,51,'+(.75*k)+')');
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 }
-function pilotHurt(){
+/* Quiet news, told on the ship itself in a colour: the dash ready again
+   (blue) and a powerup taken (its own colour). A soft glow and a ring that
+   spreads from the hull out to PULSE_R, gone in PULSE_T seconds of flight. */
+const PULSE_T=.55, PULSE_R=70, PULSE_PEAK=.45;
+let shipFx=[];
+function shipPulse(col){ shipFx.push({rgb:[1,3,5].map(i=>parseInt(col.substr(i,2),16)).join(','),t:0}); }
+function shipPulseDraw(P){
+  for(let i=shipFx.length-1;i>=0;i--){
+    const f=shipFx[i]; f.t+=frameDt;
+    if(f.t>=PULSE_T){ shipFx.splice(i,1); continue; }
+    const q=f.t/PULSE_T, k=1-q, a=PULSE_PEAK*k*k, r=18+(PULSE_R-18)*eOut(q);
+    const g=ctx.createRadialGradient(P.x,P.y,0,P.x,P.y,r);
+    g.addColorStop(0,'rgba('+f.rgb+','+(a*.5)+')');
+    g.addColorStop(1,'rgba('+f.rgb+',0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(P.x,P.y,r,0,TAU); ctx.fill();
+    ctx.strokeStyle='rgba('+f.rgb+','+a+')'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(P.x,P.y,r,0,TAU); ctx.stroke();
+  }
+}
+// (fx,fy): where the hit came from, when it came from somewhere, to be shoved away from
+function pilotHurt(fx,fy){
   medalHit(); hitTag='';
-  SFX.hurt(); hurtT=HURT_T; hitstop();
+  SFX.hurt(); hitstop();
+  hurtT=HURT_T; hurtA=HURT_HIT;
+  const P=player;
+  if(P&&fx!=null){ const dx=P.x-fx, dy=P.y-fy, d=Math.hypot(dx,dy);
+    const kn=HIT_KNOCK*(SHIP().knock||1);       // a light hull goes further, a heavy one hardly moves
+    if(d>0){ P.vx+=dx/d*kn; P.vy+=dy/d*kn; } }
   for(const e of enemies) if(e.t==='boss') e.marked=(e.marked||0)+1;
 }
 const GUARD_HELD=.6;
@@ -6226,7 +6282,7 @@ function strikeHurt(e,dmg){
   if(P.inv>0||buffs.shield>0||P.hp<=0) return;
   P.hp-= dmg>=ONE_SHOT ? ONE_SHOT
         : dmg*(e.strike&&e.strike.hard?STRIKE_HARD:1)*BOSS_DMG*(e.B.dmgX||1)*DIFF().dmgIn*P.st.armour;
-  P.inv=.5; killer=unitName(e); hitTag='strike'; pilotHurt();
+  P.inv=.5; killer=unitName(e); hitTag='strike'; pilotHurt(e.x,e.y);
   burst(P.x,P.y,e.col,16,280);
 }
 function strikesDraw(){
@@ -7132,7 +7188,7 @@ function punishStop(){
 const HEAVY=new Set(['heavy','overseer','orbiter','splinter','lander','quarry','glacier','crusher']);
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ winScene=null; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
+function fxClear(){ winScene=null; shipFx.length=0; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -7390,7 +7446,9 @@ function update(dt){
   if(P.thaw>0) P.thaw=Math.max(0,P.thaw-dt);
 
   // dash
+  const dashWas=P.dashCd;
   P.dashCd=Math.max(0,P.dashCd-dt); P.dashT=Math.max(0,P.dashT-dt);
+  if(st.dash&&dashWas>0&&P.dashCd<=0) shipPulse('#4d9dff');          // the dash is ready again
   P.inv=Math.max(0,P.inv-dt);
   if(st.dash&&(keys.ShiftLeft||keys.ShiftRight)&&P.dashCd<=0&&(ax||ay)&&!(P.frz>0)&&!(P.stun>0)){
     P.dashCd=st.dashCd; P.dashT=st.dashLen; P.dx=ax; P.dy=ay;
@@ -7609,7 +7667,7 @@ function update(dt){
           const ox=P.x-e.x, oy=P.y-e.y, al=clamp(ox*cx+oy*cy,e.r,GLAC_LEN);
           const qx=e.x+cx*al-P.x, qy=e.y+cy*al-P.y;
           if(qx*qx+qy*qy<(GLAC_W+13)*(GLAC_W+13)){
-            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt();
+            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt(P.x+qx,P.y+qy);
             // knocked off the arm, the way it is sweeping
             const sd=Math.sign(e.armV)||1; P.vx+=-cy*sd*240; P.vy+=cx*sd*240;
             burst(P.x,P.y,'#dff4ff',14,240);
@@ -7810,6 +7868,7 @@ function update(dt){
       if(e.chain) levStep(e,dt);
       else if(e.station) omegaStep(e,dt);
       else if(e.strike) strikeStep(e,dt); else bossAI(e,dt,dx,dy,d);
+      knockStep(e,dt);
       // a boss can hit harder than the shared numbers without editing every attack
       if(e.B.dmgX) for(let q=n0;q<ebullets.length;q++) ebullets[q].dmg*=e.B.dmgX;
     }
@@ -7896,7 +7955,7 @@ function update(dt){
         }
         e.hp-= b.dmg * (e.open>0?player.st.punish:1); b.hit.push(e);
         if(e.open>0&&RHY.boss(e)) RHY.note();
-        if(e.t==='boss'&&e.open>0) punishStop();
+        if(e.t==='boss'&&e.open>0){ punishStop(); punishKnock(e,b); }
         e.knit=0;                              // pressure held: it cannot knit
         SFX.hit();
         burst(hp.x,hp.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?14:7, e.open>0?300:190);
@@ -8005,7 +8064,7 @@ function update(dt){
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
       P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12;
-      killer=b.src?unitName(b.src):'ENEMY FIRE'; hitTag=b.tag||''; pilotHurt();
+      killer=b.src?unitName(b.src):'ENEMY FIRE'; hitTag=b.tag||''; pilotHurt(b.x-b.vx,b.y-b.vy);
       if(b.stun){ P.stun=STUN_T; P.dashT=0; burst(P.x,P.y,'#ffe45c',16,260); }
       if(b.rkt&&mission&&mission.k==='hunt') mission.rh++;
       burst(b.x,b.y,'#ff4d5e',8,200);
@@ -8023,7 +8082,7 @@ function update(dt){
               :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:e.t==='cloner'?24:e.t==='corona'?18
               :e.t==='crusher'?26:e.t==='zapper'?9:10)
                *DIFF().dmgIn*P.st.armour*WV().dmg;
-        killer=unitName(e); pilotHurt();
+        killer=unitName(e); pilotHurt(e.x,e.y);
         P.inv=.5;
         const a=Math.atan2(P.y-e.y,P.x-e.x);
         P.vx+=Math.cos(a)*380; P.vy+=Math.sin(a)*380;
@@ -11163,6 +11222,7 @@ function draw(){
 
     // player
     const P=player;
+    if(P.hp>0) shipPulseDraw(P);           // under the hull, so the ship stays on top
     if(P.hp>0){
       ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.a);
       ctx.globalAlpha = P.inv>0 ? (Math.floor(P.inv*22)%2?.35:1) : 1;
@@ -11335,6 +11395,7 @@ function hud(){
     ctx.fillStyle='#46e39b';
     ctx.fillText('PAYS '+M.pay+' CR',W-24,y);
   }else{
+    ctx.fillStyle='#ffffff';
     ctx.fillText(SYS().name+'  ·  WAVE '+wave+' / 5',W-24,52);
     ctx.fillText('HOSTILES '+(enemies.length+spawnQ.length),W-24,70);
     ctx.fillStyle='#46e39b';
@@ -11675,6 +11736,12 @@ function gearBack(){
 
 /* ================= UI ================= */
 function show(which){
+  /* A screen change lets go of whatever button was pressed to get here. A button
+     keeps the keyboard's focus, and Space presses a focused button when the key
+     comes up: RELAUNCH, hidden, would relaunch again under the key that skipped
+     its launch. A text field keeps its focus. */
+  const f=document.activeElement;
+  if(f&&f.blur&&f!==document.body&&!isText(f)) f.blur();
   // a screen change takes the settings panel, and any purchase being asked, with it
   if(gearIsOpen()) gearClose();
   if(buyYes) buyAskClose();
@@ -12946,7 +13013,7 @@ const CREDIT_SHOTS=[
   {src:'shots/10.jpg', cap:''},   // the home screen
 ];
 const CREDITS_END='THANKS FOR PLAYING!';
-const CREDITS_SPEED=62;            // px a second the roll climbs
+const CREDITS_SPEED=88;            // px a second the roll climbs
 
 /* ---- the roll ----
    Plays when the thing behind the Ruler goes down, before the victory card,
