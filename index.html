@@ -1564,6 +1564,9 @@ const SFX={
   tier(){ SND.tone('sine',60,220,.03,1.1,.34); SND.noise(.55,1100,180,.3,.8);
     SND.tone('sawtooth',1200,180,.01,.7,.09); },
   bossIn(){ SND.tone('sine',34,34,.6,2.6,.34); SND.tone('sawtooth',90,240,.9,2.4,.06); },
+  // the carrier going by in the region cutscene, and its jump out
+  cruise(){ SND.tone('sine',46,38,1.2,6.2,.24); SND.tone('sawtooth',92,78,1.6,5.8,.03); SND.noise(6,240,140,.07,.6); },
+  jump(){ SND.noise(1.1,200,3800,.24,.7); SND.tone('sine',110,880,.05,1,.12); },
   bossDown(){ SND.tone('sine',90,26,.02,2.2,.42); SND.noise(1.3,900,60,.42,.6);
     SND.tone('sawtooth',300,40,.05,1.6,.14); },
   death(){ SND.tone('sawtooth',360,40,.02,1.9,.3); SND.tone('sine',180,22,.03,2.1,.3);
@@ -2135,7 +2138,10 @@ fixSave();
 SND.vol=save.vol; SND.on=save.sound;
 // set by the wipe, so nothing writes the old save back while the page restarts
 let wiped=false;
-const persist=()=>{ if(wiped) return; try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
+/* index.html?watch (or watch.html) opens the cutscene theatre instead of the game.
+   Nothing played there is saved. */
+let WATCH=false; try{ WATCH=/[?&]watch\b/.test(String(location.search||'')); }catch(e){}
+const persist=()=>{ if(wiped||WATCH) return; try{localStorage.setItem(SAVE,JSON.stringify(save));}catch(e){} };
 /* ---- one tree, every hull ----
    The skill tree is the pilot's, not the ship's: whatever is in the bay flies
    with every skill you have bought. It lives in save.trees[0] — the slot hull
@@ -2447,6 +2453,8 @@ addEventListener('keydown',e=>{
   // flying, dashing and pausing never skip a launch or a boss's entrance
   if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()&&!FLY_KEYS.has(e.code)) launchSkip();
   else if(entrance&&state==='play'&&!paused&&!e.repeat&&entranceSeen()&&!FLY_KEYS.has(e.code)) entranceSkip();
+  if(state==='regcut'&&!e.repeat&&!gearIsOpen()) regCutSkip();
+  if(WATCH&&e.code==='Escape'&&(watchOn||state==='regcut')){ e.preventDefault(); rc=null; watchMenu(); return; }
   if((e.code==='KeyP'||e.code==='Escape')&&state==='play'&&!gearIsOpen()&&!isText(e.target)){
     e.preventDefault();
     // a card open on the pause menu: the key shuts it, and the pause stays
@@ -2481,7 +2489,8 @@ const onField=t=>t===cv||t===document.body||t===document.documentElement||t===$(
 addEventListener('mousemove',ptr);
 addEventListener('mousedown',e=>{ if(!onField(e.target)) return; SND.boot();SND.resume();ptr(e);mouse.down=true;
   // a click on the arena skips a launch already watched once, the way a key does
-  if(launchCut&&state==='play'&&!paused&&launchSeen()) launchSkip(); });
+  if(launchCut&&state==='play'&&!paused&&launchSeen()) launchSkip();
+  if(state==='regcut') regCutSkip(); });
 addEventListener('mouseup',()=>mouse.down=false);
 // any button anywhere clicks — one listener rather than forty
 addEventListener('mousedown',()=>{ SND.boot(); SND.resume(); },{capture:true});
@@ -3057,7 +3066,10 @@ function systemCleared(){
   const medalsWere=medalsOn(), medalsNow=!fake&&Math.max(save.deepestSys,i+1)>MEDALS_SYS;
   const fresh=medalsNow?medalsAward(i):null;
   save.unlocked=true;
+  const regWas=REGIONS.map((_,r)=>regOpen(r));
   if(!fake) save.deepestSys=Math.max(save.deepestSys,i+1);
+  // the clear that opens a new set of systems: its cutscene plays on the way off this card
+  regCutNext=regWas.findIndex((was,r)=>!was&&regOpen(r));
   // held on Starfarer from first wave to last: the galaxy goes on its node
   if(!fake&&flightDiff>=2){ save.sfHeld=save.sfHeld||[]; if(!save.sfHeld.includes(done.id)) save.sfHeld.push(done.id); }
   persist();
@@ -7583,7 +7595,7 @@ function bossDeathFx(e){
   after(3.1,unseal);
   wallWant=0;                                 // whatever closed in, opens again
   SFX.bossDown();
-  slow(1.5); shake=52; flash=1;
+  slow(1.5); shake=30; flash=1;
   banner='TARGET DESTROYED'; bannerT=3.2;
   shock(x,y,col,e.r*.6,e.r*3.2,.5,9);
   shock(x,y,'#e6dcff',e.r*.4,e.r*5.5,.9,6);
@@ -7601,11 +7613,11 @@ function bossDeathFx(e){
     shock(px,py,i%2?'#ffffff':col,6,rand(70,170),.42,4);
     embers(px,py,col,14,160);
     shred(px,py,col,5,380,12);
-    if(i<7){ shake=Math.max(shake,26); flash=Math.max(flash,.34); }
+    if(i<7){ shake=Math.max(shake,14); flash=Math.max(flash,.34); }
   });
   // and then the shockwave that reaches the walls
   after(1.35,()=>{
-    slow(.5); shake=Math.max(shake,44); flash=1;
+    shake=Math.max(shake,24); flash=Math.max(flash,.45);
     shock(x,y,'#ffffff',20,Math.max(W,H)*1.25,1.15,13);
     shock(x,y,col,10,Math.max(W,H)*.85,.95,8);
     shock(x,y,'#e6dcff',6,Math.max(W,H)*.5,.8,6);
@@ -7616,7 +7628,89 @@ function bossDeathFx(e){
   });
   // what is left drifts down for a while after
   after(1.9,()=>{ embers(x,y,col,50,220); embers(x,y,'#ffffff',20,180); });
+  /* and each one goes its own way. Its own beat, after the wall-reaching
+     ring: any earlier and the white-out and the slow motion swallow it. */
+  const sig=BOSS_DEATH[e.B&&e.B.final?'final':e.k];
+  if(sig) after(SIG_AT,()=>sig(x,y,col,e));
 }
+
+// sparks thrown along one heading, for a death that has a direction to it
+function spray(x,y,col,a,spread,n,sp){
+  n=Math.min(n,PARTS_MAX-parts.length);
+  for(let i=0;i<n;i++){
+    const q=a+rand(-spread,spread), s=rand(sp*.3,sp);
+    parts.push({x,y,vx:Math.cos(q)*s,vy:Math.sin(q)*s,life:rand(.4,.9),t:0,col,r:rand(1.4,3.2)});
+  }
+}
+// sparks from a ring all round, pulled in to the middle
+function suck(x,y,col,R,n,life){
+  n=Math.min(n,PARTS_MAX-parts.length);
+  for(let i=0;i<n;i++){
+    const a=rand(0,TAU), d=rand(R*.55,R), v=d*3.6;
+    parts.push({x:x+Math.cos(a)*d,y:y+Math.sin(a)*d,vx:-Math.cos(a)*v,vy:-Math.sin(a)*v,
+      life:life*rand(.8,1),t:0,col,r:rand(1.4,2.8)});
+  }
+}
+/* ---- each boss's own last moment ----
+   The shared death above is the weight of it; this is the signature, keyed
+   by the boss's `k` ('final' for the thing behind the Ruler). A boss with no
+   row here gets the shared death alone. */
+const SIG_AT=1.6;   // seconds into the death that the signature starts: the flash is gone, time is back
+const BOSS_DEATH={
+  // 3296: its Pulses, one last time, ring after ring
+  primary:(x,y,c,e)=>{ for(let k=0;k<3;k++) after(.18+k*.2,()=>{
+    shock(x,y,c,e.r*.3,e.r*(3.5+k*1.6),.6,8-k*2); flare(x,y,'#ffffff',e.r*1.1,.18); }); },
+  // the Hive Mind: the swarm it was made of, popping one drone at a time, spiralling out
+  hive:(x,y,c,e)=>{ for(let k=0;k<16;k++) after(.12+k*.06,()=>{
+    const a=k*2.4, d=e.r*(.6+k*.2), px=x+Math.cos(a)*d, py=y+Math.sin(a)*d;
+    burst(px,py,c,12,240); shock(px,py,c,3,30,.3,2); }); },
+  // 2117: the eye shuts — a wide slit of light, then everything drawn into it
+  overseer:(x,y,c,e)=>{
+    spray(x,y,c,0,.08,40,640); spray(x,y,c,Math.PI,.08,40,640);
+    after(.25,()=>suck(x,y,c,e.r*3.2,60,.8));
+    after(.95,()=>{ flare(x,y,'#ffffff',e.r*2.2,.35); shock(x,y,c,e.r*.2,e.r*3.4,.45,7); }); },
+  // the Architect: what it built comes down square by square
+  architect:(x,y,c,e)=>{ const s=e.r*1.1;
+    for(let k=0;k<9;k++) after(.15+k*.08,()=>{
+      const px=x+((k%3)-1)*s, py=y+(Math.floor(k/3)-1)*s;
+      burst(px,py,k%2?'#ffffff':c,16,260); shred(px,py,c,2,200,10); });
+    after(.95,()=>{ for(let q=0;q<4;q++) spray(x,y,c,q*Math.PI/2,.05,22,700); }); },
+  // the Crescent: blow by blow along its own arc
+  crescent:(x,y,c,e)=>{ for(let k=0;k<9;k++) after(.14+k*.07,()=>{
+    const a=-Math.PI*.85+k*(Math.PI*.7/8), px=x+Math.cos(a)*e.r*1.6, py=y+Math.sin(a)*e.r*1.6;
+    burst(px,py,k%2?'#ffffff':c,18,300); flare(px,py,c,30,.25); }); },
+  // the last Titan: both of them, two blues wound round each other on the way out
+  triton:(x,y,c,e)=>BOSS_DEATH.titans(x,y,c,e),
+  proteus:(x,y,c,e)=>BOSS_DEATH.titans(x,y,c,e),
+  titans:(x,y,c,e)=>{ for(let k=0;k<10;k++) after(.12+k*.07,()=>{
+    const a=k*.7; spray(x,y,TRITON.col,a,.1,8,520); spray(x,y,PROTEUS.col,a+Math.PI,.1,8,520); }); },
+  // the Leviathan's head: the length of it goes off behind it, in a wave, and the ice with it
+  leviathan:(x,y,c,e)=>{ const back=(e.hd!=null?e.hd:Math.atan2(e.vy||0,e.vx||1))+Math.PI;
+    for(let k=0;k<8;k++) after(.15+k*.09,()=>{
+      const d=e.r*(1.2+k*1.1), side=Math.sin(k*1.3)*e.r*.8;
+      const px=x+Math.cos(back)*d-Math.sin(back)*side, py=y+Math.sin(back)*d+Math.cos(back)*side;
+      burst(px,py,c,18,280); shred(px,py,'#e8f8ff',2,240,9); shock(px,py,c,4,50,.35,2); }); },
+  // Omega: the four wings' moorings blow, then the core throws a cross of light
+  omega:(x,y,c,e)=>{ for(let k=0;k<4;k++) after(.15+k*.16,()=>{
+      const a=Math.PI/4+k*Math.PI/2, px=x+Math.cos(a)*e.r*1.5, py=y+Math.sin(a)*e.r*1.5;
+      burst(px,py,c,30,380); shock(px,py,'#ffffff',6,90,.4,4); flare(px,py,c,60,.3); });
+    after(.9,()=>{ for(let q=0;q<4;q++) spray(x,y,q%2?'#ffffff':c,q*Math.PI/2,.04,28,820); }); },
+  // the Ruler: its crown goes up first
+  ruler:(x,y,c,e)=>{ for(let k=0;k<5;k++) after(.1+k*.08,()=>
+    spray(x,y-e.r*.4,k%2?'#ffffff':c,-Math.PI/2+(k-2)*.32,.05,24,680)); },
+  // 3295: 3296's Pulses again, but it always went further: five, and each one echoes
+  s3295:(x,y,c,e)=>{ for(let k=0;k<5;k++) after(.15+k*.15,()=>{
+    shock(x,y,c,e.r*.3,e.r*(3+k*1.3),.6,6); after(.12,()=>shock(x,y,'#ffffff',e.r*.2,e.r*(2.6+k*1.3),.5,2)); }); },
+  // the Archive: what it held runs out of it, line after line
+  archive:(x,y,c,e)=>{ for(let k=0;k<7;k++) after(.12+k*.09,()=>{
+    const py=y+(k-3)*e.r*.38;
+    spray(x,py,c,0,.02,10,720); spray(x,py,'#ffffff',Math.PI,.02,10,720); }); },
+  // the thing behind the Ruler: the whole arena is drawn into it first, and then it goes twice
+  final:(x,y,c,e)=>{
+    suck(x,y,c,Math.max(W,H)*.6,140,1.1); suck(x,y,'#ffffff',Math.max(W,H)*.4,60,.9);
+    after(2.25,()=>{ flash=Math.max(flash,.8); shake=Math.max(shake,22);
+      shock(x,y,c,20,Math.max(W,H)*1.3,1.2,12); burst(x,y,'#ffffff',90,800); }); },
+};
 
 /* The pilot dies once per campaign. The run does not end on the frame the hull
    hits zero — the ship comes apart, the field goes quiet, and only then does
@@ -7733,6 +7827,7 @@ function fxDraw(){
 
 /* ================= update ================= */
 function update(dt){
+  if(watchOn){ player.hp=player.st.maxHp; player.inv=Math.max(player.inv,.2); }
   if(launchCut){ launchStep(dt); return; }   // nothing moves until the ship is out
   waveTimer+=dt; if(bannerT>0)bannerT-=dt;
   /* No waiting in an empty arena. With nothing alive and more on the way, the
@@ -8465,6 +8560,7 @@ function update(dt){
   }
   if(rush) rush.t+=dt;
   if(sealing) return;                 // let the boss finish falling first
+  if(watchOn) return;                 // the theatre: a boss falling there clears nothing
   if(mission){ missionTick(dt); return; }
   if(!spawnQ.length && !enemies.length){
     if(wave>=5&&rush) rushCleared();
@@ -10216,6 +10312,221 @@ function finaleDraw(){
   ctx.globalAlpha=1; ctx.textAlign='left';
 }
 
+/* ════════════ REGION CUTSCENE ════════════
+   Opening a new set of systems is the route moving on, so it gets a scene:
+   the pilot's own ship, huge, goes past the worlds of the region it is
+   leaving, jumps, and the new region's name comes up. Plays once, when leaving the result card
+   of the clear that opened it; Space, a key or a click skips it once it has
+   had a moment. Then the chart, on the new region. */
+const RC_T=9.6, RC_JUMP=6.1, RC_TITLE=7.0, RC_SKIP=1.2;
+/* PROSE — an optional line under the region's name, one per region (index
+   as in REGIONS; region 1 never plays). Empty shows nothing.
+   «WRITE:» Oscar's lines for opening Solar System 2 and the Icarus. */
+const RC_LINE=['', '', ''];
+/* The worlds, by system name. A region's cutscene shows the region before
+   it (REGIONS[r-1].sys), spread left to right in route order, so the ship
+   passes them in the order they were flown. `y` is where it hangs, `d` its
+   depth: under 1 is behind the ship and slow, 1 or more in front and fast. */
+const RC_WORLDS={
+  EARTH:  {r:62,  y:190, d:.22, c:['#9fd8ff','#2f6fd0','#071a3a'], land:1},
+  VENUS:  {r:52,  y:540, d:.3,  c:['#fff0c8','#d9a85a','#3a2408'], band:1},
+  JUPITER:{r:120, y:150, d:.16, c:['#f6dcb4','#c08a52','#2e1a0a'], band:1, spot:1},
+  SATURN: {r:72,  y:530, d:.26, c:['#fbecc4','#d2b07a','#2e2210'], band:1, ring:1},
+  LUNA:   {r:50,  y:170, d:.28, c:['#eef0f4','#9a9fa8','#1c1f26'], crater:1},
+  NEPTUNE:{r:96,  y:540, d:.2,  c:['#8fc0ff','#2b4fb8','#0a1640'], band:1},
+  EUROPA: {r:56,  y:190, d:.3,  c:['#f4f0e6','#c9c0a8','#3a3428'], crack:'#9a6a42'},
+  SOL:    {r:58,  y:300, d:.1,  c:['#fff8d8','#ffcf5a'], sun:1},
+};
+const RC_LOOK=[
+  null,
+  { sky:['#060a1c','#0b1530'], glow:'70,120,255' },
+  { sky:['#120509','#220a12'], glow:'255,60,80' },
+];
+// the region before r, laid out left to right across the frame
+function rcBodies(r){
+  const names=(REGIONS[r-1]||REGIONS[0]).sys, n=names.length;
+  return names.map((nm,k)=>Object.assign({},RC_WORLDS[nm]||RC_WORLDS.LUNA,
+    {x:W*(.14+.78*k/Math.max(1,n-1))+60}));
+}
+let rc=null;
+function regCutStart(r,then){
+  const L=RC_LOOK[r]||RC_LOOK[1];
+  let hull=0; try{ hull=stats().hull|0; }catch(e){}
+  rc={r, t:0, then, L, bodies:rcBodies(r), hull, stars:[], jumped:false};
+  for(let i=0;i<160;i++) rc.stars.push({x:rand(0,W), y:rand(0,H), z:rand(.15,1)});
+  state='regcut'; hideAll(); shake=0; flash=0;
+  SFX.cruise();
+}
+function regCutStep(dt){
+  if(!rc) return;
+  rc.t+=dt;
+  const sp=rcSpeed();
+  for(const s of rc.stars){ s.x-=sp*s.z*dt; if(s.x<-40){ s.x=W+rand(0,40); s.y=rand(0,H); } }
+  if(!rc.jumped&&rc.t>=RC_JUMP){ rc.jumped=true; SFX.jump(); }
+  if(rc.t>=RC_T) regCutEnd();
+}
+function regCutSkip(){ if(rc&&rc.t>=RC_SKIP&&rc.t<RC_T-.7) rc.t=RC_T-.7; }
+function regCutEnd(){
+  if(!rc) return;
+  const f=rc.then; rc=null; f();
+}
+// how fast the world is going past: a cruise, and then the jump
+const rcSpeed=()=>{ const j=Math.max(0,rc.t-RC_JUMP); return 90+j*j*5200; };
+// the ship: where its middle is, how big, and how hard the engine is burning
+function rcShip(){
+  const t=rc.t, r=150, k=clamp(t/RC_JUMP,0,1), e=k*k*(3-2*k), j=Math.max(0,t-RC_JUMP);
+  return {r, x:-r*1.4+e*(W*.6+r*1.4)+j*j*3000, y:H*.53+Math.sin(t*.9)*6,
+          boost:clamp((t-(RC_JUMP-.5))/.6,0,1)};
+}
+
+function regCutDraw(){
+  const t=rc.t, L=rc.L, g=ctx;
+  const sk=g.createLinearGradient(0,0,0,H);
+  sk.addColorStop(0,L.sky[0]); sk.addColorStop(1,L.sky[1]);
+  g.fillStyle=sk; g.fillRect(0,0,W,H);
+  // a haze in the region's colour, slow
+  const nb=g.createRadialGradient(W*.7-t*8,H*.35,10,W*.7-t*8,H*.35,W*.6);
+  nb.addColorStop(0,'rgba('+L.glow+',.12)'); nb.addColorStop(1,'rgba('+L.glow+',0)');
+  g.fillStyle=nb; g.fillRect(0,0,W,H);
+
+  // stars, which stretch into lines once it jumps
+  const sp=rcSpeed(), str=Math.min(260,sp*.012);
+  g.strokeStyle='rgba(200,220,255,.75)';
+  for(const s of rc.stars){
+    g.globalAlpha=.25+s.z*.6; g.lineWidth=s.z*1.6;
+    g.beginPath(); g.moveTo(s.x,s.y); g.lineTo(s.x+1+str*s.z,s.y); g.stroke();
+  }
+  g.globalAlpha=1;
+
+  const at=b=>b.x-t*120*b.d-Math.max(0,t-RC_JUMP)**2*900*b.d;
+  for(const b of rc.bodies) if(b.d<1) rcBody(b,at(b),b.y);
+  rcCarrier(rcShip());
+  for(const b of rc.bodies) if(b.d>=1) rcBody(b,at(b),b.y);
+
+  // the jump's white-out, and the black it leaves behind for the name
+  const fl=clamp(1-Math.abs(t-(RC_JUMP+.7))/.35,0,1);
+  const dk=clamp((t-RC_JUMP-.75)/.25,0,1)*.82;
+  if(dk>0){ g.fillStyle='rgba(2,3,8,'+dk+')'; g.fillRect(0,0,W,H); }
+  if(fl>0){ g.fillStyle='rgba(255,255,255,'+fl+')'; g.fillRect(0,0,W,H); }
+
+  // letterbox
+  const bar=58*clamp(t/.6,0,1)*clamp((RC_T-t)/.5,0,1);
+  g.fillStyle='#000'; g.fillRect(0,0,W,bar); g.fillRect(0,H-bar,W,bar);
+
+  // the name
+  if(t>RC_TITLE){
+    const a=clamp((t-RC_TITLE)/.6,0,1)*clamp((RC_T-.3-t)/.4,0,1);
+    const R=REGIONS[rc.r]||{n:''};
+    g.textAlign='center'; g.globalAlpha=a;
+    g.fillStyle='#4a5878'; g.font='600 13px Menlo,monospace';
+    g.fillText(('REGION '+(rc.r+1)+' / '+REGIONS.length).split('').join(' '),W/2,H/2-54);
+    g.fillStyle='#dfe9ff'; g.font='700 46px Menlo,monospace';
+    g.shadowColor='rgba('+L.glow+',.9)'; g.shadowBlur=24;
+    const sp2=4+10*(1-Math.pow(1-a,3));                    // the letters settle apart
+    const nm=R.n.split(''), wd=nm.length*(28+sp2);
+    nm.forEach((ch,i)=>g.fillText(ch,W/2-wd/2+i*(28+sp2)+(28+sp2)/2,H/2+8));
+    g.shadowBlur=0;
+    const ln=RC_LINE[rc.r];
+    if(ln){ g.fillStyle='#9fb3d9'; g.font='15px Menlo,monospace'; g.fillText(ln,W/2,H/2+52); }
+    g.globalAlpha=1;
+  }
+  if(t>RC_SKIP&&t<RC_T-.7){
+    g.textAlign='right'; g.fillStyle='rgba(223,233,255,'+(.35*clamp((t-RC_SKIP)/.4,0,1))+')';
+    g.font='12px Menlo,monospace'; g.fillText('SKIP ›',W-22,H-22);
+  }
+  // fade in from black, and out to it
+  const fb=Math.max(clamp(1-t/.7,0,1),clamp((t-(RC_T-.35))/.35,0,1));
+  if(fb>0){ g.fillStyle='rgba(0,0,0,'+fb+')'; g.fillRect(0,0,W,H); }
+  g.textAlign='left';
+}
+
+// a world going by: lit from the top left, with whatever marks it has
+function rcBody(b,x,y){
+  const g=ctx, R=b.r;
+  if(x<-R*3||x>W+R*3) return;
+  if(b.sun){
+    const h=g.createRadialGradient(x,y,R*.2,x,y,R*5);
+    h.addColorStop(0,b.c[0]); h.addColorStop(.18,b.c[1]); h.addColorStop(.4,'rgba(255,190,90,.18)'); h.addColorStop(1,'rgba(255,190,90,0)');
+    g.fillStyle=h; g.beginPath(); g.arc(x,y,R*5,0,TAU); g.fill();
+    return;
+  }
+  // its air
+  const ag=g.createRadialGradient(x,y,R*.92,x,y,R*1.22);
+  ag.addColorStop(0,'rgba(160,200,255,.22)'); ag.addColorStop(1,'rgba(160,200,255,0)');
+  g.fillStyle=ag; g.beginPath(); g.arc(x,y,R*1.22,0,TAU); g.fill();
+  const ring=(a0,a1)=>{ g.save(); g.translate(x,y); g.rotate(-.32);
+    g.strokeStyle='rgba(230,210,160,.55)'; g.lineWidth=R*.16;
+    g.beginPath(); g.ellipse(0,0,R*1.85,R*.42,0,a0,a1); g.stroke();
+    g.strokeStyle='rgba(255,240,200,.3)'; g.lineWidth=R*.05;
+    g.beginPath(); g.ellipse(0,0,R*2.1,R*.5,0,a0,a1); g.stroke(); g.restore(); };
+  if(b.ring) ring(Math.PI,TAU);                         // the far side, behind it
+  g.save(); g.beginPath(); g.arc(x,y,R,0,TAU); g.clip();
+  const bg=g.createRadialGradient(x-R*.45,y-R*.45,R*.1,x,y,R*1.1);
+  bg.addColorStop(0,b.c[0]); bg.addColorStop(.55,b.c[1]); bg.addColorStop(1,b.c[2]);
+  g.fillStyle=bg; g.fillRect(x-R,y-R,R*2,R*2);
+  if(b.band){ g.globalAlpha=.16; g.fillStyle='#ffffff';
+    for(let k=-4;k<=4;k++) g.fillRect(x-R,y+k*R*.21,R*2,R*(.05+.04*((k+5)%3))); g.globalAlpha=1; }
+  if(b.spot){ g.fillStyle='rgba(190,70,40,.7)';
+    g.beginPath(); g.ellipse(x+R*.25,y+R*.3,R*.2,R*.11,0,0,TAU); g.fill(); }
+  if(b.land){ g.fillStyle='rgba(80,170,90,.85)';
+    for(const [ax,ay,ar] of [[-.3,-.2,.38],[.25,.15,.3],[-.05,.45,.22],[.45,-.35,.18]]){
+      g.beginPath(); g.ellipse(x+ax*R,y+ay*R,ar*R,ar*R*.7,ax*2,0,TAU); g.fill(); }
+    g.fillStyle='rgba(255,255,255,.55)';
+    for(const [ax,ay,ar] of [[-.5,.1,.3],[.1,-.45,.35],[.4,.45,.25]]){
+      g.beginPath(); g.ellipse(x+ax*R,y+ay*R,ar*R,ar*R*.25,.3,0,TAU); g.fill(); } }
+  if(b.crater){ g.fillStyle='rgba(0,0,0,.18)';
+    for(let k=0;k<9;k++){ const a=k*2.39, d=R*(.2+.08*k);
+      g.beginPath(); g.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,R*(.06+.03*(k%3)),0,TAU); g.fill(); } }
+  if(b.crack){ g.strokeStyle=b.crack; g.globalAlpha=.55; g.lineWidth=1.2;
+    for(let k=0;k<7;k++){ const a=k*.9; g.beginPath();
+      g.moveTo(x+Math.cos(a)*R*1.1,y+Math.sin(a)*R*1.1);
+      g.quadraticCurveTo(x+Math.cos(a+1)*R*.3,y+Math.sin(a+1)*R*.3,x+Math.cos(a+2.6)*R*1.1,y+Math.sin(a+2.6)*R*1.1);
+      g.stroke(); }
+    g.globalAlpha=1; }
+  // the night side
+  const sh=g.createLinearGradient(x-R*.6,y-R*.6,x+R,y+R);
+  sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(.55,'rgba(0,0,0,.15)'); sh.addColorStop(1,'rgba(0,0,0,.85)');
+  g.fillStyle=sh; g.fillRect(x-R,y-R,R*2,R*2);
+  g.restore();
+  if(b.ring) ring(0,Math.PI);                           // and the near side, over it
+}
+/* The pilot's ship, the same silhouette and paint the arena draws (shipPath,
+   cosOf('paint')), blown up to fill the frame. Nose to the right. */
+const RC_REAR=[-.35,-.45,-.7,-.75,-.8];   // where each hull's engine sits, as shipPath draws it
+function rcCarrier(S){
+  const g=ctx, r=S.r, t=rc.t, PT=cosOf('paint'), rx=(RC_REAR[rc.hull]||-.35)*r;
+  g.save(); g.translate(S.x,S.y);
+  // the engine, the same orange as in the arena, under the hull
+  g.globalCompositeOperation='lighter';
+  const len=r*(.6+S.boost*2.6)*(1+Math.sin(t*40)*.06), w=r*(.1+S.boost*.05);
+  const pg=g.createLinearGradient(rx,0,rx-len,0);
+  pg.addColorStop(0,'rgba(255,240,200,.95)'); pg.addColorStop(.3,'rgba(255,180,77,.7)'); pg.addColorStop(1,'rgba(255,120,40,0)');
+  g.fillStyle=pg; g.beginPath(); g.moveTo(rx,-w); g.lineTo(rx-len,0); g.lineTo(rx,w); g.closePath(); g.fill();
+  const gl=g.createRadialGradient(rx,0,1,rx,0,w*2.6);
+  gl.addColorStop(0,'rgba(255,230,180,.9)'); gl.addColorStop(1,'rgba(255,180,77,0)');
+  g.fillStyle=gl; g.beginPath(); g.arc(rx,0,w*2.6,0,TAU); g.fill();
+  g.globalCompositeOperation='source-over';
+  // the hull
+  g.shadowColor=PT.g; g.shadowBlur=40;
+  g.fillStyle='#0a1426'; g.strokeStyle=PT.c; g.lineWidth=5;
+  shipPath(g,r,rc.hull); g.fill(); g.stroke();
+  g.shadowBlur=0;
+  // at this size it shows its panels: the outline again, smaller, inside it
+  g.save(); g.scale(.62,.62); g.globalAlpha=.35; g.lineWidth=3;
+  shipPath(g,r,rc.hull); g.stroke(); g.restore();
+  // the world's light along its top edge
+  g.save(); shipPath(g,r,rc.hull); g.clip();
+  const rim=g.createLinearGradient(0,-r,0,0);
+  rim.addColorStop(0,'rgba('+rc.L.glow+',.3)'); rim.addColorStop(1,'rgba('+rc.L.glow+',0)');
+  g.fillStyle=rim; g.fillRect(-r*1.5,-r*1.3,r*3,r*1.3);
+  g.restore();
+  // a cockpit light, blinking slow
+  g.globalAlpha=.6+.4*Math.sin(t*3);
+  g.fillStyle=PT.c; g.beginPath(); g.arc(r*.3,0,r*.045,0,TAU); g.fill();
+  g.globalAlpha=1;
+  g.restore();
+}
+
 /* ══════════════════════ SECRET MISSIONS ══════════════════════
    The side branches off the space map. You are offered one on the map between
    systems, once per run per system, and off the title map any time. Each is
@@ -11159,6 +11470,8 @@ function hpbar(x,y,w,pc,col){
 
 function draw(){
   ctx.fillStyle='#05060d'; ctx.fillRect(0,0,W,H);
+  // the region cutscene is still: no shake, whatever the last fight left behind
+  if(state==='regcut'){ if(rc) regCutDraw(); return; }
   ctx.save();
   const sk=fxShake(); if(sk>0) ctx.translate(rand(-sk,sk),rand(-sk,sk));
 
@@ -11899,6 +12212,7 @@ function frame(now){
   }catch(err){ frameFault(err,'window'); }
   try{
   if(state==='finale'){ finaleStep(raw); }
+  else if(state==='regcut'){ regCutStep(raw); }
   else if(state==='play'&&!paused&&raw&&!stopped){ sceneT+=raw; update(dt); }
   else if(state==='over'||state==='dying'){
     for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;if(p.t>=p.life)parts.splice(i,1);else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;}}
@@ -13888,7 +14202,8 @@ $('btnLaunchGo').onclick=()=>{ if(launchGo) launchGo(); };
 /* The card after the first Ruler is the lie the finale breaks a second later.
    It has to still be on screen when it breaks, so nothing takes you off it. */
 $('btnDoneNext').onclick=()=>{ SFX.ui(); doneStep(2); };
-$('btnDoneGo').onclick=()=>{ if(finaleArmed) return; hideAll(); openMap('menu'); };
+$('btnDoneGo').onclick=()=>{ if(finaleArmed) return;
+  doneLeave(()=>{ hideAll(); openMap('menu'); if(rcTo>0) mapRegStep(rcTo); }); };
 $('btnLaunchBack').onclick=()=>{ buildMap(); state='map'; show('map'); };
 $('btnMapBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnRegPrev').onclick=()=>mapRegStep(-1);
@@ -13898,7 +14213,15 @@ $('btnOverMenu').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 // the tree only opens from the home screen now, so it only ever goes back there
 $('btnTreeBack').onclick=()=>{ state='menu'; refreshMenu(); show('menu'); };
 $('btnTreeMenu').onclick=()=>{ buildTree(); show('skills'); };
-$('btnDoneMenu').onclick=()=>{ if(finaleArmed) return; state='menu'; refreshMenu(); show('menu'); };
+$('btnDoneMenu').onclick=()=>{ if(finaleArmed) return; doneLeave(()=>{ state='menu'; refreshMenu(); show('menu'); }); };
+/* Leaving the result card. If that clear opened a new region, the region's
+   cutscene plays first, and the chart opens on the new region after it. */
+let regCutNext=-1, rcTo=0;
+function doneLeave(go){
+  const r=regCutNext; regCutNext=-1; rcTo=0;
+  if(r>0){ regCutStart(r,()=>{ rcTo=r; go(); rcTo=0; }); return; }
+  go();
+}
 // MAIN MENU is always on the result card, except the one the finale is about to break
 function doneTreeBtn(){ $('btnDoneMenu').style.display=''; }
 
@@ -13943,8 +14266,75 @@ function syncAnswer(on){
 $('btnSyncYes').onclick=()=>syncAnswer(true);
 $('btnSyncNo').onclick=()=>syncAnswer(false);
 
+/* ════════════ THE THEATRE ════════════
+   index.html?watch: every boss's death and every region cutscene, one button
+   each. A boss arrives (entrance skipped), sits a moment, and falls; you can
+   fly about while it does and nothing can hurt you. Nothing here is saved. */
+let watchOn=false, watchId=0, watchBox=null;
+const WATCH_BOSSES=()=>[
+  ...BOSSES.map((B,i)=>({B, si:i})),
+  ...SECRET_BOSSES.map(B=>({B, si:2})),
+  {B:FINAL_BOSS, si:SYSTEMS.length-1, n:'BEHIND THE RULER'},
+];
+function watchMenu(){
+  watchOn=false; watchId++; shake=0; flash=0;
+  state='watch'; hideAll(); enemies=[]; bullets=[]; ebullets=[];
+  if(watchBox) watchBox.style.display='flex';
+}
+function watchPlay(fn){
+  if(watchBox) watchBox.style.display='none';
+  SND.boot(); SND.resume(); fn();
+}
+function watchBoss(B,si){
+  const id=++watchId;
+  const st=stats();
+  player={x:W/2,y:H*.8,vx:0,vy:0,a:-Math.PI/2,hp:st.maxHp,st,cool:0,dashCd:0,inv:1,dashT:0};
+  bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
+  clearBuffs(); fxClear(); worldClear(); sceneStart();
+  shake=0; flash=0; paused=false; mission=null; rush=null; launchCut=null;
+  finaleArmed=false; finale=null; MR=medalRun(); bossTries=0; bossHaz.length=0;
+  sysIdx=si; flightDiff=save.diff|0; wave=5; waveTimer=0;
+  watchOn=true; state='play';
+  spawn('boss',null,B);
+  if(entrance) entranceSkip();
+  for(const e of enemies) e.hidden=false;
+  after(1.6,()=>{
+    if(id!==watchId) return;
+    const bs=enemies.filter(e=>e.t==='boss');
+    const e=bs.find(q=>q.kind==='head')||bs[bs.length-1];
+    if(!e){ watchMenu(); return; }
+    bossHaz.length=0; ebullets.length=0;
+    bossDeathFx(e); enemies.length=0;
+    after(5.4,()=>{ if(id===watchId) watchMenu(); });
+  });
+}
+function watchBuild(){
+  const box=watchBox=document.createElement('div');
+  box.style.cssText='position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;'+
+    'justify-content:center;gap:14px;z-index:50;font-family:Menlo,monospace;color:#dfe9ff;padding:16px';
+  const row=(title,items)=>{
+    const h=document.createElement('div'); h.textContent=title;
+    h.style.cssText='letter-spacing:.2em;font-size:13px;color:#6b7ca3;margin-top:10px';
+    const r=document.createElement('div');
+    r.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px';
+    for(const [n,fn] of items){
+      const b=document.createElement('button'); b.className='ghost'; b.textContent=n;
+      b.style.cssText='margin:0;padding:9px 14px;font-size:13px';
+      b.onclick=()=>watchPlay(fn); r.appendChild(b);
+    }
+    box.appendChild(h); box.appendChild(r);
+  };
+  const t=document.createElement('div'); t.textContent='THEATRE';
+  t.style.cssText='font-size:28px;letter-spacing:.3em';
+  box.appendChild(t);
+  row('REGION CUTSCENES', REGIONS.map((R,r)=>[R.n,()=>regCutStart(r,watchMenu)]).slice(1));
+  row('BOSS DEATHS', WATCH_BOSSES().map(w=>[w.n||w.B.n,()=>watchBoss(w.B,w.si)]));
+  document.body.appendChild(box);
+}
+
 // the game opens on the menu
 refreshMenu(); state='menu'; show('menu');
+if(WATCH){ watchBuild(); watchMenu(); }
 // the app is allowed sound before the first click, so the menu theme starts now
 if(APP){ SND.boot(); SND.resume(); }
 })();
