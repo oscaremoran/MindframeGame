@@ -165,11 +165,9 @@
   #retryAsk{display:none; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
   #retryAsk.on{display:flex}
   /* the same yes/no for spending in the Garage, over whichever screen asked */
-  #buyAsk,#syncAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
-  #buyAsk.on,#syncAsk.on{display:flex}
+  #buyAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
+  #buyAsk.on{display:flex}
   /* the first-launch MUSIC SYNC question: a sentence, so it reads as one */
-  #syncAsk .askBox{border-color:#33456d}
-  #syncAsk .askQ{color:#dfe9ff; letter-spacing:.06em; line-height:1.6; margin-bottom:16px}
   #buyAsk .askBox{border-color:#33456d}
   #buyAsk .askQ{color:#dfe9ff}
   .askBox{width:min(92vw,470px); padding:20px 22px; border:1px solid #8d3a55; background:rgba(14,10,20,.97); text-align:left}
@@ -1274,10 +1272,6 @@
   <div class="askQ">Are you sure?</div>
   <button id="btnQuitYes">YES</button>
 </div></div>
-<div id="syncAsk"><div class="askBox">
-  <div class="askQ" id="saQ"></div>
-  <div class="row"><button id="btnSyncYes">YES</button><button id="btnSyncNo" class="ghost">NO</button></div>
-</div></div>
 <div id="mobileOnly"><div class="card">Please play on Desktop.</div></div>
 <script>
 (()=>{
@@ -1354,7 +1348,8 @@ const SYSTEMS=[
   { id:'008', name:'SOL', hp:2.3, spd:1.35, extra:3, haz:'flares', roster:'sol2', adds:'corona',
     wave:{hp:2.25, dmg:1.4, rof:1.5, more:2, gap:.75, live:11} },
 
-  { id:'009', name:'ICARUS', hp:2.2, spd:1.16, extra:3, haz:'raiders', roster:'ica' },
+  { id:'009', name:'ICARUS', hp:2.2, spd:1.16, extra:3, haz:'raiders', roster:'ica',
+    wave:{more:1, live:13} },
 ];
 
 /* ---- regions ----
@@ -1397,7 +1392,7 @@ const ROSTERS={
   // the Icarus fields its own: Splinters on the line, Zappers in the second
   // slot and Crushers as the heavies. Each is worth several of Earth's, so
   // fewer come (`ramK` scales the second slot the way `lineK` does the first)
-  ica:{line:'splinter', ram:'zapper', heavy:'crusher', lineK:.45, ramK:.5},
+  ica:{line:'splinter', ram:'zapper', heavy:'crusher', lineK:.6, ramK:.65},
 };
 const rosterOf=i=>SYSTEMS[Math.min(i,SYSTEMS.length-1)].roster||'sol1';
 const ROSTER=()=>ROSTERS[rosterOf(sysIdx)];
@@ -2630,7 +2625,7 @@ const DIFF_WORDS=['EASY','NORMAL','HARD','VERY HARD','BRUTAL'];
 // 0..4: how hard a system is, read off how much tougher its enemies are than Earth's
 const sysLevel=i=>clamp(Math.round((SYSTEMS[i].hp-1)/1.3*4),0,4);
 // each side mission's rating, set by hand: 0 EASY · 1 NORMAL · 2 HARD · 3 VERY HARD · 4 BRUTAL
-const SIDE_LEVEL={bounty:0, hold:1, run:0, gauntlet:3, echo:2, eye:3, mirror:2, hunt:2, boss:4};
+const SIDE_LEVEL={bounty:0, hold:1, run:0, gauntlet:3, echo:2, eye:3, mirror:2, hunt:3, boss:4};
 const sideLevel=(k,i)=>SIDE_LEVEL[k]!==undefined ? SIDE_LEVEL[k] : sysLevel(i);
 const diffMeter=lv=>'<span class="meter">'+[0,1,2,3,4].map(q=>'<i'+(q<=lv?' class="on"':'')+'></i>').join('')+'</span>'+
   '<span class="dw lv'+lv+'">'+DIFF_WORDS[lv]+'</span>';
@@ -2669,7 +2664,7 @@ function branchOverview(k,i){
                     'Echoes of the Hive Mind and Iteration 2117, the previous enemy commanders of Venus and Jupiter.'],
            eye:     ['Dodge storm fronts and stay in the eye to avoid instant ship destruction.', 'The storm fronts.'],
            mirror:  ['Defeat swarms of Cloners, then avoid a monster from the depths.', 'Swarms of Cloners, and then a deadly monster from beneath the ice.'],
-           hunt:    ['Defeat 12 Coronas within a strict time limit.', 'Swarms of Coronas with Solar Flares.'],
+           hunt:    ['Defeat 16 Coronas within a strict time limit.', 'Swarms of Coronas with Solar Flares.'],
            boss:    ['Face a brutal boss battle against some of the hardest enemies.','One of two extremely powerful bosses.']}[k];
   const best=k==='run'&&save.runBest&&save.runBest[String(i)];
   // the same big, bright card a system gets; the two sentences stack under their labels
@@ -5744,8 +5739,8 @@ function rhyEdge(){
 const WARN_MIN=.6;      // no warning shorter than this, in seconds, whatever the tempo
 const RHY_LATE=.25;     // how often an attack waits a whole extra bar
 const RHY={
-  // the MUSIC SYNC setting (save.rhythm), off unless chosen
-  get on(){ return !!save.rhythm; },
+  // the MUSIC SYNC setting (save.rhythm), on unless turned off
+  get on(){ return save.rhythm!==false; },
   brk:null,                                   // [from,to) sixteenths of breakdown
   boss:e=>RHY.on && e.t==='boss',
   pos(){
@@ -10723,7 +10718,7 @@ const DARK_LOUD=['b1','b4'], DARK_MIS_SLOW=2;   // ...at half their usual rate
    fewer than HUNT_LIVE are up. Kill HUNT_N inside HUNT_T. Every fused rocket
    that lands counts, and HUNT_RKT of them ends it; a shield-blocked one does
    not. The flares keep going. */
-const HUNT_N=12, HUNT_T=60, HUNT_RKT=3, HUNT_LIVE=4, HUNT_GAP=1.6;
+const HUNT_N=16, HUNT_T=60, HUNT_RKT=2, HUNT_LIVE=6, HUNT_GAP=1.1;
 function huntStep(M,dt){
   // a Corona that left the field with no hull left was a kill
   for(const e of M.live) if(!enemies.includes(e)&&e.hp<=0) M.kills++;
@@ -13646,9 +13641,9 @@ function buildFx(){
   }
 }
 /* MUSIC SYNC. On, every boss is fought to the music (RHY): attacks on the
-   beat, the punish window a breakdown. Off by default. */
+   beat, the punish window a breakdown. On by default. */
 // PROSE — the line under MUSIC SYNC, wherever it is shown
-const RHY_WHY='Sync up boss battles with the music for a better experience. BETA.';
+const RHY_WHY='Sync up boss battles with the music for a better experience.';
 function buildMusic(){
   const on=RHY.on;
   for(const id of ['rhyGear','rhyPause','rhyExtras']){
@@ -14163,16 +14158,12 @@ addEventListener('keydown',e=>{
 
 /* The very first LAUNCH skips the chart and the launching screen and puts you
    in Earth: a new player has nothing to choose yet and should be flying, not
-   reading. Every LAUNCH after that opens the map as usual. The first LAUNCH
-   of all asks about MUSIC SYNC first (syncAsk), then goes on. */
+   reading. Every LAUNCH after that opens the map as usual. */
 function startLaunch(){
   if(!save.flown){ mapPick=0; mapPickK=null; newRun(); return; }
   openMap('menu');
 }
-$('btnStart').onclick=()=>{
-  if(!save.syncAsked){ $('saQ').textContent=SYNC_ASK; $('syncAsk').classList.add('on'); return; }
-  startLaunch();
-};
+$('btnStart').onclick=startLaunch;
 // a loss is a lost system, not a lost campaign: it drops you back on the chart
 $('btnRelaunch').onclick=()=>{ if(relaunch){ hideAll(); relaunch(); } };
 // RETRY BOSS asks first: what you have, what it costs, what is left
@@ -14252,19 +14243,6 @@ $('btnHullBack').onclick=closeHull;
 // the app calls this when you switch away from it or minimise it
 window.mfAppBlur=()=>{ if(state==='play'&&!paused) setPause(true); };
 
-/* MUSIC SYNC is off by default and lives in Settings, so the first LAUNCH
-   asks, and the answer carries on into the launch. Either answer is kept
-   (save.syncAsked) and it never asks again; a wipe starts the game over, so
-   it asks again after one. */
-// PROSE — the first-launch MUSIC SYNC question
-const SYNC_ASK='Would you like to enable MUSIC SYNC? This is a BETA feature that improves gameplay against bosses related to music. Try it out!';
-function syncAnswer(on){
-  save.rhythm=on; save.syncAsked=1; persist();
-  $('syncAsk').classList.remove('on'); buildMusic();
-  startLaunch();
-}
-$('btnSyncYes').onclick=()=>syncAnswer(true);
-$('btnSyncNo').onclick=()=>syncAnswer(false);
 
 /* ════════════ THE THEATRE ════════════
    index.html?watch: every boss's death and every region cutscene, one button
