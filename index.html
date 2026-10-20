@@ -165,9 +165,11 @@
   #retryAsk{display:none; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
   #retryAsk.on{display:flex}
   /* the same yes/no for spending in the Garage, over whichever screen asked */
-  #buyAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
-  #buyAsk.on{display:flex}
-  /* the first-launch MUSIC SYNC question: a sentence, so it reads as one */
+  #buyAsk,#diffAsk{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(5,6,13,.82)}
+  #buyAsk.on,#diffAsk.on{display:flex}
+  /* three deaths or three clears in a row: a sentence, so it reads as one */
+  #diffAsk .askBox{border-color:#33456d}
+  #diffAsk .askQ{color:#dfe9ff; letter-spacing:.06em; line-height:1.6; margin-bottom:16px}
   #buyAsk .askBox{border-color:#33456d}
   #buyAsk .askQ{color:#dfe9ff}
   .askBox{width:min(92vw,470px); padding:20px 22px; border:1px solid #8d3a55; background:rgba(14,10,20,.97); text-align:left}
@@ -1160,6 +1162,7 @@
       <button id="extCodex" class="ghost">BESTIARY &amp; CONTROLS</button>
       <button id="extStory" class="ghost">READ THE STORY</button>
       <button id="extCredits" class="ghost">CREDITS</button>
+      <button id="extMac" class="ghost">DOWNLOAD THE MAC APP</button>
     </div>
     <div id="extrasOpts">
       <div class="diff" id="diffExtras"></div>
@@ -1252,6 +1255,10 @@
   </div>
 </div>
 
+<div id="diffAsk"><div class="askBox">
+  <div class="askQ" id="daQ"></div>
+  <div class="row"><button id="btnDiffYes">YES</button><button id="btnDiffNo" class="ghost">NO</button></div>
+</div></div>
 <div id="buyAsk"><div class="askBox">
   <div class="askQ" id="baQ"></div>
   <div class="askRow"><span>CREDITS</span><b id="baHave"></b></div>
@@ -2234,6 +2241,28 @@ const DIFFS=[
    d:'An extremely hard setting. Take this if you want a challenge.'},
 ];
 const DIFF=()=> DIFFS[clamp(save.diff|0,0,DIFFS.length-1)];
+/* ---- the nudge ----
+   DIFF_ROW deaths in a row, or DIFF_ROW systems held in a row, and the result
+   screen asks whether to go a setting down, or up. Only ever a question, and
+   only when there is a setting that way; asking starts the count again either
+   way. Both counts are kept in the save (lossRow, winRow), so they carry
+   across sessions; a death clears the wins and a held system the deaths.  */
+const DIFF_ROW=3;
+// PROSE — Oscar's question, both ways
+const DIFF_ASK={down:"Hello, we've noticed that you've been having a hard time. Switch the difficulty down a notch?",
+                up:"Hello, we've noticed that you've been blazing through the levels. Switch the difficulty up a notch?"};
+let diffAskWay=null;
+function rowLost(){ save.lossRow=(save.lossRow|0)+1; save.winRow=0; persist(); }
+function rowWon(){ save.winRow=(save.winRow|0)+1; save.lossRow=0; persist(); }
+// called as a result screen comes up
+function diffAskMaybe(){
+  const d=save.diff|0;
+  const way = (save.lossRow|0)>=DIFF_ROW ? 'down' : (save.winRow|0)>=DIFF_ROW ? 'up' : null;
+  if(!way) return;
+  save.lossRow=0; save.winRow=0; persist();
+  if(way==='down'?d<=0:d>=DIFFS.length-1) return;
+  diffAskWay=way; $('daQ').textContent=DIFF_ASK[way]; $('diffAsk').classList.add('on'); SFX.ui();
+}
 const STARFARER=()=>DIFF().k==='high';
 // the authored rest window, opened up or closed down by the setting
 const bossRest=T=>rand(T.rest[0],T.rest[1])*DIFF().rest;
@@ -2259,6 +2288,7 @@ const SKILLS=[
    info:'Deal another 5 extra damage for every shot that hits.'},
   {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:40, req:'dmg2',
    info:'Shots pass through enemies.'},
+  // «WRITE:» PUNISHING PULSES now makes the rocket ROCKET_SKILL times bigger, not EXPOSED hits x4
   {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d74', cost:70, x:11, y:13, req:'pierce',
    info:'When a boss is exposed, deal 4x damage instead of the regular 2x. A boss is exposed after each attack combo: It usually doubles your damage if you survive the combo with no hits. After one hit, you only get half the time. After two, only a third of the time, and after three or more, you get no punish window.'},
 
@@ -2455,7 +2485,7 @@ addEventListener('keyup',e=>{
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
-  if(e.code==='Space'){e.preventDefault();}
+  if(e.code==='Space'){ e.preventDefault(); if(state==='play'&&!paused&&!e.repeat) rocketLaunch(); }
   // flying, dashing and pausing never skip a launch or a boss's entrance
   if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()&&!FLY_KEYS.has(e.code)) launchSkip();
   else if(entrance&&state==='play'&&!paused&&!e.repeat&&entranceSeen()&&!FLY_KEYS.has(e.code)) entranceSkip();
@@ -2765,7 +2795,7 @@ function beginSystem(){
   bullets=[];ebullets=[];enemies=[];
   clearBuffs();
   worldStart(); sceneStart();
-  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null};
+  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rocket=null;
   wave=0; nextWave();
   state='play';
   launchStart();
@@ -3069,7 +3099,7 @@ const BOLTS=[{n:'STANDARD',c:'#eaf3ff',g:'#9fd0ff'},{n:'GOLD',c:'#fff1b8',g:'#ff
              {n:'PLASMA',c:'#c8fff0',g:'#2fe0b0',w:3.8},{n:'NEEDLE',c:'#ffe0ff',g:'#ff5ad8',w:2,len:2.2},
              {n:'VIOLET',c:'#ecdcff',g:'#9d6bff',w:3}];
 const COS_LIST={paint:PAINTS, trail:TRAILS, bolt:BOLTS};
-const cosOf=k=> rewardOpen(k) ? COS_LIST[k][clamp(((save.cos||{})[k])|0,0,COS_LIST[k].length-1)] : COS_LIST[k][0];
+const cosOf=k=> rewardOpen(k)&&!crowded() ? COS_LIST[k][clamp(((save.cos||{})[k])|0,0,COS_LIST[k].length-1)] : COS_LIST[k][0];
 const perkOn=k=> rewardOpen(k) && (save.perk||{})[k]!==0;
 const KIT=['power','rapid','shield','scatter'];
 
@@ -3226,8 +3256,9 @@ function systemCleared(){
   doneStep(1);
   state='done';
   // the real ending: the thing behind the Ruler is down. The credits roll first.
+  if(!fake) rowWon();
   if(last&&!fake&&finaleDone) creditsRoll(()=>show('done'));
-  else show('done');
+  else{ show('done'); if(!fake) diffAskMaybe(); }
   // ...and then it does not hold
   if(finaleArmed) after(1.0,startFinale);
 }
@@ -3282,6 +3313,15 @@ function formationAt(kind,n){
 }
 
 /* ---- waves ---- */
+/* How many hostiles can be up at once. At that cap the arena is as full as it
+   gets, and for CROWD_HOLD after it last was the looks go back to standard and
+   the waves' beat pulse stops (crowded()), so nothing extra is in front of the
+   fire you have to read. */
+const liveCap=()=> mission ? (mission.ward?12:10)
+                : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : WV().live;
+const CROWD_HOLD=1.5;
+let crowdT=0;
+const crowded=()=> state==='play' && crowdT>0;
 // a cleared wave's pay shows this long before the next wave comes in
 const WAVE_PAY_LEAD=.7;
 let payLead=null;
@@ -3651,51 +3691,9 @@ let toast='', toastT=0, flash=0;
 let crToast='', crToastT=0;
 const CR_TOAST_T=2.4;
 
-/* ---- TITLE TEXT ----
-   The big words over the arena (wave banners, a boss's new phase, a wave's
-   pay) share one look: a tall condensed face set wide, lit
-   from white down into its colour with a glow, and decoding in from noise as
-   it arrives (`rev` 0..1, how much of it has resolved). Canvas letter-spacing
-   is not everywhere yet, so the spacing is done by hand. `rules` draws a thin
-   line out from each side. The face is the Mac's own; elsewhere it falls back
-   through the list to something narrow.                                      */
-const TITLE_FONT='"DIN Condensed","Avenir Next Condensed","Futura","Arial Narrow",Impact,sans-serif';
-const TITLE_NOISE='ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#/\\<>';
-function titleText(str,x,y,size,col,opts){
-  const o=opts||{}, sp=size*(o.wide!=null?o.wide:.16), rev=o.rev==null?1:o.rev;
-  ctx.save();
-  ctx.font=(o.weight||700)+' '+size+'px '+TITLE_FONT;
-  ctx.textAlign='left'; ctx.textBaseline='middle';
-  const ch=Array.from(str), shown=Math.floor(rev*ch.length+.001);
-  const ws=ch.map(c=>ctx.measureText(c).width), tw=ws.reduce((a,b)=>a+b,0)+sp*Math.max(0,ch.length-1);
-  let cx=x-tw/2;
-  if(o.rules){
-    const L=Math.min(W*.18,size*4), gap=size*.6, g1=ctx.createLinearGradient(cx-gap-L,0,cx-gap,0);
-    g1.addColorStop(0,'rgba(0,0,0,0)'); g1.addColorStop(1,col);
-    ctx.globalAlpha*=.8; ctx.strokeStyle=g1; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(cx-gap-L,y); ctx.lineTo(cx-gap,y); ctx.stroke();
-    const g2=ctx.createLinearGradient(cx+tw+gap,0,cx+tw+gap+L,0);
-    g2.addColorStop(0,col); g2.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.strokeStyle=g2; ctx.beginPath(); ctx.moveTo(cx+tw+gap,y); ctx.lineTo(cx+tw+gap+L,y); ctx.stroke();
-    ctx.globalAlpha/=.8;
-  }
-  const gr=ctx.createLinearGradient(0,y-size*.5,0,y+size*.5);
-  gr.addColorStop(0,'#ffffff'); gr.addColorStop(.55,'#ffffff'); gr.addColorStop(1,col);
-  ctx.shadowColor=col; ctx.shadowBlur=o.glow!=null?o.glow:size*.5;
-  for(let i=0;i<ch.length;i++){
-    let c=ch[i];
-    if(i>=shown&&c!==' ') c=TITLE_NOISE[Math.floor(Math.random()*TITLE_NOISE.length)];
-    ctx.fillStyle=i<shown?gr:col;
-    // the face sits a touch high in its box: nudge it onto the line
-    ctx.fillText(c,cx,y+size*.06);
-    cx+=ws[i]+sp;
-  }
-  ctx.restore();
-}
-
 /* COMBOS. Kills chained inside COMBO_GAP seconds of each other build a combo,
    whatever made them: your fire, or a system's hazard you led them into.
-   Getting hit does not break it; only the gap does. At each step of
+   Getting hit does not break it; only the gap does. Not in a boss fight. At each step of
    COMBO_TITLES a title pops over the arena and is gone in COMBO_POP; past the
    last step, the last title comes back every COMBO_MORE kills. */
 const COMBO_GAP=1.7, COMBO_POP=1.1, COMBO_MORE=10;
@@ -3705,6 +3703,7 @@ const COMBO_TITLES=[[3,'FINE'],[5,'GOOD'],[8,'GREAT'],[12,'SUPERB'],[16,'AMAZING
 const COMBO_COLS=['#9fd0ff','#3fd8e0','#46e39b','#ffd24d','#ffb44d','#ff8a3c','#ff4d5e','#d9c6ff'];
 let combo={n:0, t:0, pop:null};
 function comboKill(){
+  if(enemies.some(e=>e.t==='boss')) return;   // a boss fight is not about the crowd
   combo.n = combo.t>0 ? combo.n+1 : 1; combo.t=COMBO_GAP;
   const last=COMBO_TITLES.length-1, top=COMBO_TITLES[last][0];
   let k=COMBO_TITLES.findIndex(q=>q[0]===combo.n);
@@ -4705,8 +4704,8 @@ const SECRET_BOSSES=[
    a little under two and a half times the Ruler you just put down: enough that
    you feel the floor go, and the longest fight in the campaign by a distance. */
 const FINAL_BOSS=
-  { k:'ruler', n:'THE RULER', col:'#ff2233', r:124, hp:8400, val:5000, final:1,
-    spd:78, want:270, strafe:1.25, sum:'dart',
+  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:8400, val:5000, final:1,
+    spd:78, want:230, strafe:1.25, sum:'dart',
     /* its own score, not the Ruler's sped up: lower, faster, a broken 3-3-2
        kick under it, the chords stabbed, the swarm figure in every drop and a
        bell tolling each bar. The hook (usurp) climbs where the throne walked. */
@@ -5923,7 +5922,10 @@ function entranceDraw(){
 /* The punish window. A boss's authored line ends in one, so every fight has a
    beat where the right answer is to stop dodging and commit. It is worth
    PUNISH_MULT rounds for the price of one, which is the whole point.        */
-const OPENING=tier=> (tier===2?1.45 : tier===1?1.7 : 2.0) * DIFF().open;
+/* The punish window is the ROCKET's window now: PUNISH_T seconds, the same at
+   every tier and setting, and it closes the moment the rocket lands. */
+const PUNISH_T=6;
+const OPENING=tier=>PUNISH_T;
 /* Two dials over the whole boss roster, so a fight keeps its authored shape
    and only its weight changes. BOSS_BUFF lifts hull, speed and reach a step;
    BOSS_DMG is what every round a boss fires is multiplied by. A boss is the
@@ -5953,9 +5955,8 @@ function knockStep(e,dt){
 }
 /* The window is earned by how cleanly you flew the combo. Every hit the pilot
    takes adds a mark to every boss on the field; when its line reaches a '|'
-   the window is OPENING / (marks + 1): full for a clean combo, a half after
-   one hit, a third after two, and none at all after GUARD_MARKS. */
-const GUARD_MARKS=3;
+   the window is OPENING for a clean combo and none at all after GUARD_MARKS. */
+const GUARD_MARKS=1;      // one hit taken in the line, and there is no window
 /* For the bosses that keep their own timers (the Leviathan): `o` has an attack
    ready, and to the music it waits for its beat. True while it is waiting. A
    beat missed while the attack could not go (out of range) moves on to the next. */
@@ -5996,8 +5997,8 @@ function rhyEdge(){
   const e=enemies.find(o=>o.t==='boss'&&RHY.boss(o)&&!o.hidden);
   const pu=RHY.on?RHY.pulse():0; if(pu<=.01) return;
   if(!e){
-    // the waves keep time too, quieter than a boss does
-    if(enemies.some(o=>o.t==='boss')) return;
+    // the waves keep time too, quieter than a boss does, and not at all in a crowd
+    if(enemies.some(o=>o.t==='boss')||crowded()) return;
     ctx.save();
     ctx.strokeStyle='rgba(159,208,255,'+(.2*pu)+')'; ctx.lineWidth=2+4*pu;
     ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=14*pu;
@@ -6376,23 +6377,15 @@ const SCENE_DUR=3.2, SCENE_HIT=2.0;
 const thump=()=>{ SND.tone('sine',70,34,.005,.35,.45); shake=Math.max(shake,8); };
 const scK=(t,a,b)=>clamp((t-a)/(b-a),0,1);
 /* The thing behind the Ruler keeps the Ruler's silhouette and wears the rest
-   around it, drawn in the boss's own frame: a crown of blades turning one way
-   and a broken ring the other, more blades each tier; a core that beats with
-   the rim; and every so often it slips out of register, red one side and cyan
-   the other, the way the screen tore when it came through. */
+   around it, drawn in the boss's own frame: a broken ring turning round it; a
+   core that beats with the rim; and every so often it slips out of register,
+   red one side and cyan the other, the way the screen tore when it came
+   through. */
 function finalCrown(e){
-  const r=e.r, pu=.5+.5*Math.sin(e.pt*7.4), n=12+2*(e.tier|0), m=e.morph;
+  const r=e.r, pu=.5+.5*Math.sin(e.pt*7.4), m=e.morph;
   ctx.save();
   ctx.shadowColor='#ff2233'; ctx.shadowBlur=16+20*pu;
-  ctx.strokeStyle='#ff2233'; ctx.fillStyle='#000'; ctx.lineWidth=2.2;
-  for(let i=0;i<n;i++){
-    const a=i/n*TAU+m*.35, w=TAU/n*.32, r0=r*1.32, r1=r*(1.62+.1*Math.sin(m*2+i)+.12*pu);
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a-w)*r0,Math.sin(a-w)*r0);
-    ctx.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);
-    ctx.lineTo(Math.cos(a+w)*r0,Math.sin(a+w)*r0);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
+  ctx.strokeStyle='#ff2233';
   ctx.lineWidth=1.6; ctx.globalAlpha=.75;
   ctx.setLineDash([r*.5,r*.22]); ctx.lineDashOffset=m*r*.8;
   ctx.beginPath(); ctx.arc(0,0,r*1.2,0,TAU); ctx.stroke();
@@ -7190,7 +7183,9 @@ function phaseDraw(){
     ctx.save(); ctx.globalAlpha=ink*outK; ctx.textAlign='center';
     ctx.font='12px Menlo,monospace'; ctx.fillStyle=col;
     ctx.fillText(C.tag,W/2,y-36);
-    titleText(C.name,W/2,y,Math.round(38+(1-ink)*12),col,{rev:ink,rules:1,glow:28*ink});
+    ctx.font='600 '+(28+(1-ink)*12).toFixed(1)+'px Menlo,monospace';
+    ctx.shadowColor=col; ctx.shadowBlur=28*ink; ctx.fillStyle='#dfe9ff';
+    ctx.fillText(C.name,W/2,y);
     ctx.restore();
   }
 }
@@ -7740,7 +7735,7 @@ function bossAct(e,T,B,k,dx,dy,d){
       e.open=e.openMax=Math.max(.01,(from+len-p)*MUS.spb);
     }
     else e.open=e.openMax=OPENING(e.tier)/(marks+1);
-    e.cool=e.open; SFX.expose();
+    e.cool=e.open; e.rocketed=0; SFX.expose();
     shock(e.x,e.y,'#ffd24d',e.r,e.r*2.3,.5,4);
     return;
   }
@@ -7888,7 +7883,12 @@ let sealing=false;
 let winScene=null, winT=0, winFrom=null;
 
 // an expanding ring that thins as it goes
-function shock(x,y,col,r0,r1,life,w){ waves.push({x,y,col,r0,r1,life,w:w||5,t:0}); }
+// at most WAVES_MAX rings at once: past that the oldest goes, so a pile-up cannot stall a frame
+const WAVES_MAX=18;
+function shock(x,y,col,r0,r1,life,w){
+  if(waves.length>=WAVES_MAX) waves.shift();
+  waves.push({x,y,col,r0,r1,life,w:w||5,t:0});
+}
 // pieces of something that used to be whole, tumbling
 function shred(x,y,col,n,sp,size){
   for(let i=0;i<n;i++){
@@ -7907,6 +7907,89 @@ const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
 const HITSTOP=.04;
 let stopT=0;
 function hitstop(sec){ stopT=Math.max(stopT,sec||HITSTOP); }
+/* ---- ROCKET LAUNCH ----
+   While a boss is exposed the guns are locked and the ship has one rocket for
+   it: Space launches it. It leaves slow, burns up to ROCKET_VMAX and steers
+   in, and where it lands it takes ROCKET_PCT of the boss's whole hull (by
+   setting: Recruit, Cadet, Starfarer), ROCKET_SKILL times that with PUNISHING
+   PULSES. It never takes the last of it (the kill is the guns'), and when it
+   lands the window shuts: the boss gets ROCKET_RECOVER to come back, and to
+   the music the band comes in on the next beat. One rocket a window. */
+const ROCKET_PCT=[.15,.10,.05], ROCKET_SKILL=1.5, ROCKET_RECOVER=.9;
+const ROCKET_V0=240, ROCKET_ACC=2600, ROCKET_VMAX=1500, ROCKET_TURN=7, ROCKET_LIFE=2.5;
+// PROSE — the prompt while a rocket is ready
+const ROCKET_ASK='ROCKET LAUNCH: TAP SPACE';
+let rocket=null;
+const exposedBoss=()=>enemies.find(e=>e.t==='boss'&&e.open>0&&!e.gone&&!e.hidden);
+const rocketReady=()=>{ const e=exposedBoss(); return !!e&&!e.rocketed&&!rocket; };
+function rocketLaunch(){
+  const e=exposedBoss(), P=player;
+  if(!e||e.rocketed||rocket||!P||P.hp<=0) return;
+  e.rocketed=1;
+  const a=Math.atan2(e.y-P.y,e.x-P.x);
+  rocket={x:P.x+Math.cos(a)*18, y:P.y+Math.sin(a)*18, a, v:ROCKET_V0, tgt:e, t:0};
+  P.vx-=Math.cos(a)*220; P.vy-=Math.sin(a)*220;          // it kicks
+  shake=Math.max(shake,12); flash=Math.max(flash,.2);
+  burst(rocket.x,rocket.y,'#ffd24d',26,340); flare(rocket.x,rocket.y,'#ffffff',26,.18);
+  SND.tone('sawtooth',120,640,.01,.65,.14); SFX.dash();
+}
+function rocketStep(dt){
+  const R=rocket; if(!R) return;
+  const e=R.tgt;
+  if(!enemies.includes(e)){ rocket=null; return; }
+  R.t+=dt; R.v=Math.min(ROCKET_VMAX,R.v+ROCKET_ACC*dt);
+  R.a+=clamp(angDiff(Math.atan2(e.y-R.y,e.x-R.x),R.a),-ROCKET_TURN*dt,ROCKET_TURN*dt);
+  R.x+=Math.cos(R.a)*R.v*dt; R.y+=Math.sin(R.a)*R.v*dt;
+  // fire and smoke out of the back
+  const bx=R.x-Math.cos(R.a)*26, by=R.y-Math.sin(R.a)*26;
+  if(parts.length<PARTS_MAX-4){
+    parts.push({x:bx,y:by,vx:-Math.cos(R.a)*120+rand(-40,40),vy:-Math.sin(R.a)*120+rand(-40,40),life:rand(.2,.35),t:0,col:Math.random()<.5?'#ffd24d':'#ff8a3c',r:rand(2.5,4)});
+    parts.push({x:bx,y:by,vx:0,vy:0,life:.4,t:0,col:'#ff8a3c',r:9,g:1});
+  }
+  if(Math.hypot(e.x-R.x,e.y-R.y)<e.r+12||R.t>ROCKET_LIFE) rocketHit(R,e);
+}
+function rocketHit(R,e){
+  rocket=null;
+  const pct=ROCKET_PCT[clamp(save.diff|0,0,ROCKET_PCT.length-1)]*(player.st.punish>PUNISH_MULT?ROCKET_SKILL:1);
+  const floor=Math.min(e.hp,e.max*.01);                 // never the kill
+  e.hp=Math.max(floor,e.hp-e.max*pct); e.knit=0;
+  const x=R.x, y=R.y;
+  hitstop(.09); slow(.7); shake=Math.max(shake,40); flash=Math.max(flash,.7);
+  shock(x,y,'#ffffff',e.r*.4,e.r*3.2,.5,10);
+  shock(x,y,'#ffd24d',e.r*.8,Math.min(W,H)*.7,.8,7);
+  burst(x,y,'#ffd24d',70,640); burst(x,y,'#ffffff',36,420); burst(x,y,'#ff8a3c',40,520);
+  flare(x,y,'#ffffff',e.r*1.4,.22);
+  thump(); SFX.crack(); SFX.strip();
+  // the window shuts, and the boss comes back after a breath
+  e.open=0; e.openEnd=null; e.gate=null; e.nextK=null; e.cool=ROCKET_RECOVER;
+  if(RHY.boss(e)){
+    const p=RHY.pos();
+    if(p!=null){ const g=Math.ceil((p+1)/4)*4; if(RHY.brk) RHY.brk[1]=g; RHY.back=g; }
+  }
+}
+// the rocket: a long gold body, a white nose, fins, and a flame that flickers
+function rocketDraw(){
+  const R=rocket; if(!R) return;
+  ctx.save(); ctx.translate(R.x,R.y); ctx.rotate(R.a);
+  ctx.shadowColor='#ffb44d'; ctx.shadowBlur=22;
+  ctx.fillStyle='#ffd24d'; ctx.beginPath();
+  ctx.moveTo(-24,0); ctx.lineTo(-30,-12); ctx.lineTo(-16,-7); ctx.lineTo(16,-7);
+  ctx.lineTo(30,0); ctx.lineTo(16,7); ctx.lineTo(-16,7); ctx.lineTo(-30,12); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(16,-7); ctx.lineTo(30,0); ctx.lineTo(16,7); ctx.closePath(); ctx.fill();
+  const fl=18+rand(0,16);
+  ctx.fillStyle='#ff8a3c'; ctx.beginPath(); ctx.moveTo(-24,-6); ctx.lineTo(-24-fl,0); ctx.lineTo(-24,6); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#fff1b8'; ctx.beginPath(); ctx.moveTo(-24,-3); ctx.lineTo(-24-fl*.55,0); ctx.lineTo(-24,3); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// the prompt, over the arena, while there is a rocket to fire
+function rocketPrompt(){
+  if(!rocketReady()) return;
+  const pu=.5+.5*Math.sin(performance.now()/110);
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.globalAlpha=.75+.25*pu; ctx.fillStyle='#ffd24d'; ctx.shadowColor='#ffb44d'; ctx.shadowBlur=14+14*pu;
+  ctx.font='700 30px Menlo,monospace'; ctx.fillText(ROCKET_ASK,W/2,H*.3);
+  ctx.restore();
+}
 /* A punish window takes a stream of rounds, and a stop on every one of them
    stutters. It stops on the first, then no more than once every PUNISH_STOP_GAP
    seconds of real time. */
@@ -8174,16 +8257,21 @@ function partsPaint(c,L){
   c.restore();
 }
 
+/* The rings and the shards glow by a second, wider, fainter stroke under the
+   line rather than by shadowBlur. A blurred ring wider than the screen is the
+   dearest thing a canvas can be asked to draw, and the big moments (a boss
+   going down) used to throw several at once and stall the frame. */
 function fxDraw(){
+  ctx.shadowBlur=0;
   for(const w of waves){
     const k=w.t/w.life, r=w.r0+(w.r1-w.r0)*(1-Math.pow(1-k,2.4));
+    const a=Math.pow(1-k,1.7), lw=w.w*(1-k)+.6;
     ctx.beginPath(); ctx.arc(w.x,w.y,r,0,TAU);
-    ctx.strokeStyle=w.col; ctx.globalAlpha=Math.pow(1-k,1.7);
-    ctx.lineWidth=w.w*(1-k)+.6;
-    ctx.shadowColor=w.col; ctx.shadowBlur=22*(1-k);
-    ctx.stroke();
+    ctx.strokeStyle=w.col;
+    ctx.globalAlpha=a*.22; ctx.lineWidth=lw+14*(1-k); ctx.stroke();
+    ctx.globalAlpha=a; ctx.lineWidth=lw; ctx.stroke();
   }
-  ctx.globalAlpha=1; ctx.shadowBlur=0;
+  ctx.globalAlpha=1;
   for(const p of shards){
     const k=1-p.t/p.life;
     ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.spin);
@@ -8195,11 +8283,12 @@ function fxDraw(){
     }
     ctx.closePath();
     ctx.fillStyle='#05060d'; ctx.fill();
-    ctx.strokeStyle=p.col; ctx.lineWidth=1.6;
-    ctx.shadowColor=p.col; ctx.shadowBlur=10*k; ctx.stroke();
+    ctx.strokeStyle=p.col;
+    ctx.globalAlpha=Math.min(1,k*1.6)*.25; ctx.lineWidth=5; ctx.stroke();
+    ctx.globalAlpha=Math.min(1,k*1.6); ctx.lineWidth=1.6; ctx.stroke();
     ctx.restore();
   }
-  ctx.globalAlpha=1; ctx.shadowBlur=0;
+  ctx.globalAlpha=1;
 }
 
 /* ================= update ================= */
@@ -8234,8 +8323,8 @@ function update(dt){
   // rather than a pile-up. Nothing is skipped; the queue just waits its turn.
   // holding the station is the one place the arena is allowed to be busier
   // than a system: the whole point of it is more inbound than one ship can cover
-  const maxLive = mission ? (mission.ward?12:10)
-                : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : WV().live;
+  const maxLive = liveCap();
+  crowdT = enemies.length>=maxLive ? CROWD_HOLD : Math.max(0,crowdT-dt);
   // fought to the music, hostiles come in on the beat, one a beat
   // (a formation comes in together, so it does not wait a beat a member)
   while(spawnQ.length && !entrance && !phaseCut && spawnQ[0].t<=waveTimer && enemies.length<maxLive &&
@@ -8324,7 +8413,7 @@ function update(dt){
 
   /* --- fire --- */
   P.cool-=dt;
-  if(mouse.down&&P.cool<=0&&!(P.frz>0)&&!(P.stun>0)){
+  if(mouse.down&&P.cool<=0&&!(P.frz>0)&&!(P.stun>0)&&!exposedBoss()){
     P.cool=st.delay*(buffs.rapid>0?.55:1);
     const n=Math.max(st.shots,buffs.scatter>0?3:1), spread=.15;
     for(let i=0;i<n;i++){
@@ -8735,6 +8824,8 @@ function update(dt){
     }finally{ if(e.elite) for(let q=eb0;q<ebullets.length;q++){ const b=ebullets[q]; b.el=1; b.col=ELITE_COL; if(b.trail) b.trail=ELITE_COL; } }
   }
 
+  rocketStep(dt);
+
   /* --- bullets vs enemies --- */
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
@@ -8793,7 +8884,7 @@ function update(dt){
             bullets.splice(i,1); break;
           }
         }
-        e.hp-= b.dmg * (e.open>0?player.st.punish:1); b.hit.push(e);
+        e.hp-= b.dmg; b.hit.push(e);
         if(e.open>0&&RHY.boss(e)) RHY.note();
         if(e.t==='boss'&&e.open>0){ punishStop(); punishKnock(e,b); }
         e.knit=0;                              // pressure held: it cannot knit
@@ -9001,7 +9092,7 @@ function retryBoss(){
   hideAll();
   player.frz=player.thaw=0;
   worldStart(); sceneStart();
-  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null};
+  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rocket=null;
   wave=4; nextWave();
   state='play';
 }
@@ -9069,9 +9160,10 @@ function endRun(win,why){
   if(M&&!win){ branchSortie=false; sideFailText(M,why); }
   overStep(win?2:1);
   if(win){ state='over'; show('over'); return; }
+  if(!R) rowLost();
   // a death is a scene, not a screen transition. Let it finish first.
   state='dying'; deathFx();
-  after(2.35,()=>{ if(state==='dying'){ state='over'; show('over'); } });
+  after(2.35,()=>{ if(state==='dying'){ state='over'; show('over'); diffAskMaybe(); } });
 }
 
 /* ══════════════════════ THE ARENAS ══════════════════════
@@ -11013,7 +11105,7 @@ function startMission(kind){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
   clearBuffs();
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
-  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; sceneStart();
+  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rocket=null; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
   launchStart();
   /* The Portal is somewhere else entirely and brings no weather with it. Every
@@ -11450,8 +11542,9 @@ function missionEnd(win,why){
     persist();
     sideFailText(M,why);
     // a failed goal ends the way a lost hull does: the ship comes apart first
+    rowLost();
     player.hp=0; state='dying'; deathFx();
-    after(2.35,()=>{ if(state==='dying'){ state='over'; show('over'); } });
+    after(2.35,()=>{ if(state==='dying'){ state='over'; show('over'); diffAskMaybe(); } });
     return;
   }
   bullets=[];ebullets=[];enemies=[];
@@ -11938,6 +12031,7 @@ function draw(){
       ctx.restore(); ctx.shadowBlur=0;
     }
 
+    rocketDraw();
     // player bullets
     const BT=cosOf('bolt');
     // every bolt of a kind goes into one path, so the glow is worked out once
@@ -12409,9 +12503,7 @@ function duoBar(any){
     ctx.fillStyle='#9fd8ff'; ctx.font='600 13px Menlo,monospace';
     ctx.fillText(waiting.B.n+' SHIELDED \u00b7 BRING '+waiting.twin.B.n+' TO HALF',W/2,y-24);
   }else{
-    const op=[p0,p1].find(e=>alive(e)&&e.open>0);
-    if(op){ ctx.fillStyle='#ffd24d'; ctx.font='600 13px Menlo,monospace';
-      ctx.fillText(op.B.n+' EXPOSED  \u00d7'+(+player.st.punish.toFixed(1)),W/2,y-24); }
+    // an exposed Titan is told by the rocket prompt
   }
 }
 
@@ -12528,11 +12620,14 @@ function hud(){
   }
 
   comboDraw();
+  rocketPrompt();
   // a cleared wave's pay: rises a little and fades
   if(crToastT>0){
     const age=CR_TOAST_T-crToastT, a=clamp(Math.min(age*5,crToastT*1.4),0,1);
-    ctx.save(); ctx.globalAlpha=a;
-    titleText(crToast,W/2,H*.68-age*14,34,'#ffd24d',{glow:18});
+    ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center';
+    ctx.font='700 30px Menlo,monospace'; ctx.fillStyle='#ffd24d';
+    ctx.shadowColor='#ffb44d'; ctx.shadowBlur=18;
+    ctx.fillText(crToast,W/2,H*.68-age*14);
     ctx.restore();
   }
 
@@ -12571,32 +12666,20 @@ function hud(){
       ctx.fillText(RECALL_LABEL+'  '+boss.recall.toFixed(1),W/2,y-24);
       ctx.fillStyle='rgba(255,77,94,.25)'; ctx.fillRect(x,y-4,w,3);
       ctx.fillStyle='#ff4d5e'; ctx.fillRect(x,y-4,w*p,3);
-    }else if(boss.open>0){
-      ctx.fillStyle='#ffd24d'; ctx.font='600 13px Menlo,monospace';
-      ctx.fillText('EXPOSED  \u00d7'+(+P.st.punish.toFixed(1)),W/2,y-24);
     }
   }
 
   // banner
   if(bannerT>0){
-    // a new banner (or the same words set again) starts its decode over
-    if(banner!==bnLast||bannerT>bnT+.05){ bnLast=banner; bnAt=performance.now(); }
-    bnT=bannerT;
-    const a=clamp(bannerT>2?(2.4-bannerT)*4:bannerT,0,1), rev=clamp((performance.now()-bnAt)/1000/BANNER_DECODE,0,1);
-    const cut=banner.indexOf(' \u2014 '), main=cut<0?banner:banner.slice(0,cut), sub=cut<0?'':banner.slice(cut+3);
-    ctx.save(); ctx.globalAlpha=a;
-    titleText(main,W/2,H/2-14,58,'#9fd0ff',{rev,rules:1});
-    if(sub) titleText(sub,W/2,H/2+30,26,BANNER_SUB[sub]||'#c9b8ff',{rev:clamp(rev*1.4-.4,0,1),wide:.3,glow:14});
-    ctx.restore();
+    const a=clamp(bannerT>2?(2.4-bannerT)*4:bannerT,0,1);
+    ctx.globalAlpha=a; ctx.textAlign='center';
+    ctx.fillStyle='#dfe9ff'; ctx.font='600 44px Menlo,monospace';
+    ctx.fillText(banner,W/2,H/2-8);
+    ctx.globalAlpha=1;
   }
   ctx.textAlign='left';
 }
 
-// the banner's decode: how long it takes, and what it last was
-const BANNER_DECODE=.35;
-let bnLast='', bnAt=0, bnT=0;
-// a second line's own colour (anything else, a boss's name, is violet)
-const BANNER_SUB={FORMATION:'#3fd8e0', ELITE:'#ffd24d'};
 
 /* ================= loop ================= */
 let last=performance.now();
@@ -12649,6 +12732,7 @@ function frame(now){
   }catch(err){ frameFault(err,'screens'); }
   try{ gearHome(); }catch(err){ frameFault(err,'gear'); }
   try{ MUS.tick(); }catch(err){ frameFault(err,'music'); }
+  try{ faultDraw(raw); }catch(err){}
   requestAnimationFrame(frame);
 }
 /* A frame that throws is reported, not swallowed: logged once to the console.
@@ -12662,6 +12746,24 @@ function frameFault(err,where){
   if(faultSeen[msg]) return;
   faultSeen[msg]=1;
   try{ console.error('[mindframe] '+msg, err); }catch(e){}
+  // ...and shown, so it can be read off the screen without a console
+  const at=((err&&err.stack)||'').split('\n').find(l=>/\d+:\d+/.test(l))||'';
+  faultLine={s:'[mindframe] '+msg+(at?'  \u00b7  '+at.trim().slice(-60):''), t:FAULT_SHOW};
+}
+/* The last fault, on screen for FAULT_SHOW seconds in the bottom-left
+   corner, drawn last and on a clean transform so a broken frame cannot hide it. */
+const FAULT_SHOW=15;
+let faultLine=null;
+function faultDraw(dt){
+  if(!faultLine) return;
+  faultLine.t-=dt; if(faultLine.t<=0){ faultLine=null; return; }
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over'; ctx.shadowBlur=0;
+  ctx.font='12px Menlo,monospace'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  const w=Math.min(ctx.canvas.width-20,ctx.measureText(faultLine.s).width+16);
+  ctx.fillStyle='rgba(20,4,8,.85)'; ctx.fillRect(8,ctx.canvas.height-34,w,24);
+  ctx.fillStyle='#ff6b7a'; ctx.fillText(faultLine.s,16,ctx.canvas.height-17);
+  ctx.restore();
 }
 requestAnimationFrame(frame);
 
@@ -13437,7 +13539,8 @@ const SKILL_STATS=[
   ['FIRE RATE',   s=>1/s.delay,               'pct'],
   ['SHOTS',       s=>s.shots,                 v=>v],
   ['PIERCE',      s=>s.pierce,                v=>v?v+' ENEMIES':'NONE'],
-  ['EXPOSED HITS',s=>s.punish,                v=>'\u00d7'+v],
+  // «WRITE:» the label: this is the rocket's size now
+  ['EXPOSED HITS',s=>s.punish>PUNISH_MULT?ROCKET_SKILL:1, v=>'\u00d7'+v],
   ['REPAIR',      s=>s.regen,                 v=>v?v+' HP/s':'NONE'],
   ['DAMAGE TAKEN',s=>s.armour,                v=>Math.round(v*100)+'%'],
   ['SPEED',       s=>s.speed,                 'pct'],
@@ -14545,6 +14648,11 @@ $('btnExtras').onclick=()=>{ $('extCredits').classList.toggle('lock',!creditsOpe
 $('btnExtrasBack').onclick=()=>{ refreshMenu(); show('menu'); };
 $('extCodex').onclick=()=>{ gearFrom='extras'; codexTab='hostiles'; codexSel=0; buildCodex(); show('codex'); };
 $('extStory').onclick=()=>{ gearFrom='extras'; buildStory(); show('story'); };
+/* The Mac app, from the repo, for anyone playing in a browser. Inside the app
+   there is nothing to download, so the button is not there. */
+const MAC_ZIP='https://github.com/oscaremoran/MindframeGame/raw/main/MindframeGame-app/Mindframe-mac.zip';
+if(APP) $('extMac').style.display='none';
+else $('extMac').onclick=()=>{ SFX.ui(); window.open(MAC_ZIP,'_blank'); };
 // the credits are the ending's: they open once the thing behind the Ruler is down
 const creditsOpen=()=>save.deepestSys>=SYSTEMS.length;
 $('extCredits').onclick=()=>{
@@ -14592,6 +14700,11 @@ $('btnRetry').onclick=()=>{
   SFX.ui(); $('retryAsk').classList.add('on');
 };
 $('btnRetryNo').onclick=()=>$('retryAsk').classList.remove('on');
+$('btnDiffYes').onclick=()=>{
+  save.diff=clamp((save.diff|0)+(diffAskWay==='down'?-1:1),0,DIFFS.length-1); persist();
+  buildDiff(); SFX.ui(); $('diffAsk').classList.remove('on');
+};
+$('btnDiffNo').onclick=()=>$('diffAsk').classList.remove('on');
 $('btnRetryYes').onclick=()=>{
   $('retryAsk').classList.remove('on');
   if(retryOk&&retryCost()!==undefined&&save.credits>=retryCost()){ retryOk=false; retryBoss(); } else SFX.deny();
