@@ -2141,7 +2141,7 @@ if(!save.swapRB){
 }
 fixSave();
 SND.vol=save.vol; SND.on=save.sound;
-// set by the wipe, so nothing writes the old save back while the page restarts
+// set by the wipe, so nothing rites the old save back while the page restarts
 let wiped=false;
 /* index.html?watch (or watch.html) opens the cutscene theatre instead of the game.
    Nothing played there is saved. */
@@ -3238,6 +3238,7 @@ function nextWave(){
   const push=(t,type)=>spawnQ.push({t,type});
   const S=SYS(), R=ROSTER();
   if(wave<5){
+    RHY.hit(16,8);               // the band marks the wave in, on a bar line
     const soft=sysIdx===0;
     const V=WV();
     const grunts=(soft?[3,5,7,7][wave-1]:(wave<3?4:2)+wave*2)+S.extra+V.more,
@@ -5840,8 +5841,18 @@ function rhyCue(e,B){
 }
 // the arena's edge keeps time while a boss is fought to the music
 function rhyEdge(){
-  const e=enemies.find(o=>o.t==='boss'&&RHY.boss(o)&&!o.hidden); if(!e) return;
-  const pu=RHY.pulse(); if(pu<=.01) return;
+  const e=enemies.find(o=>o.t==='boss'&&RHY.boss(o)&&!o.hidden);
+  const pu=RHY.on?RHY.pulse():0; if(pu<=.01) return;
+  if(!e){
+    // the waves keep time too, quieter than a boss does
+    if(enemies.some(o=>o.t==='boss')) return;
+    ctx.save();
+    ctx.strokeStyle='rgba(159,208,255,'+(.2*pu)+')'; ctx.lineWidth=2+4*pu;
+    ctx.shadowColor='#9fd0ff'; ctx.shadowBlur=14*pu;
+    ctx.strokeRect(0,0,W,H);
+    ctx.restore();
+    return;
+  }
   // the boss's own colour, gold while it is open
   const h=(e.col||'#ff4d5e').replace('#',''), col=e.open>0?'255,210,77'
     : [0,2,4].map(i=>parseInt(h.substr(i,2),16)).join(',');
@@ -5876,7 +5887,14 @@ function rhyEdge(){
    What comes next is decided as the rest starts, so the music can get ready.
    pos() is the sixteenth the player is HEARING, so it is behind what the
    scheduler has queued by the look-ahead and the output latency. With no
-   music running, pos() is null and the boss keeps its own clock. */
+   music running, pos() is null and the boss keeps its own clock.
+
+   The rest of a flight keeps time as well, through gate() and hit(): hostiles
+   come in on the beat, one a beat; each system's hazard is let go so that
+   it strikes on a bar line once its warning has run (Venus's vents run on
+   the beat instead); a wave is marked in on a bar and out on a beat; and
+   the arena's edge pulses, quieter than for a boss. The score itself is
+   left alone. */
 const WARN_MIN=.6;      // no warning shorter than this, in seconds, whatever the tempo
 const RHY_LATE=.25;     // how often an attack waits a whole extra bar
 const RHY={
@@ -5981,6 +5999,30 @@ const RHY={
     MUS.saw((MUS.key||MUS.ROOTS[Math.min(sysIdx,3)])*Math.pow(2,semi/12), this.at(s), MUS.spb*1.6, .075, null, false);
   },
   // a pulse on every beat, bigger on the bar
+  /* ---- the rest of a flight, to the music ----
+     gate(key,lead,grid) is true on the one frame that `lead` seconds from now
+     crosses a line of `grid` sixteenths (4 a beat, 16 a bar), so whatever it
+     lets go lands on that line `lead` later. Polled every frame while
+     something is waiting; a gate that has not been asked for a while starts
+     over rather than firing at once. With MUSIC SYNC off, or no music
+     running, it is always true and nothing waits. */
+  gates:{},
+  gate(key,lead,grid){
+    const p=this.on?this.pos():null;
+    if(p==null||!MUS.spb) return true;
+    const q=p+(lead||0)/MUS.spb, was=this.gates[key];
+    this.gates[key]=q;
+    if(was==null||q<was||q-was>grid) return false;
+    // a line crossed while nobody was asking is missed, not let go late
+    return Math.floor(q/grid)!==Math.floor(was/grid) && q%grid<1;
+  },
+  // a wave in, or a wave cleared: the band hits on the next line of `grid`, at least `min` sixteenths off
+  hit(grid,min){
+    const p=this.on?this.pos():null; if(p==null) return;
+    let g=Math.ceil(p/grid)*grid; while(g<p+(min||1)) g+=grid;
+    const t=this.at(g);
+    MUS.drum(t,'crash',.2); MUS.drum(t,'kick',.55); MUS.drum(t,'hit',.14);
+  },
   pulse(){
     const p=this.pos(); if(p==null) return 0;
     const f=(p%4)/4, down=Math.floor(p/4)%4===0;
@@ -8044,7 +8086,9 @@ function update(dt){
   // than a system: the whole point of it is more inbound than one ship can cover
   const maxLive = mission ? (mission.ward?12:10)
                 : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : WV().live;
-  while(spawnQ.length && !entrance && !phaseCut && spawnQ[0].t<=waveTimer && enemies.length<maxLive){ spawn(spawnQ.shift().type); }
+  // fought to the music, hostiles come in on the beat, one a beat
+  while(spawnQ.length && !entrance && !phaseCut && spawnQ[0].t<=waveTimer && enemies.length<maxLive &&
+        (spawnQ[0].type==='boss'||RHY.gate('arrive',0,4))){ spawn(spawnQ.shift().type); }
 
   const P=player, st=P.st;
   if(winScene){ winStep(dt); return; }      // a won side mission or a held system flying out
@@ -8751,7 +8795,8 @@ function update(dt){
   if(!spawnQ.length && !enemies.length){
     if(wave>=5&&rush) rushCleared();
     else if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); winScene={sys:sysIdx}; winOut(systemCleared,true); }
-    else if(bannerT<=0){ const n=CREDITS_PER_WAVE(sysIdx); credit(n); crToast='+'+n+' CREDITS'; crToastT=CR_TOAST_T; nextWave(); }
+    else if(bannerT<=0){ const n=CREDITS_PER_WAVE(sysIdx); credit(n); crToast='+'+n+' CREDITS'; crToastT=CR_TOAST_T;
+      RHY.hit(4); nextWave(); }
   }
 }
 
@@ -8816,7 +8861,7 @@ function retryButton(){
    or boss gives its bestiary counter tip, the arena gives DEATH_TIP. */
 
 const DEATH_TIP={'SOLAR FLARE':'Look for the gaps, then dash through them.', 'FIRE VENT':'Try figuring out the pattern, then staying away.', 'RING DEBRIS':'Try looking for the golden lines, then avoiding them.',
-  'STORM FRONT':'Try getting the BLINK DASH skill and dashing through the fronts.', 'LASER RAIDER':'You can kill them before they shoot.',
+  'STORM FRONT':'Try getting the BLINK DASH skill and dashing through the fronts.', 'LASER RAIDER':'Watch them carefully and see their telegraph.',
   'ENEMY FIRE':''};
 function deathTip(){
   if(!killer) return '';
@@ -8905,9 +8950,8 @@ function endRun(win,why){
      raiders (Icarus)  Robots that fly in, paint a line, fire a beam down it
                        and leave. They are weather rather than opposition: they
                        do not gate the wave, they do not count against the
-                       spawn cap, and they can turn up mid-boss. Shootable, but
-                       tanky and worth nothing — killing one is a choice to
-                       spend time on safety instead of the wave.
+                       spawn cap, and they can turn up mid-boss. They cannot be
+                       killed: a round glances off one. Get out of the line.
      geysers (Europa)  A patch of ice cracks, then blows a column of freezing
                        water. Caught in it, your ship is iced over for a
                        second and a half: no thrust, no gun, and you drift.
@@ -9748,7 +9792,16 @@ function hazKill(e,j,col){
    {burn:k} actually burning */
 function ventPhase(v){
   const cyc=VENT_CYC/HAZ_RATE(), warn=VENT_WARN, burn=VENT_BURN;
-  const p=(world.t+v.off)%cyc;
+  let p=(world.t+v.off)%cyc;
+  /* fought to the music, the rotation is rounded to whole beats and runs off
+     the music's clock, shifted so that each vent catches fire on a beat */
+  const q=RHY.on?RHY.pos():null;
+  if(q!=null&&MUS.spb){
+    const b=MUS.spb*4, cb=Math.max(4,Math.round(cyc/b)), ob=Math.round(v.off/cyc*cb);
+    const k=Math.max(1,Math.round(warn/b));
+    p=((q/4+ob)%cb+cb)%cb*b+(warn-k*b);
+    if(p<0) p+=cb*b;
+  }
   if(p<warn)      return {warn:p/warn};
   if(p<warn+burn) return {burn:(p-warn)/burn};
   return null;
@@ -9849,7 +9902,7 @@ function worldStep(dt){
     const g=WELL_G*(DIFF().k==='low'?.72:DIFF().k==='high'?1.25:1);
     if(!world.well){
       world.gap-=dt;
-      if(world.gap<=0) world.well=placeWell();
+      if(world.gap<=0&&RHY.gate('haz',0,16)) world.well=placeWell();
     }else{
       const w=world.well; w.t+=dt;
       const life=WELL_LIFE/ (DIFF().k==='low'?1.25:1);
@@ -9904,7 +9957,7 @@ function worldStep(dt){
   if(world.h==='rings'){
     if(!world.lane){
       world.next-=dt;
-      if(world.next<=0) world.lane=placeLane();
+      if(world.next<=0&&RHY.gate('haz',RING_WARN/(DIFF().k==='low'?.8:1),16)) world.lane=placeLane();
     }else{
       const L=world.lane; L.t+=dt;
       const warn=RING_WARN/(DIFF().k==='low'?.8:1);
@@ -9952,7 +10005,7 @@ function worldStep(dt){
       // it holds off while a Titan is standing; on Starfarer it comes anyway, slower
       const titan=enemies.some(e=>e.B&&e.B.duoPart);
       if(!titan) world.next-=dt; else if(STARFARER()) world.next-=dt*SF_STORM_RATE;
-      if(world.next<=0){ world.front=placeFront(); if(titan) world.front.slow=1; }
+      if(world.next<=0&&RHY.gate('haz',STORM_WARN,16)){ world.front=placeFront(); if(titan) world.front.slow=1; }
     }else{
       const F=world.front; F.t+=dt;
       if(F.t>=STORM_WARN) F.s+=STORM_V*HAZ_RATE()*(F.slow?SF_STORM_V:1)*dt;
@@ -9978,7 +10031,7 @@ function worldStep(dt){
   /* ---- Europa: ice geysers ---- */
   if(world.h==='geysers'){
     world.next-=dt;
-    if(world.next<=0&&!levBusy()&&!(mission&&mission.dark)){ world.gey.push(placeGeyser()); world.next=rand(GEY_GAP[0],GEY_GAP[1])/HAZ_RATE(); }
+    if(world.next<=0&&!levBusy()&&!(mission&&mission.dark)&&RHY.gate('haz',GEY_WARN,16)){ world.gey.push(placeGeyser()); world.next=rand(GEY_GAP[0],GEY_GAP[1])/HAZ_RATE(); }
     for(let i=world.gey.length-1;i>=0;i--){
       const g=world.gey[i]; g.t+=dt;
       if(g.t>=GEY_WARN+GEY_BLOW){ world.gey.splice(i,1); continue; }
@@ -10013,7 +10066,7 @@ function worldStep(dt){
     // the station's turn brings its own, and the ordinary ones hold off for it
     if(!omegaTurning()){
       world.next-=dt;
-      if(world.next<=0){ world.fl.push(placeFlare()); world.next=rand(FLARE_EVERY[0],FLARE_EVERY[1])/HAZ_RATE(); }
+      if(world.next<=0&&RHY.gate('haz',FLARE_WARN,16)){ world.fl.push(placeFlare()); world.next=rand(FLARE_EVERY[0],FLARE_EVERY[1])/HAZ_RATE(); }
     }
     for(let i=world.fl.length-1;i>=0;i--){
       const F=world.fl[i]; F.t+=dt;
@@ -10037,7 +10090,7 @@ function worldStep(dt){
   /* ---- Icarus: raiders ---- */
   if(world.h==='raiders'){
     world.next-=dt;
-    if(world.next<=0 && world.raid.length<RAID_MAX){
+    if(world.next<=0 && world.raid.length<RAID_MAX && RHY.gate('haz',0,16)){
       world.next=rand(3,5)/HAZ_RATE();
       const p=edgeSpawn();
       // it takes station at arm's length: a beam fired from your own hull is not
@@ -10082,19 +10135,10 @@ function worldStep(dt){
         R.a=R.fa;
         if(R.x<-80||R.x>W+80||R.y<-80||R.y>H+80){ world.raid.splice(i,1); continue; }
       }
-      // your fire brings one down — for nothing but the quiet
+      // it cannot be brought down: your fire glances off it, and it costs you the round
       for(let k=bullets.length-1;k>=0;k--){
         const b=bullets[k], rr=R.r+b.r+3;
-        if(b.hit.includes(R)) continue;
-        if(dist2(b,R)<rr*rr){
-          R.hp-=b.dmg; b.hit.push(R); SFX.hit();
-          burst(b.x,b.y,'#c9d4ee',4,150);
-          if(b.hit.length>b.pierce) bullets.splice(k,1);
-          if(R.hp<=0){
-            burst(R.x,R.y,'#c9d4ee',22,320); SFX.kill(false);
-            world.raid.splice(i,1); break;
-          }
-        }
+        if(dist2(b,R)<rr*rr){ burst(b.x,b.y,'#e6dcff',5,240); bullets.splice(k,1); }
       }
       // it will clip you on the way in or the way out — but a raider holding
       // station is a laser problem, not a wall, so parked it cannot touch you
@@ -10336,7 +10380,6 @@ function worldDraw(){
       ctx.beginPath(); ctx.arc(0,0,4.5,0,TAU);
       ctx.fillStyle=R.st==='aim'?'#ff4d5e':'#4d9dff'; ctx.fill();
       ctx.restore(); ctx.shadowBlur=0;
-      hpbar(R.x,R.y-R.r-11,R.r*2.3,R.hp/R.max,'#c9d4ee');
     }
   }
 }
@@ -10505,10 +10548,7 @@ function finaleDraw(){
    of the clear that opened it; Space, a key or a click skips it once it has
    had a moment. Then the chart, on the new region. */
 const RC_T=9.6, RC_JUMP=6.1, RC_TITLE=7.0, RC_SKIP=1.2;
-/* PROSE — an optional line under the region's name, one per region (index
-   as in REGIONS; region 1 never plays). Empty shows nothing.
-   «WRITE:» Oscar's lines for opening Solar System 2 and the Icarus. */
-const RC_LINE=['', '', ''];
+const RC_LINE=['', 'You have entered the second system of enemy forces.', 'You have reached the final enemy base.'];
 /* The worlds, by system name. A region's cutscene shows the region before
    it (REGIONS[r-1].sys), spread left to right in route order, so the ship
    passes them in the order they were flown. `y` is where it hangs, `d` its
@@ -13844,9 +13884,9 @@ function buildFx(){
   }
 }
 /* MUSIC SYNC. On, every boss is fought to the music (RHY): attacks on the
-   beat, the punish window a breakdown. On by default. */
-// PROSE — the line under MUSIC SYNC, wherever it is shown
-const RHY_WHY='Sync up boss battles with the music for a better experience.';
+   beat, the punish window a breakdown; and the waves keep time too. On by
+   default. */
+const RHY_WHY='Sync up boss battles and waves with the music for a better experience.';
 function buildMusic(){
   const on=RHY.on;
   for(const id of ['rhyGear','rhyPause','rhyExtras']){
