@@ -2288,9 +2288,9 @@ const SKILLS=[
    info:'Deal another 5 extra damage for every shot that hits.'},
   {id:'pierce',n:'PHASE\nROUNDS',       d:'shots pierce',     cost:19, x:11, y:40, req:'dmg2',
    info:'Shots pass through enemies.'},
-  // «WRITE:» PUNISHING PULSES now makes the rocket ROCKET_SKILL times bigger, not EXPOSED hits x4
-  {id:'punish',n:'PUNISHING\nPULSES', d:'EXPOSED hits \u00d74', cost:70, x:11, y:13, req:'pierce',
-   info:'When a boss is exposed, deal 4x damage instead of the regular 2x. A boss is exposed after each attack combo: It usually doubles your damage if you survive the combo with no hits. After one hit, you only get half the time. After two, only a third of the time, and after three or more, you get no punish window.'},
+ 
+  {id:'punish',n:'PUNISHING\nROCKET', d:'rocket damage +50%', cost:70, x:11, y:13, req:'pierce',
+   info:'When a boss is exposed, the rocket deals much damage.'},
 
   {id:'rate1', n:'WEAPON\nOVERCLOCK',     d:'+20% fire rate',   cost:4, x:33, y:88, req:null,
    info:'Fire 20% faster.'},
@@ -8636,7 +8636,8 @@ function update(dt){
         if(sd<need){ const k=(need-sd)/2; e.x+=sx/sd*k; e.y+=sy/sd*k; o.x-=sx/sd*k; o.y-=sy/sd*k; }
       }
       e.cool-=dt;
-      if(e.cool<=0&&e.on&&d<760){
+      // no range on it: it sits on your reflection, which an edge pins to the far side
+      if(e.cool<=0&&e.on){
         e.cool=CLONE_CD*(e.rof||1);
         const a=leadAngle(e,CLONE_SHOT,.9);
         ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*CLONE_SHOT,vy:Math.sin(a)*CLONE_SHOT,r:5.5,
@@ -8896,7 +8897,7 @@ function update(dt){
           shake=Math.max(shake,e.t==='boss'?26:5);
           if(e.t!=='boss'){ SFX.kill(HEAVY.has(e.t)); comboKill(); }
           if(HEAVY.has(e.t)) hitstop();
-          if(e.val&&!e.station) drop(e);          // an Omega wing falling drops nothing
+          if(e.val&&e.t!=='boss') drop(e);       // a boss (or any part of one) drops nothing
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
           else killFx(e,ecolOf(e),e.t==='heavy'?40:22,e.t==='heavy'?370:300);
           enemies.splice(j,1);
@@ -11584,6 +11585,11 @@ function winOut(done,quiet){
 }
 function winStep(dt){
   const P=player; winT+=dt;
+  // whatever was still in the air flies on out of the arena rather than hanging there
+  for(const L of [bullets,ebullets]) for(let i=L.length-1;i>=0;i--){
+    const b=L[i]; b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if(b.x<-40||b.x>W+40||b.y<-40||b.y>H+40) L.splice(i,1);
+  }
   P.inv=Math.max(P.inv,.5);
   // turn to face up as it goes
   let d=-Math.PI/2-P.a; d=Math.atan2(Math.sin(d),Math.cos(d));
