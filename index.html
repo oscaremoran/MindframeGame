@@ -1391,8 +1391,9 @@ const ROSTERS={
   sol2:{line:'phantom', ram:'meteor', heavy:'lander', lineK:.55},
   // the Icarus fields its own: Splinters on the line, Zappers in the second
   // slot and Crushers as the heavies. Each is worth several of Earth's, so
-  // fewer come (`ramK` scales the second slot the way `lineK` does the first)
-  ica:{line:'splinter', ram:'zapper', heavy:'crusher', lineK:.6, ramK:.65},
+  // fewer come (`ramK` scales the second slot the way `lineK` does the first).
+  // `heavyMore` adds that many heavies to every wave: more Crushers
+  ica:{line:'splinter', ram:'zapper', heavy:'crusher', lineK:.6, ramK:.65, heavyMore:1},
 };
 const rosterOf=i=>SYSTEMS[Math.min(i,SYSTEMS.length-1)].roster||'sol1';
 const ROSTER=()=>ROSTERS[rosterOf(sysIdx)];
@@ -1681,6 +1682,13 @@ const MUS={
       [[0,7,4],[4,8,4],[8,7,4],[12,5,4]],
       [[0,4,8],[8,0,8]],
     ],
+    // the thing behind the Ruler — it climbs over the top of everything
+    usurp:[
+      [[0,7,2],[2,8,1],[3,7,1],[4,5,2],[6,4,2],[8,1,3],[11,4,1],[12,8,4]],
+      [[0,11,3],[3,8,1],[4,7,2],[6,8,2],[8,4,4],[12,1,2],[14,0,2]],
+      [[0,0,2],[2,1,2],[4,4,1],[5,5,1],[6,7,2],[8,8,2],[10,11,2],[12,14,4]],
+      [[0,14,2],[2,11,2],[4,8,2],[6,7,2],[8,4,2],[10,1,2],[12,0,4]],
+    ],
     // 3295 — the record holder. Nothing but speed.
     record:[
       [[0,7,1],[1,8,1],[2,7,2],[4,5,1],[5,4,1],[6,5,2],[8,7,2],[10,8,2],[12,7,4]],
@@ -1818,7 +1826,7 @@ const MUS={
     const inRun = state==='play';
     if(!inRun) return ['menu',this.PROGRAMS.menu,0,1];
     const b=enemies.find(e=>e.t==='boss'&&!e.hidden);
-    if(b&&b.B.mus) return ['boss:'+(b.B.duoPart?'titans':b.k), b.B.mus, Math.min(sysIdx,3), 4];
+    if(b&&b.B.mus) return ['boss:'+(b.B.final?'final':b.B.duoPart?'titans':b.k), b.B.mus, Math.min(sysIdx,3), 4];
     const SP=this.SYS_PROGS[sysIdx];
     if(SP) return ['sys'+sysIdx, SP, Math.min(sysIdx,3), SP.I];
     return ['run',this.PROGRAMS.run, Math.min(sysIdx,3), Math.min(3,1+Math.min(sysIdx,3))];
@@ -3106,7 +3114,7 @@ function nextWave(){
     const grunts=(soft?[3,5,7,7][wave-1]:(wave<3?4:2)+wave*2)+S.extra+V.more,
           darts =(soft?[0,2,3,4][wave-1]:(wave<2?0:wave*2))+S.extra+V.more,
           heavies=soft?[0,0,1,1][wave-1]+(S.extra>1?1:0)
-                      :(wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0));
+                      :(wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0))+(R.heavyMore||0);
     const gap=(soft&&wave<=2?1.8:1.15)*V.gap;               // they arrive one at a time early on
     for(let i=0;i<Math.round(grunts*(R.lineK||1));i++) push(i*gap+(soft?1.4:.6),R.line);
     for(let i=0;i<Math.round(darts*(R.ramK||1));i++) push(i*gap+(soft?4:2.6),R.ram);
@@ -3206,7 +3214,7 @@ const EHULL={grunt:32, dart:14, heavy:140, tracker:55, overseer:110, orbiter:150
    CRUSHER  big and slow, and its electric bolts STUN: for STUN_T the ship
             cannot thrust, fire or dash. It can still aim.                   */
 const ZAP_V=230, ZAP_SEEK=1.7, ZAP_FUSE=.95, ZAP_SPLIT=3, ZAP_SPREAD=.38, ZAP_SHARD_V=270;
-const CRUSH_BOLT_V=290, STUN_T=.7;
+const CRUSH_BOLT_V=290, STUN_T=1.2;
 
 /* ---- the ORBITER's circle ----
    It wants a seat on a ring this far out from its target and keeps sliding
@@ -4415,10 +4423,14 @@ const SECRET_BOSSES=[
    a little under two and a half times the Ruler you just put down: enough that
    you feel the floor go, and the longest fight in the campaign by a distance. */
 const FINAL_BOSS=
-  { k:'ruler', n:'THE RULER', col:'#ff2233', r:96, hp:8400, val:5000, final:1,
-    spd:78, want:230, strafe:1.25, sum:'dart',
-    mus:{bpm:170, prog:[0,0,1,1, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
-         ost:[0,1,0,1, 6,1,0,1], hook:'throne', lead:'sawtooth', choirUp:1, ride:1},
+  { k:'ruler', n:'THE RULER', col:'#ff2233', r:124, hp:8400, val:5000, final:1,
+    spd:78, want:270, strafe:1.25, sum:'dart',
+    /* its own score, not the Ruler's sped up: lower, faster, a broken 3-3-2
+       kick under it, the chords stabbed, the swarm figure in every drop and a
+       bell tolling each bar. The hook (usurp) climbs where the throne walked. */
+    mus:{bpm:176, root:196, prog:[0,1,0,1, 8,6,1,1], qual:[0,1,0,1, 1,1,1,0],
+         ost:[0,0,12,0, 1,0,12,13], hook:'usurp', lead:'sawtooth', kicks:[0,3,6,8,11,14],
+         stabs:1, swarm:1, bells:1, choirUp:1, ride:1},
     tiers:[
       {n:'', seq:['brand','ring','hammer','spiral','|','blink','cross','lash','ring','|'],
        pool:['ring','fan','lance','spiral','blink','lash','brand','hammer'],
@@ -6040,6 +6052,41 @@ function absorbDraw(C,e,t){
 const SCENE_DUR=3.2, SCENE_HIT=2.0;
 const thump=()=>{ SND.tone('sine',70,34,.005,.35,.45); shake=Math.max(shake,8); };
 const scK=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+/* The thing behind the Ruler keeps the Ruler's silhouette and wears the rest
+   around it, drawn in the boss's own frame: a crown of blades turning one way
+   and a broken ring the other, more blades each tier; a core that beats with
+   the rim; and every so often it slips out of register, red one side and cyan
+   the other, the way the screen tore when it came through. */
+function finalCrown(e){
+  const r=e.r, pu=.5+.5*Math.sin(e.pt*7.4), n=12+2*(e.tier|0), m=e.morph;
+  ctx.save();
+  ctx.shadowColor='#ff2233'; ctx.shadowBlur=16+20*pu;
+  ctx.strokeStyle='#ff2233'; ctx.fillStyle='#000'; ctx.lineWidth=2.2;
+  for(let i=0;i<n;i++){
+    const a=i/n*TAU+m*.35, w=TAU/n*.32, r0=r*1.32, r1=r*(1.62+.1*Math.sin(m*2+i)+.12*pu);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a-w)*r0,Math.sin(a-w)*r0);
+    ctx.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);
+    ctx.lineTo(Math.cos(a+w)*r0,Math.sin(a+w)*r0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.lineWidth=1.6; ctx.globalAlpha=.75;
+  ctx.setLineDash([r*.5,r*.22]); ctx.lineDashOffset=m*r*.8;
+  ctx.beginPath(); ctx.arc(0,0,r*1.2,0,TAU); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  const cr=r*(.2+.06*pu), g=ctx.createRadialGradient(0,0,0,0,0,cr*2.4);
+  g.addColorStop(0,'rgba(255,240,240,.95)'); g.addColorStop(.3,'rgba(255,34,51,.8)'); g.addColorStop(1,'rgba(255,34,51,0)');
+  ctx.shadowBlur=0; ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(0,0,cr*2.4,0,TAU); ctx.fill();
+  ctx.restore();
+  if(Math.sin(e.pt*1.7)+Math.sin(e.pt*2.9)>1.6){
+    const o=5+rand(0,7);
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ghost('b_ruler',r,-o,0,'#ff2233',.55,2,0);
+    ghost('b_ruler',r,o,0,'#3fd8e0',.5,2,0);
+    ctx.restore();
+  }
+}
 function ghost(kind,r,x,y,col,a,lw,spin){
   ctx.save(); ctx.translate(x,y); if(spin) ctx.rotate(spin);
   ctx.globalAlpha=a; ctx.strokeStyle=col; ctx.lineWidth=lw||2; ctx.shadowColor=col; ctx.shadowBlur=14;
@@ -11052,16 +11099,19 @@ function darkDraw(M){
 
 function missionEnd(win,why){
   const M=mission; mission=null;
-  bullets=[];ebullets=[];enemies=[];spawnQ=[];
+  spawnQ=[];
   if(!win){
     // the detour failed; the route is untouched. You lose the payout and the
     // second attempt at this branch, and you carry on up the spine.
     branchSortie=false;
     persist();
     sideFailText(M,why);
-    state='over'; show('over');
+    // a failed goal ends the way a lost hull does: the ship comes apart first
+    player.hp=0; state='dying'; deathFx();
+    after(2.35,()=>{ if(state==='dying'){ state='over'; show('over'); } });
     return;
   }
+  bullets=[];ebullets=[];enemies=[];
   if(M.k==='boss'&&M.B&&!save.beaten.includes(M.B.k)){ save.beaten.push(M.B.k); persist(); }
   credit(M.pay);
   bankBranch(M.sys,M.k);
@@ -11772,6 +11822,7 @@ function draw(){
             ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l);
           }
           ctx.stroke();
+          if(e.B&&e.B.final) finalCrown(e);
         }
         if(e.k==='archive'){                       // the Mindframes it holds
           ctx.lineWidth=2; ctx.shadowColor=col; ctx.shadowBlur=12;
