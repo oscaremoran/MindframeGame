@@ -2636,7 +2636,9 @@ function unitName(e){
   const r=CODEX.hostiles.rows.find(r=>r.u===e.t);
   return r ? r.n : String(e.t).toUpperCase();
 }
-const recap=()=> killer ? 'BROUGHT DOWN BY <span class="key">'+killer+'</span>' : '';
+// a rocket held too long is its own whole line, not something that brought you down
+const recap=()=> !killer ? '' : killer===ROCKET_KILLER ? '<span class="key">'+killer+'</span>'
+                : 'BROUGHT DOWN BY <span class="key">'+killer+'</span>';
 /* The death screen comes in two steps: first what happened (the cause, where,
    one tip), then CONTINUE to what it came to (credits, how far, score) and the
    ways on. A win has nothing to explain and opens straight on the second. */
