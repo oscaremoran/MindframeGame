@@ -6102,11 +6102,15 @@ const RHY={
      breakdown and the band's return are all moved on by however far the
      music got, so the window has as long left after a pause as before it. */
   hold(paused){
+    // the punish window, the breakdown, the band's return and a charge's start beat all move on together
     const p=this.pos(), held=paused&&p!=null;
     if(held&&this.heldAt!=null){
       const d=p-this.heldAt;
       if(d>0){
-        for(const e of enemies) if(e.openEnd!=null) e.openEnd+=d;
+        for(const e of enemies){
+          if(e.openEnd!=null) e.openEnd+=d;
+          if(e.act&&e.act.cue!=null) e.act.cue+=d;     // a charge's aim keeps what it had left
+        }
         if(this.brk) this.brk[1]+=d;
         if(this.back!=null) this.back+=d;
       }
@@ -10881,8 +10885,8 @@ function regCutDraw(){
   rcCarrier(rcShip());
   for(const b of rc.bodies) if(b.d>=1) rcBody(b,at(b),b.y);
 
-  // the jump's white-out, and the black it leaves behind for the name
-  const fl=clamp(1-Math.abs(t-(RC_JUMP+.7))/.35,0,1);
+  // the jump's white-out (a quarter of it on REDUCED, like every flash), and the black it leaves behind for the name
+  const fl=clamp(1-Math.abs(t-(RC_JUMP+.7))/.35,0,1)*(FX_REDUCED()?.25:1);
   const dk=clamp((t-RC_JUMP-.75)/.25,0,1)*.82;
   if(dk>0){ g.fillStyle='rgba(2,3,8,'+dk+')'; g.fillRect(0,0,W,H); }
   if(fl>0){ g.fillStyle='rgba(255,255,255,'+fl+')'; g.fillRect(0,0,W,H); }
