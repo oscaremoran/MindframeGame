@@ -2485,7 +2485,7 @@ addEventListener('keyup',e=>{
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   SND.boot(); SND.resume();
-  if(e.code==='Space'){ e.preventDefault(); if(state==='play'&&!paused&&!e.repeat) rocketLaunch(); }
+  if(e.code==='Space'){ e.preventDefault(); if(state==='play'&&!paused&&!e.repeat) rocketLoad(); }
   // flying, dashing and pausing never skip a launch or a boss's entrance
   if(launchCut&&state==='play'&&!paused&&!e.repeat&&launchSeen()&&!FLY_KEYS.has(e.code)) launchSkip();
   else if(entrance&&state==='play'&&!paused&&!e.repeat&&entranceSeen()&&!FLY_KEYS.has(e.code)) entranceSkip();
@@ -2795,7 +2795,7 @@ function beginSystem(){
   bullets=[];ebullets=[];enemies=[];
   clearBuffs();
   worldStart(); sceneStart();
-  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rocket=null;
+  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rockets=[]; rload=null; loadK=0;
   wave=0; nextWave();
   state='play';
   launchStart();
@@ -3693,21 +3693,20 @@ const CR_TOAST_T=2.4;
 
 /* COMBOS. Kills chained inside COMBO_GAP seconds of each other build a combo,
    whatever made them: your fire, or a system's hazard you led them into.
-   Getting hit does not break it; only the gap does. Not in a boss fight. At each step of
-   COMBO_TITLES a title pops over the arena and is gone in COMBO_POP; past the
-   last step, the last title comes back every COMBO_MORE kills. */
-const COMBO_GAP=1.7, COMBO_POP=1.1, COMBO_MORE=10;
+   Getting hit does not break it; only the gap does. Not in a boss fight, and not on
+   REDUCED. At each step of COMBO_TITLES a title shows at the top of the screen and is
+   gone in COMBO_POP; past the last step there are no more. */
+const COMBO_GAP=1.7, COMBO_POP=1.1;
 // PROSE — the titles, one a step: [kills, title]. A step with no title shows nothing.
-const COMBO_TITLES=[[3,'FINE'],[5,'GOOD'],[8,'GREAT'],[12,'SUPERB'],[16,'AMAZING'],[20,'LEGENDARY'],[25,'MASTERFUL'],[30,'GODLIKE']];
+const COMBO_TITLES=[[5,'FINE'],[10,'GOOD'],[15,'GREAT'],[20,'SUPERB'],[25,'AMAZING'],[50,'LEGENDARY'],[75,'MASTERFUL'],[100,'GODLIKE']];
 // each step a little hotter than the last
 const COMBO_COLS=['#9fd0ff','#3fd8e0','#46e39b','#ffd24d','#ffb44d','#ff8a3c','#ff4d5e','#d9c6ff'];
 let combo={n:0, t:0, pop:null};
 function comboKill(){
   if(enemies.some(e=>e.t==='boss')) return;   // a boss fight is not about the crowd
   combo.n = combo.t>0 ? combo.n+1 : 1; combo.t=COMBO_GAP;
-  const last=COMBO_TITLES.length-1, top=COMBO_TITLES[last][0];
-  let k=COMBO_TITLES.findIndex(q=>q[0]===combo.n);
-  if(k<0&&combo.n>top&&(combo.n-top)%COMBO_MORE===0) k=last;
+  if(FX_REDUCED()) return;                    // REDUCED has no titles at all
+  const k=COMBO_TITLES.findIndex(q=>q[0]===combo.n);
   if(k<0||!COMBO_TITLES[k][1]) return;
   combo.pop={s:COMBO_TITLES[k][1], n:combo.n, col:COMBO_COLS[k], t:COMBO_POP};
   if(k>=3) SFX.tier(); else SFX.ui();
@@ -3717,16 +3716,16 @@ function comboStep(dt){
   if(combo.t>0){ combo.t-=dt; if(combo.t<=0) combo.n=0; }
   if(combo.pop&&bannerT<=0){ combo.pop.t-=dt; if(combo.pop.t<=0) combo.pop=null; }
 }
-// the title: pops in a size too big, settles, and fades out over its last half
+// the title: top centre, level with the HUD, at its own size, and fades out over its last half
 function comboDraw(){
-  const c=combo.pop; if(!c||bannerT>0) return;
-  const age=COMBO_POP-c.t, sc=1+.35*Math.max(0,1-age/.12), a=clamp(c.t/(COMBO_POP*.5),0,1);
+  const c=combo.pop; if(!c||bannerT>0||FX_REDUCED()) return;
+  const a=clamp(c.t/(COMBO_POP*.5),0,1);
   ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.translate(W/2,H*.24); ctx.scale(sc,sc);
-  ctx.fillStyle=c.col; ctx.shadowColor=c.col; ctx.shadowBlur=22;
-  ctx.font='700 34px Menlo,monospace'; ctx.fillText(c.s,0,0);
+  ctx.translate(W/2,46);
+  ctx.fillStyle=c.col; ctx.shadowColor=c.col; ctx.shadowBlur=6;
+  ctx.font='700 26px Menlo,monospace'; ctx.fillText(c.s,0,0);
   // the count it stands for, small under it
-  ctx.font='600 16px Menlo,monospace'; ctx.shadowBlur=10; ctx.fillText('\u00d7'+c.n,0,30);
+  ctx.font='600 14px Menlo,monospace'; ctx.shadowBlur=3; ctx.fillText('\u00d7'+c.n,0,24);
   ctx.restore();
 }
 
@@ -3758,6 +3757,7 @@ function comboDraw(){
    nothing is summoned, no escorts come with them, and the blizzard holds
    off while either of them is standing. */
 const DUO_GAP=.35;   // the beat after one Titan's attack before the other may start
+let duoTurn=0;       // counts the pair's turns; each Titan keeps the number of its last (e.duoN)
 const TITAN_MUS={bpm:140, prog:[0,0,3,3, 8,8,1,1], qual:[0,0,1,1, 1,1,1,1],
                  ost:[0,0,3,0, 0,8,1,0], hook:'tide', lead:'sawtooth', choirUp:1, ride:1};
 const TRITON={ k:'triton', n:'TRITON', col:'#2fa8ff', r:42, hp:3450, val:1200, duoPart:1, dmgX:1.3,
@@ -3818,6 +3818,9 @@ const LEV_EAT_CD=[6.5,2.6], LEV_EAT_TEL=[1.15,.75], LEV_EAT_V=900, LEV_EAT_RUN=.
    circle; the laser shows its line for LEV_SPIN_TEL first. */
 const LEV_SPIN_T=4.5, LEV_SPIN_EVERY=.6, LEV_SPIN_REST=2, LEV_SPIN_R=.3, LEV_SPIN_TEL=.4;
 const LEV_COL='#7fd8ff';
+/* After every lunge the whole chain goes still and one open segment, the one
+   nearest you, is exposed for a punish window (C.open). Nothing swims or fires
+   until it shuts. */
 const levK=e=>e.chain.pow/5;
 const levL=(e,r)=>r[0]+(r[1]-r[0])*levK(e);
 const levHead=()=>enemies.find(e=>e.chain&&e.kind==='head');
@@ -3880,7 +3883,11 @@ function levSwim(e,dt){
   const v=e.spd*(1+LEV_VPOW*C.pow);
   const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
   e.t0+=dt; e.wt+=dt;
-  if(C.spin){
+  if(C.open&&!C.spin){
+    // a punish window: the whole chain hangs where it is, jaws closing
+    e.jaw=Math.max(0,e.jaw-dt*3);
+  }
+  else if(C.spin){
     // round the middle of the arena, always aiming a little ahead on the circle
     e.jaw=Math.max(0,e.jaw-dt*3);
     const R=Math.min(W,H)*LEV_SPIN_R, th=Math.atan2(e.y-H/2,e.x-W/2)+.45;
@@ -3919,6 +3926,7 @@ function levSwim(e,dt){
     const m=e.r+wallIn;
     if(e.t0>=LEV_EAT_RUN||e.x<m||e.x>W-m||e.y<m||e.y>H-m){
       e.st='rest'; e.t0=0; SFX.crack(); burst(e.x+Math.cos(e.la)*e.r,e.y+Math.sin(e.la)*e.r,LEV_COL,16,240);
+      levExpose(C);
     }
   }else{
     // the snap shut, and a moment drifting before it swims again
@@ -3930,6 +3938,15 @@ function levSwim(e,dt){
   e.a=e.hd; e.ha=e.hd; e.morph=e.jaw;
   levTrail(C,e);
   levFxStep(C,dt);
+}
+
+// a lunge spent: the open segment nearest you drops its guard
+function levExpose(C){
+  if(C.spin||C.open) return;
+  const P=player, live=C.segs.filter(g=>enemies.includes(g)&&!g.ward&&!g.gone&&!g.hidden);
+  if(!live.length) return;
+  const g=live.reduce((a,b)=>dist2(a,P)<=dist2(b,P)?a:b);
+  exposeBoss(g,PUNISH_T); C.open=g;
 }
 
 /* One attack on its own clock. `e` is what it fires from; `g` holds the
@@ -4020,6 +4037,10 @@ function levSpinStep(C,dt){
 function levStep(e,dt){
   e.pt+=dt; if(e.flare>0) e.flare-=dt;
   const C=e.chain;
+  if(C.open===e){                                          // the exposed segment keeps the window's clock
+    if(!e.rload) e.open=Math.max(0,e.open-dt);
+    if(C.spin||!(e.open>0)){ e.open=0; C.open=null; }
+  }
   if(RHY.boss(e)){                                         // the warning ring: its soonest waiting attack
     const gs=(e.kind==='head'?e.heir.concat([e.bite||{}]):[e]).map(g=>g.rg).filter(x=>x!=null);
     e.gate=gs.length?Math.min(...gs):null; e.nextK=null;
@@ -4034,11 +4055,12 @@ function levStep(e,dt){
     levSwim(e,dt);
     if(C.spin) levSpinStep(C,dt);
     else if(C.rest>0) C.rest-=dt;
+    else if(C.open){}                                       // exposed: it holds fire
     else if(!(C.ice>0)) for(const g of e.heir) levGun(e,g,g.atk,dt);
     return;
   }
   e.a=e.ha;
-  if(C.spin||C.rest>0) return;                            // the spin, and the breath after it
+  if(C.spin||C.rest>0||C.open) return;                    // the spin, the breath after it, a punish window
   if(C.quiet&&!DARK_LOUD.includes(e.seg)) return;   // in the dark, the rest is quiet
   levGun(e,e,LEV_ATK[e.seg],dt);
 }
@@ -4208,6 +4230,7 @@ const OM_MIS_CD=2.3, OM_MIS_N=6, OM_MIS_DMG=16, OM_MIS_V=210, OM_MIS_SEEK=2.2;
 const OM_AOE_CD=2.7, OM_AOE_N=4, OM_AOE_R=95, OM_AOE_T=1.1, OM_AOE_DMG=26;
 const OM_LAS_CD=2.5, OM_LAS_N=5, OM_LAS_TEL=.75, OM_LAS_DMG=28, OM_LAS_SPREAD=.32, OM_LAS_W=14;
 const OM_ALL_SLOW=1.4;
+const OM_PUNISH_N=3;    // volleys from a wing's own guns, and then it is exposed for a punish window
 const OM_COL='#ffcf5a';
 const OM_HUB=340, OM_JUNK=22;                            // the hub's rim, so its underside shows; debris at once
 const OM_WINGS=['A','B','C','D'], OM_ATK={A:['mis'],B:['aoe'],C:['las'],D:['mis','aoe','las']};
@@ -4240,6 +4263,10 @@ function omegaStep(e,dt){
   // the station's own clock runs off whichever wing is first still standing
   if(S.wings.find(w=>enemies.includes(w))===e) omegaStation(S,dt);
   if(e.ward||S.turn){ e.act=null; e.tel=null; return; }
+  if(e.open>0){                                            // exposed: guns and moves hold
+    if(!e.rload) e.open=Math.max(0,e.open-dt);
+    e.act=null; e.tel=null; return;
+  }
   if(STARFARER()&&S.wings.find(w=>enemies.includes(w))===e){
     S.sfT=(S.sfT||rand(5,8))-dt;
     if(S.sfT<=0){ S.sfT=rand(SF_CD[0],SF_CD[1]);
@@ -4277,6 +4304,7 @@ function omegaStep(e,dt){
       SFX.crack();
       g.cd=OM_LAS_CD*slow;
     }
+    if((e.vols=(e.vols||0)+1)>=OM_PUNISH_N){ e.vols=0; exposeBoss(e,PUNISH_T); break; }
   }
   // the warning ring reads e.gate: the soonest of whatever this wing has waiting
   if(rp!=null){ const gs=e.guns.map(g=>g.gate).concat([e.mvGate]).filter(x=>x!=null);
@@ -4373,6 +4401,17 @@ function omegaFall(e){
 }
 
 // the station: hub glow off the top, every arm, every wing, and its warnings
+// dropped guard: a yellow shell that tightens as the window closes, drawn round (0,0)
+function openShell(e){
+  const ok=e.open/e.openMax, pu=.5+.5*Math.sin(performance.now()/70);
+  ctx.beginPath(); ctx.arc(0,0,e.r+9+ok*26,0,TAU);
+  ctx.strokeStyle='rgba(255,210,77,'+(.35+.45*pu)+')'; ctx.lineWidth=3;
+  ctx.shadowColor='#ffd24d'; ctx.shadowBlur=20; ctx.stroke(); ctx.shadowBlur=0;
+  ctx.setLineDash([5,7]); ctx.lineDashOffset=-performance.now()/40;
+  ctx.beginPath(); ctx.arc(0,0,e.r+18+ok*34,0,TAU);
+  ctx.strokeStyle='rgba(255,210,77,.5)'; ctx.lineWidth=1.4; ctx.stroke();
+  ctx.setLineDash([]);
+}
 function omegaDraw(){
   const S=omegaOf(); if(!S) return;
   // sliding in from above while it arrives
@@ -5795,6 +5834,8 @@ function bossEntrance(b){
   const E=entrance={t:0, b, st, wt:waveTimer, x:b.x, y:b.y, land:st.land};
   E.dur=E.land+ENTR_TAIL;
   ebullets.length=0; bullets.length=0;
+  // a storm front caught mid-sweep would hang there through the whole entrance: it goes, and the next waits a full gap
+  if(world&&world.front){ world.front=null; world.next=rand(STORM_GAP[0],STORM_GAP[1])/HAZ_RATE(); }
   shake=0; flash=0; SFX.bossIn();
   if(st.init) st.init(E);
   b.x=E.x; b.y=E.y;                       // a staging may choose where it lands
@@ -5932,24 +5973,37 @@ const OPENING=tier=>PUNISH_T;
    wall the system is named after and it should hit like one. */
 const BOSS_BUFF=1.15, BOSS_SPD=1.1, BOSS_DMG=1.4;
 const PUNISH_MULT=2;
-/* Every round that lands in the window shoves the boss back along the line it
-   came in on: PUNISH_KB px/s a round, never past PUNISH_KB_MAX, bled off at
+/* A boss is shoved by one thing only: the rocket. It lands and throws the boss
+   back along the line it flew in on, PUNISH_KB px/s, bled off at
    PUNISH_KB_DRAG a second. A bigger hull moves less (PUNISH_KB_R is the size
-   that takes it all). The Leviathan and Omega hold their own formation and
-   are not shoved. */
-const PUNISH_KB=70, PUNISH_KB_MAX=300, PUNISH_KB_DRAG=7, PUNISH_KB_R=64;
-function punishKnock(e,b){
+   that takes it all). Rounds never move a boss. The Leviathan and Omega hold
+   their own formation and are not shoved. */
+const PUNISH_KB=300, PUNISH_KB_DRAG=7, PUNISH_KB_R=64;
+function punishKnock(e,a){
   if(e.chain||e.station) return;
-  const v=Math.hypot(b.vx,b.vy)||1, k=PUNISH_KB*Math.min(1.3,PUNISH_KB_R/(e.r||PUNISH_KB_R));
+  const k=PUNISH_KB*Math.min(1.3,PUNISH_KB_R/(e.r||PUNISH_KB_R));
+  e.kb={x:Math.cos(a)*k, y:Math.sin(a)*k};
+}
+/* Every other hostile takes a little of the same: HIT_KB px/s a round along
+   the round's line, never past HIT_KB_MAX, a smaller hull moving more
+   (HIT_KB_R takes it all). It bleeds off at PUNISH_KB_DRAG like a boss's
+   rocket shove. */
+const HIT_KB=40, HIT_KB_MAX=120, HIT_KB_R=16;
+function hitKnock(e,b){
+  if(e.chain||e.station) return;
+  const v=Math.hypot(b.vx,b.vy)||1, k=HIT_KB*Math.min(1.3,HIT_KB_R/(e.r||HIT_KB_R));
   const kb=e.kb||(e.kb={x:0,y:0});
   kb.x+=b.vx/v*k; kb.y+=b.vy/v*k;
-  const sp=Math.hypot(kb.x,kb.y); if(sp>PUNISH_KB_MAX){ kb.x*=PUNISH_KB_MAX/sp; kb.y*=PUNISH_KB_MAX/sp; }
+  const sp=Math.hypot(kb.x,kb.y); if(sp>HIT_KB_MAX){ kb.x*=HIT_KB_MAX/sp; kb.y*=HIT_KB_MAX/sp; }
 }
-// the shove plays out, held inside the arena (and the Ruler's walls)
+// the shove plays out, held inside the arena (and the Ruler's walls) once it has arrived
 function knockStep(e,dt){
   const kb=e.kb; if(!kb) return;
-  e.x=clamp(e.x+kb.x*dt, wallIn+e.r, W-wallIn-e.r);
-  e.y=clamp(e.y+kb.y*dt, wallIn+e.r, H-wallIn-e.r);
+  if(e.t!=='boss'&&!e.on){ e.x+=kb.x*dt; e.y+=kb.y*dt; }
+  else{
+    e.x=clamp(e.x+kb.x*dt, wallIn+e.r, W-wallIn-e.r);
+    e.y=clamp(e.y+kb.y*dt, wallIn+e.r, H-wallIn-e.r);
+  }
   const f=Math.exp(-PUNISH_KB_DRAG*dt); kb.x*=f; kb.y*=f;
   if(Math.hypot(kb.x,kb.y)<4) e.kb=null;
 }
@@ -5972,7 +6026,7 @@ function rhyWait(o,e){
    hitstop or slowed, so it shuts when the drums come back. A pause holds it
    (RHY.hold). */
 function rhyOpen(e){
-  if(e.openEnd==null) return;
+  if(e.openEnd==null||e.rload) return;
   const p=RHY.pos();
   if(p==null){ e.openEnd=null; return; }
   e.open=Math.max(0,(e.openEnd-p)*MUS.spb); if(!e.open) e.openEnd=null;
@@ -5989,6 +6043,9 @@ function rhyCue(e,B){
   // cued, this one moves a beat (or a bar) along, before anything is heard
   const tw=B.duoPart&&!e.combo&&!e.comboQ&&e.twin&&enemies.includes(e.twin)?e.twin:null;
   if(tw&&(tw.act||tw.busy>0||(tw.gate!=null&&tw.cued===tw.gate))){ e.gate+=strict?16:8; return; }
+  // ...and they alternate: the one that went last lets a twin waiting on the same beat, or the next, go first.
+  // Without this the quick one (Triton) is lined up on every half bar and the slow one never gets in
+  if(tw&&tw.gate!=null&&tw.gate>=RHY.pos()&&tw.gate<=e.gate+8&&(e.duoN||0)>(tw.duoN||0)){ e.gate+=strict?16:8; return; }
   e.cueMarks=e.marked||0; e.cueLen=null;
   RHY.cue(e,e.gate,e.nextK); e.cued=e.gate;
 }
@@ -7505,9 +7562,13 @@ function bossAI(e,dt,dx,dy,d){
     // every climb owes a strike. One that rode along in its twin's cutscene
     // waits a beat longer, so a pair does not throw both at once
     if(tier>e.tier) e.strikeDue = cut ? 1 : (phaseCut ? 2 : 1);
-    // the Titans have no strike of their own: their climb opens on a combo instead
-    if(tier>e.tier && TITAN_COMBO[B.k]){ e.combo=TITAN_COMBO[B.k]; e.guard=1; }
-    e.tier=tier; e.act=null; e.tel=null; e.cool=1.1; e.flare=1.6; e.inv=1.0;
+    // the Titans have no strike of their own: their climb opens on a combo instead.
+    // One already part-way through that very attack keeps it, and it is the combo:
+    // cutting it off made Proteus's slam vanish unlanded, then come straight back
+    const keep = tier>e.tier && TITAN_COMBO[B.k] && e.act && e.act.k===TITAN_COMBO[B.k];
+    if(tier>e.tier && TITAN_COMBO[B.k]){ if(!keep) e.combo=TITAN_COMBO[B.k]; e.guard=1; }
+    e.tier=tier; e.cool=1.1; e.flare=1.6; e.inv=1.0;
+    if(!keep){ e.act=null; e.tel=null; }
     e.si=0; e.open=0; e.marked=0;             // the new tier opens with its opener
     e.openEnd=null; e.gate=null; e.nextK=null; e.since=0; e.segI=0;
     if(RHY.boss(e) && up) RHY.climb(tier===B.tiers.length-1);
@@ -7528,7 +7589,7 @@ function bossAI(e,dt,dx,dy,d){
   // a Titan cannot be touched from its climb until its combo has played out
   if(e.guard){ if(e.combo||e.comboQ||e.act) e.inv=Math.max(e.inv,.15); else e.guard=0; }
   if(e.inv>0) e.inv-=dt;
-  if(e.open>0&&e.openEnd==null) e.open=Math.max(0,e.open-dt);
+  if(e.open>0&&e.openEnd==null&&!e.rload) e.open=Math.max(0,e.open-dt);   // a rocket on the way holds it
   rhyOpen(e);
   if(e.held>0) e.held-=dt;
   const T=B.tiers[e.tier];
@@ -7674,6 +7735,7 @@ function bossAI(e,dt,dx,dy,d){
   else k=bossPick(e,T,B);
   e.comboQ=0;                                 // whatever was queued is under way now
   e.last=k;
+  if(B.duoPart) e.duoN=++duoTurn;
   if(B.duoPart&&k!=='|') e.busy=DUO_GAP+(k==='walls'?.4:0);
   bossAct(e,T,B,k,dx,dy,d);
 }
@@ -7739,8 +7801,15 @@ function bossAct(e,T,B,k,dx,dy,d){
       e.open=e.openMax=Math.max(.01,(from+len-p)*MUS.spb);
     }
     else e.open=e.openMax=OPENING(e.tier)/(marks+1);
-    e.cool=e.open; e.rocketed=0; SFX.expose();
+    e.cool=e.open; e.rocketed=0; e.rload=0; SFX.expose();
     shock(e.x,e.y,'#ffd24d',e.r,e.r*2.3,.5,4);
+    // the Titans open together: the one that reached its window takes its twin with it,
+    // whatever the twin was doing (one waiting behind its ward cannot be hurt, so it stays shut)
+    const tw=B.duoPart&&e.twin&&enemies.includes(e.twin)?e.twin:null;
+    if(tw&&!(tw.open>0)&&!tw.ward&&!tw.hidden&&!tw.strike){
+      exposeBoss(tw,e.open); tw.openEnd=e.openEnd; tw.cool=tw.open;
+      tw.act=null; tw.tel=null; tw.gate=null; tw.nextK=null; tw.busy=0;
+    }
     return;
   }
 
@@ -7884,7 +7953,7 @@ let waves=[], shards=[], slowT=0, slowMax=1, timers=[];
    takes the screen before the first detonation lands. */
 let sealing=false;
 // a won side mission or a held system flying out (winOut), how far into it, and where it set off from
-let winScene=null, winT=0, winFrom=null;
+let winScene=null, winT=0, winFrom=null, winDone=null;
 
 // an expanding ring that thins as it goes
 // at most WAVES_MAX rings at once: past that the oldest goes, so a pile-up cannot stall a frame
@@ -7904,11 +7973,12 @@ function shred(x,y,col,n,sp,size){
 }
 // time leans on the brakes, then lets go
 function slow(sec){ if(sec>slowT){ slowT=sec; slowMax=sec; } }
-const timeScale=()=> slowT>0 ? .16+.84*(1-slowT/slowMax) : 1;
+const timeScale=()=> (slowT>0 ? .16+.84*(1-slowT/slowMax) : 1)*(1-(1-ROCKET_SLOW)*loadK);
 /* Hitstop: the world stops dead for a beat when something lands hard (a
    punish hit, a heavy going down, a boss going down, the pilot hit). The
    screen still draws; nothing moves. Two at once do not add up. */
 const HITSTOP=.04;
+const HIT_FLASH=.03;   // how long a hostile shows white after a round lands
 let stopT=0;
 function hitstop(sec){ stopT=Math.max(stopT,sec||HITSTOP); }
 /* ---- ROCKET LAUNCH ----
@@ -7918,29 +7988,96 @@ function hitstop(sec){ stopT=Math.max(stopT,sec||HITSTOP); }
    setting: Recruit, Cadet, Starfarer), ROCKET_SKILL times that with PUNISHING
    PULSES. It never takes the last of it (the kill is the guns'), and when it
    lands the window shuts: the boss gets ROCKET_RECOVER to come back, and to
-   the music the band comes in on the next beat. One rocket a window. */
-const ROCKET_PCT=[.15,.10,.05], ROCKET_SKILL=1.5, ROCKET_RECOVER=.9;
+   the music the band comes in on the next beat. One rocket a window.
+   It is loaded, not tapped. Space held builds it on the ship over ROCKET_LOAD
+   (body, fins, nose, then the flame lights), and the window's clock stops the
+   moment the load starts. Let go with the flame lit, before ROCKET_SWEET, and
+   it flies at full weight. Let go before the flame and it flies at ROCKET_SOFT.
+   Let go after ROCKET_SWEET and it still flies at ROCKET_SOFT, but the
+   backfire costs ROCKET_LATE hull. Still holding at ROCKET_BLOW and it goes off
+   on the ship: nothing flies, the window shuts, and you are left on 1 hull. */
+const ROCKET_PCT=[.25,.20,.10], ROCKET_SKILL=1.5, ROCKET_RECOVER=.9;
 const ROCKET_V0=240, ROCKET_ACC=2600, ROCKET_VMAX=1500, ROCKET_TURN=7, ROCKET_LIFE=2.5;
-// PROSE — the prompt while a rocket is ready
+const ROCKET_LOAD=1, ROCKET_SWEET=1.15, ROCKET_BLOW=1.6, ROCKET_SOFT=.5;
+const ROCKET_LATE=CLONE_DMG*2;       // a little late: two Cloner rounds
+const ROCKET_MOUNT=24, ROCKET_MSC=.85; // where it builds, off the ship's nose, and how big
+// PROSE — the prompt while a rocket is ready. «WRITE:» it is held now, not tapped
 const ROCKET_ASK='ROCKET LAUNCH: TAP SPACE';
-let rocket=null;
+// PROSE — «WRITE:» what the death screen names when a late rocket's backfire finishes you
+const ROCKET_KILLER='ROCKET';
+let rockets=[], rload=null;           // rload: what is being built, {es, t, st}: a rocket for each exposed boss
+const ROCKET_SPLIT=13;                 // two at once (the Titans) sit this far either side of the ship's line
+const ROCKET_SLOW=.7, ROCKET_SLOW_IN=6;   // the slow-down while it loads (see rocketVignette)
+let loadK=0;
 const exposedBoss=()=>enemies.find(e=>e.t==='boss'&&e.open>0&&!e.gone&&!e.hidden);
-const rocketReady=()=>{ const e=exposedBoss(); return !!e&&!e.rocketed&&!rocket; };
-function rocketLaunch(){
-  const e=exposedBoss(), P=player;
-  if(!e||e.rocketed||rocket||!P||P.hp<=0) return;
-  e.rocketed=1;
-  const a=Math.atan2(e.y-P.y,e.x-P.x);
-  rocket={x:P.x+Math.cos(a)*18, y:P.y+Math.sin(a)*18, a, v:ROCKET_V0, tgt:e, t:0};
-  P.vx-=Math.cos(a)*220; P.vy-=Math.sin(a)*220;          // it kicks
+const rocketTargets=()=>enemies.filter(e=>e.t==='boss'&&e.open>0&&!e.gone&&!e.hidden&&!e.rocketed);
+const rocketReady=()=> rocketTargets().length>0&&!rockets.length&&!rload;
+// Space goes down: the build starts, one rocket for every boss that is open, and their windows stop counting
+function rocketLoad(){
+  const P=player;
+  if(!rocketReady()||!P||P.hp<=0) return;
+  const es=rocketTargets();
+  for(const e of es){ e.rocketed=1; e.rload=1; }
+  rload={es, t:0, st:0};
+  SFX.ui();
+}
+// the build plays out; letting go launches them, holding too long blows them
+function rocketLoadStep(dt){
+  const L=rload; if(!L) return;
+  const P=player;
+  const es=L.es.filter(e=>enemies.includes(e)&&e.open>0);
+  for(const e of L.es) if(!es.includes(e)) e.rload=0;
+  L.es=es;
+  if(!es.length||!P||P.hp<=0){ for(const e of es) e.rload=0; rload=null; return; }
+  L.t+=dt/timeScale();                      // real seconds: the slow-down never stretches the timing
+  // a click as each piece goes on, the big one as the flame lights, a buzz when it is late
+  const st=L.t>=ROCKET_SWEET?4:L.t>=ROCKET_LOAD?3:L.t>=ROCKET_LOAD*2/3?2:L.t>=ROCKET_LOAD/3?1:0;
+  if(st>L.st){ L.st=st; st===3?SFX.tier():st===4?SFX.deny():SFX.ui(); }
+  if(L.t>=ROCKET_BLOW){ rocketBlow(L); return; }
+  if(keys.Space) return;
+  rload=null;
+  const late=L.t>ROCKET_SWEET;
+  es.forEach((e,i)=>rocketLaunch(e, L.t>=ROCKET_LOAD&&!late ? 1 : ROCKET_SOFT, rocketMount(e,i,es.length), es.length));
+  if(late){                                 // one backfire, however many it was building
+    P.hp-=ROCKET_LATE*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=ROCKET_KILLER;
+    const m=rocketMount(es[0],0,1);
+    burst(m.x,m.y,'#ff8a3c',24,320); flare(m.x,m.y,'#ffffff',18,.12);
+    pilotHurt(m.x,m.y);
+  }
+}
+// held past the end: it goes off on the ship, and the window goes with it
+function rocketBlow(L){
+  const P=player, m=rocketMount(L.es[0],0,1);
+  rload=null;
+  P.hp=Math.min(P.hp,1); P.inv=.5;
+  pilotHurt(m.x,m.y);
+  shake=Math.max(shake,34); flash=Math.max(flash,.5);
+  shock(m.x,m.y,'#ffffff',8,120,.4,8); shock(m.x,m.y,'#ff8a3c',14,260,.6,6);
+  burst(m.x,m.y,'#ffd24d',50,520); burst(m.x,m.y,'#ff8a3c',40,420); flare(m.x,m.y,'#ffffff',40,.2);
+  thump(); SFX.crack(); SFX.strip();
+  for(const e of L.es) rocketClose(e);
+}
+/* where a rocket sits while it is built: just off the ship, pointed at its boss.
+   Two (the Titans) sit ROCKET_SPLIT either side, so they never build on top of each other. */
+function rocketMount(e,i,n){
+  const P=player, a=Math.atan2(e.y-P.y,e.x-P.x), off=n>1?(i?1:-1)*ROCKET_SPLIT:0;
+  return {x:P.x+Math.cos(a)*ROCKET_MOUNT-Math.sin(a)*off, y:P.y+Math.sin(a)*ROCKET_MOUNT+Math.cos(a)*off, a};
+}
+function rocketLaunch(e,k,m,n){
+  const P=player, a=m.a;
+  const R={x:m.x, y:m.y, a, v:ROCKET_V0, tgt:e, t:0, k};
+  rockets.push(R);
+  P.vx-=Math.cos(a)*220/n; P.vy-=Math.sin(a)*220/n;      // it kicks; two share the one kick
   shake=Math.max(shake,12); flash=Math.max(flash,.2);
-  burst(rocket.x,rocket.y,'#ffd24d',26,340); flare(rocket.x,rocket.y,'#ffffff',26,.18);
+  burst(R.x,R.y,'#ffd24d',26,340); flare(R.x,R.y,'#ffffff',26,.18);
   SND.tone('sawtooth',120,640,.01,.65,.14); SFX.dash();
 }
 function rocketStep(dt){
-  const R=rocket; if(!R) return;
+  for(let i=rockets.length-1;i>=0;i--) rocketFly(rockets[i],dt);
+}
+function rocketFly(R,dt){
   const e=R.tgt;
-  if(!enemies.includes(e)){ rocket=null; return; }
+  if(!enemies.includes(e)){ rockets.splice(rockets.indexOf(R),1); return; }
   R.t+=dt; R.v=Math.min(ROCKET_VMAX,R.v+ROCKET_ACC*dt);
   R.a+=clamp(angDiff(Math.atan2(e.y-R.y,e.x-R.x),R.a),-ROCKET_TURN*dt,ROCKET_TURN*dt);
   R.x+=Math.cos(R.a)*R.v*dt; R.y+=Math.sin(R.a)*R.v*dt;
@@ -7953,10 +8090,11 @@ function rocketStep(dt){
   if(Math.hypot(e.x-R.x,e.y-R.y)<e.r+12||R.t>ROCKET_LIFE) rocketHit(R,e);
 }
 function rocketHit(R,e){
-  rocket=null;
+  rockets.splice(rockets.indexOf(R),1);
   const pct=ROCKET_PCT[clamp(save.diff|0,0,ROCKET_PCT.length-1)]*(player.st.punish>PUNISH_MULT?ROCKET_SKILL:1);
   const floor=Math.min(e.hp,e.max*.01);                 // never the kill
-  e.hp=Math.max(floor,e.hp-e.max*pct); e.knit=0;
+  e.hp=Math.max(floor,e.hp-e.max*pct*R.k); e.knit=0;
+  e.hitT=HIT_FLASH; punishKnock(e,R.a);                 // the one hit that whitens and shoves a boss
   const x=R.x, y=R.y;
   hitstop(.09); slow(.7); shake=Math.max(shake,40); flash=Math.max(flash,.7);
   shock(x,y,'#ffffff',e.r*.4,e.r*3.2,.5,10);
@@ -7964,7 +8102,19 @@ function rocketHit(R,e){
   burst(x,y,'#ffd24d',70,640); burst(x,y,'#ffffff',36,420); burst(x,y,'#ff8a3c',40,520);
   flare(x,y,'#ffffff',e.r*1.4,.22);
   thump(); SFX.crack(); SFX.strip();
-  // the window shuts, and the boss comes back after a breath
+  rocketClose(e);
+}
+/* A window opened from outside a boss's own line: the Leviathan after a lunge,
+   an Omega wing after OM_PUNISH_N volleys, a Titan's twin. The same clock and
+   the same rocket as any '|'. */
+function exposeBoss(e,len){
+  e.open=e.openMax=len; e.rocketed=0; e.rload=0;
+  SFX.expose(); shock(e.x,e.y,'#ffd24d',e.r,e.r*2.3,.5,4);
+}
+// the window shuts, and the boss comes back after a breath
+function rocketClose(e){
+  e.rload=0;
+  if(e.chain&&e.chain.open===e) e.chain.open=null;      // the Leviathan swims again
   e.open=0; e.openEnd=null; e.gate=null; e.nextK=null; e.cool=ROCKET_RECOVER;
   if(RHY.boss(e)){
     const p=RHY.pos();
@@ -7973,17 +8123,120 @@ function rocketHit(R,e){
 }
 // the rocket: a long gold body, a white nose, fins, and a flame that flickers
 function rocketDraw(){
-  const R=rocket; if(!R) return;
-  ctx.save(); ctx.translate(R.x,R.y); ctx.rotate(R.a);
-  ctx.shadowColor='#ffb44d'; ctx.shadowBlur=22;
-  ctx.fillStyle='#ffd24d'; ctx.beginPath();
-  ctx.moveTo(-24,0); ctx.lineTo(-30,-12); ctx.lineTo(-16,-7); ctx.lineTo(16,-7);
-  ctx.lineTo(30,0); ctx.lineTo(16,7); ctx.lineTo(-16,7); ctx.lineTo(-30,12); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(16,-7); ctx.lineTo(30,0); ctx.lineTo(16,7); ctx.closePath(); ctx.fill();
-  const fl=18+rand(0,16);
-  ctx.fillStyle='#ff8a3c'; ctx.beginPath(); ctx.moveTo(-24,-6); ctx.lineTo(-24-fl,0); ctx.lineTo(-24,6); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#fff1b8'; ctx.beginPath(); ctx.moveTo(-24,-3); ctx.lineTo(-24-fl*.55,0); ctx.lineTo(-24,3); ctx.closePath(); ctx.fill();
+  rocketBuildDraw();
+  for(const R of rockets){
+    ctx.save(); ctx.translate(R.x,R.y); ctx.rotate(R.a);
+    rocketShape(1,1,1,22+rand(0,16),'#ff8a3c','#fff1b8');
+    ctx.restore();
+  }
+}
+/* The rocket, nose along +x. body is how much of the body is on, from the
+   back (0..1); fins and nose fade in (0..1); fl is the flame's length (0 for none). */
+function rocketShape(body,fins,nose,fl,flOut,flIn){
+  // the exhaust first, so the nozzle sits over its root: white at the bell, burning out to nothing
+  if(fl>0){
+    const g=ctx.createLinearGradient(-29,0,-29-fl,0);
+    g.addColorStop(0,flIn); g.addColorStop(.3,flOut); g.addColorStop(1,'rgba(255,77,40,0)');
+    ctx.shadowColor=flOut; ctx.shadowBlur=20; ctx.fillStyle=g;
+    ctx.beginPath(); ctx.moveTo(-29,-5.5);
+    ctx.quadraticCurveTo(-29-fl*.45,-7,-29-fl,0); ctx.quadraticCurveTo(-29-fl*.45,7,-29,5.5);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle=flIn; ctx.beginPath();
+    ctx.moveTo(-29,-2.6); ctx.lineTo(-29-fl*.38,0); ctx.lineTo(-29,2.6); ctx.closePath(); ctx.fill();
+  }
+  ctx.shadowColor='#ffb44d'; ctx.shadowBlur=8;
+  // swept fins, under the body so it covers their roots
+  if(fins>0){
+    ctx.globalAlpha*=fins;
+    ctx.fillStyle='#c98a1c'; ctx.strokeStyle='#ffe08a'; ctx.lineWidth=1;
+    for(const sg of [-1,1]){
+      ctx.beginPath(); ctx.moveTo(-10,6*sg); ctx.lineTo(-26,15*sg); ctx.lineTo(-30,15*sg); ctx.lineTo(-25,6*sg);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    ctx.globalAlpha/=fins;
+  }
+  if(body>0){
+    const len=40*body;
+    // the nozzle bell, dark steel
+    ctx.fillStyle='#4a4f5e'; ctx.beginPath();
+    ctx.moveTo(-24,-4.5); ctx.lineTo(-29,-6); ctx.lineTo(-29,6); ctx.lineTo(-24,4.5); ctx.closePath(); ctx.fill();
+    // the hull: brushed steel, lit across the middle so it reads round
+    const g=ctx.createLinearGradient(0,-7,0,7);
+    g.addColorStop(0,'#7a8194'); g.addColorStop(.3,'#eef1f8'); g.addColorStop(.48,'#ffffff'); g.addColorStop(1,'#5e6476');
+    ctx.fillStyle=g; ctx.fillRect(-24,-7,len,14);
+    ctx.shadowBlur=0;
+    // a gold band near the tail, and a panel seam forward of it
+    if(len>6){ ctx.fillStyle='#ffd24d'; ctx.fillRect(-20,-7,Math.min(4,len-4),14); }
+    if(len>30){ ctx.strokeStyle='rgba(40,46,60,.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(6.5,-7); ctx.lineTo(6.5,7); ctx.stroke(); }
+  }
+  // the nose cone grows out of the hull: a gold ogive
+  if(nose>0){
+    ctx.globalAlpha*=nose;
+    const g=ctx.createLinearGradient(0,-7,0,7);
+    g.addColorStop(0,'#a8650f'); g.addColorStop(.35,'#ffe08a'); g.addColorStop(.55,'#ffd24d'); g.addColorStop(1,'#8a520c');
+    ctx.fillStyle=g; ctx.shadowColor='#ffb44d'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.moveTo(16,-7);
+    ctx.quadraticCurveTo(16+10*nose,-6.5,16+16*nose,0); ctx.quadraticCurveTo(16+10*nose,6.5,16,7);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha/=nose;
+  }
+  ctx.shadowBlur=0;
+}
+/* The rocket going together on the ship: the body slides on through the first
+   third, the fins the second, the nose the last, while a ring round the ship
+   fills with it. At ROCKET_LOAD the flame lights and the ring goes white-hot
+   and pulses: that is the moment to let go. Past ROCKET_SWEET the flame
+   sputters red, the ring cracks apart, and the whole thing shakes harder until it blows. */
+const ROCKET_RING=38;
+function rocketBuildDraw(){
+  const L=rload; if(!L||!player) return;
+  const P=player, t=L.t, third=ROCKET_LOAD/3;
+  const body=clamp(t/third,0,1), fins=clamp((t-third)/third,0,1), nose=clamp((t-2*third)/third,0,1);
+  const late=t>=ROCKET_SWEET, lit=t>=ROCKET_LOAD&&!late;
+  const k=late?clamp((t-ROCKET_SWEET)/(ROCKET_BLOW-ROCKET_SWEET),0,1):0;
+  const pu=.5+.5*Math.sin(performance.now()/40);
+  let fl=0, flOut='#ff8a3c', flIn='#fff1b8', jit=0;
+  if(late){
+    fl=Math.random()<.35?0:6+rand(0,10)*(1-k*.5); flOut='#ff4d5e'; flIn='#ff8a3c';
+    jit=FX_REDUCED()?0:1+4*k;
+  }else if(lit){ fl=18+10*pu; flOut='#ffd24d'; flIn='#ffffff'; }
+  // the ring: a faint track, and the load filling it clockwise from the top
+  ctx.save(); ctx.translate(P.x,P.y);
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,210,77,.16)';
+  ctx.beginPath(); ctx.arc(0,0,ROCKET_RING,0,TAU); ctx.stroke();
+  const fill=clamp(t/ROCKET_LOAD,0,1), a0=-Math.PI/2;
+  if(late){
+    // cracking: the ring breaks into shards that spread as it goes
+    ctx.strokeStyle='#ff4d5e'; ctx.shadowColor='#ff4d5e'; ctx.shadowBlur=12+10*pu;
+    ctx.lineWidth=3; ctx.setLineDash([10*(1-k*.6),3+12*k]); ctx.lineDashOffset=rand(0,6)*k;
+    ctx.beginPath(); ctx.arc(0,0,ROCKET_RING+rand(-1.5,1.5)*k*(FX_REDUCED()?0:1),0,TAU); ctx.stroke();
+    ctx.setLineDash([]);
+  }else{
+    ctx.strokeStyle=lit?'#ffffff':'#ffd24d'; ctx.shadowColor=lit?'#ffe08a':'#ffb44d';
+    ctx.shadowBlur=lit?18+16*pu:10+8*fill; ctx.lineWidth=lit?3+2*pu:3;
+    ctx.beginPath(); ctx.arc(0,0,ROCKET_RING,a0,a0+TAU*fill); ctx.stroke();
+    // the head of the fill: a bright point running round the ring
+    if(!lit&&fill>0){
+      const ha=a0+TAU*fill;
+      ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(Math.cos(ha)*ROCKET_RING,Math.sin(ha)*ROCKET_RING,2.6,0,TAU); ctx.fill();
+    }
+  }
   ctx.restore();
+  L.es.forEach((e,i)=>{
+    const m=rocketMount(e,i,L.es.length);
+    ctx.save(); ctx.translate(m.x+rand(-jit,jit),m.y+rand(-jit,jit)); ctx.rotate(m.a); ctx.scale(ROCKET_MSC,ROCKET_MSC);
+    rocketShape(body,fins,nose,fl,flOut,flIn);
+    ctx.restore();
+  });
+}
+/* While a rocket is loading the world slows to ROCKET_SLOW and the edges of the
+   screen close in. loadK eases it in and out (ROCKET_SLOW_IN a second) on the
+   clock, so the load itself, and its timing, always run in real seconds. */
+function rocketVignette(){
+  if(loadK<=0) return;
+  const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.hypot(W,H)*.55);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+(.6*loadK)+')');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 }
 // the prompt, over the arena, while there is a rocket to fire
 function rocketPrompt(){
@@ -7994,21 +8247,11 @@ function rocketPrompt(){
   ctx.font='700 30px Menlo,monospace'; ctx.fillText(ROCKET_ASK,W/2,H*.3);
   ctx.restore();
 }
-/* A punish window takes a stream of rounds, and a stop on every one of them
-   stutters. It stops on the first, then no more than once every PUNISH_STOP_GAP
-   seconds of real time. */
-const PUNISH_STOP_GAP=.3;
-let punishStopAt=-1e9;
-function punishStop(){
-  const now=performance.now()/1000;
-  if(now-punishStopAt<PUNISH_STOP_GAP) return;
-  punishStopAt=now; hitstop();
-}
 // the big ones: their kill has its own weight, and a hitstop
 const HEAVY=new Set(['heavy','overseer','orbiter','splinter','lander','quarry','glacier','crusher']);
 // a beat later, do this. Runs on real time, so it survives the run ending.
 const after=(t,fn)=>timers.push({t,fn});
-function fxClear(){ winScene=null; shipFx.length=0; bossHaz.length=0; sfLowT=sfLowA=0; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
+function fxClear(){ winScene=null; winDone=null; shipFx.length=0; bossHaz.length=0; sfLowT=sfLowA=0; waves.length=0; shards.length=0; timers.length=0; slowT=0; stopT=0; sealing=false; entrance=null; phaseCut=null; wallIn=wallWant=0; iceWalls=[]; }
 
 function fxStep(dt){
   for(let i=waves.length-1;i>=0;i--){
@@ -8440,6 +8683,7 @@ function update(dt){
   for(const e of enemies){
     const eb0=ebullets.length;              // what it fires this frame: an elite's is marked
     try{
+    if(e.hitT>0) e.hitT-=dt;                 // the white a round leaves on it
     // iced over by a geyser: it drifts off the kick and does nothing else
     if(e.frz>0){
       e.frz-=dt; e.x+=e.fvx*dt; e.y+=e.fvy*dt;
@@ -8811,6 +9055,7 @@ function update(dt){
        has already reset, so it simply fires once it is in. Bosses are left
        alone — their fights are authored on their own terms. */
     for(let q=n0;q<ebullets.length;q++) if(!ebullets[q].src) ebullets[q].src=e;
+    if(e.t!=='boss') knockStep(e,dt);
     if(e.t!=='boss'&&ebullets.length>n0&&(e.x<0||e.x>W||e.y<0||e.y>H)) ebullets.length=n0;
     if(lowgOn()) lowgDrift(e,ox,oy,dt);
     // Nothing leaves the arena. An enemy is free until it has arrived, and
@@ -8829,6 +9074,7 @@ function update(dt){
     }finally{ if(e.elite) for(let q=eb0;q<ebullets.length;q++){ const b=ebullets[q]; b.el=1; b.col=ELITE_COL; if(b.trail) b.trail=ELITE_COL; } }
   }
 
+  rocketLoadStep(dt);
   rocketStep(dt);
 
   /* --- bullets vs enemies --- */
@@ -8862,6 +9108,7 @@ function update(dt){
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j];
       if(e.gone) continue;                // a phantom that is not there cannot be shot
+      if(e.t==='boss'&&e.open>0) continue; // an exposed boss is the rocket's: rounds fly straight through
       if(b.hit.includes(e)) continue;
       const rr=e.r+b.r;
       if(dist2(b,e)<rr*rr){
@@ -8890,13 +9137,12 @@ function update(dt){
           }
         }
         e.hp-= b.dmg; b.hit.push(e);
-        if(e.open>0&&RHY.boss(e)) RHY.note();
-        if(e.t==='boss'&&e.open>0){ punishStop(); punishKnock(e,b); }
+        if(e.t!=='boss'){ e.hitT=HIT_FLASH; hitKnock(e,b); }   // a round neither whitens nor moves a boss
         e.knit=0;                              // pressure held: it cannot knit
         SFX.hit();
-        burst(hp.x,hp.y, e.open>0?'#ffd24d':ecolOf(e), e.open>0?14:7, e.open>0?300:190);
+        burst(hp.x,hp.y, ecolOf(e), 7, 190);
         if(!b.hot) boltHit(cosOf('bolt'),hp.x,hp.y,b.vx,b.vy,parts);
-        flare(hp.x,hp.y, e.open>0?'#ffd24d':'#ffffff', e.open>0?14:9, .09);
+        flare(hp.x,hp.y, '#ffffff', 9, .09);
         if(e.hp<=0){
           shake=Math.max(shake,e.t==='boss'?26:5);
           if(e.t!=='boss'){ SFX.kill(HEAVY.has(e.t)); comboKill(); }
@@ -9097,7 +9343,7 @@ function retryBoss(){
   hideAll();
   player.frz=player.thaw=0;
   worldStart(); sceneStart();
-  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rocket=null;
+  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rockets=[]; rload=null; loadK=0;
   wave=4; nextWave();
   state='play';
 }
@@ -11110,7 +11356,7 @@ function startMission(kind){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
   clearBuffs();
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
-  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rocket=null; sceneStart();
+  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; rockets=[]; rload=null; loadK=0; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
   launchStart();
   /* The Portal is somewhere else entirely and brings no weather with it. Every
@@ -11582,13 +11828,16 @@ function winOut(done,quiet){
     banner='MISSION COMPLETE'; bannerT=WIN_T;
     SFX.branch();
   }
-  // the beat runs on real time, so a pause mid-scene waits for the resume
-  const go=()=>{ if(paused){ after(.2,go); return; }
-    if(!winScene) return; winScene=null; if(state==='play') done(); };
-  after(WIN_T,go);
+  // the card comes when the scene's own clock runs out, so a pause anywhere in it holds it
+  winDone=done;
 }
 function winStep(dt){
   const P=player; winT+=dt;
+  if(winT>=WIN_T){
+    const done=winDone; winScene=null; winDone=null;
+    if(state==='play'&&done) done();
+    return;
+  }
   // whatever was still in the air flies on out of the arena rather than hanging there
   for(const L of [bullets,ebullets]) for(let i=L.length-1;i>=0;i--){
     const b=L[i]; b.x+=b.vx*dt; b.y+=b.vy*dt;
@@ -12231,11 +12480,12 @@ function draw(){
 
     levDraw();
     omegaDraw();
+    for(const e of enemies) if(e.station&&e.open>0){ ctx.save(); ctx.translate(e.x,e.y); openShell(e); ctx.restore(); }
     // enemies
     for(const e of enemies){
       if(e.hidden) continue;                 // still arriving; the scene draws it
       if(e.station) continue;                // Omega draws itself, arms and all
-      const col=ecolOf(e);
+      const col=e.hitT>0?'#ffffff':ecolOf(e);   // a round has just landed: white for HIT_FLASH
       if(e.t==='boss'){                       // the light it bends around itself
         const g=ctx.createRadialGradient(e.x,e.y,e.r*.4,e.x,e.y,e.r*(2.6+(e.flare>0?.9:0)));
         ctx.globalAlpha=.34+(e.flare>0?.3:0);
@@ -12273,6 +12523,7 @@ function draw(){
         }
         ctx.lineWidth=e.tier===2?4:3;
         if(RHY.boss(e)){ const pu=RHY.pulse(); ctx.shadowBlur+=34*pu; ctx.lineWidth+=2.5*pu; }
+        if(e.hitT>0){ ctx.strokeStyle='#ffffff'; ctx.shadowColor='#ffffff'; }
         ctx.stroke();                              // shimmering rim
         ctx.shadowBlur=0;
         if(e.k==='ruler'){
@@ -12330,17 +12581,7 @@ function draw(){
         ctx.save(); ctx.strokeStyle=ELITE_COL; ctx.lineWidth=2.4; ctx.shadowColor=ELITE_COL; ctx.shadowBlur=16;
         unitPath(ctx,unitKind(e),e.r+5,e.spin,e.morph); ctx.stroke(); ctx.restore();
       }
-      if(e.t==='boss'&&e.open>0){
-        // dropped guard: a yellow shell that tightens as the window closes
-        const ok=e.open/e.openMax, pu=.5+.5*Math.sin(performance.now()/70);
-        ctx.beginPath(); ctx.arc(0,0,e.r+9+ok*26,0,TAU);
-        ctx.strokeStyle='rgba(255,210,77,'+(.35+.45*pu)+')'; ctx.lineWidth=3;
-        ctx.shadowColor='#ffd24d'; ctx.shadowBlur=20; ctx.stroke(); ctx.shadowBlur=0;
-        ctx.setLineDash([5,7]); ctx.lineDashOffset=-performance.now()/40;
-        ctx.beginPath(); ctx.arc(0,0,e.r+18+ok*34,0,TAU);
-        ctx.strokeStyle='rgba(255,210,77,.5)'; ctx.lineWidth=1.4; ctx.stroke();
-        ctx.setLineDash([]);
-      }
+      if(e.t==='boss'&&e.open>0) openShell(e);
       if(e.ward&&!e.chain){                     // a Titan waiting on the other
         ctx.save(); ctx.rotate(-e.a);
         const now=performance.now(), R=e.r+16;
@@ -12449,7 +12690,7 @@ function draw(){
   ctx.restore();
 
   if(flash>0){ ctx.fillStyle='rgba(255,255,255,'+fxFlash()*.75+')'; ctx.fillRect(0,0,W,H); }
-  if(state==='play') hurtDraw();
+  if(state==='play'){ rocketVignette(); hurtDraw(); }
   if(state==='play'&&!paused) rhyEdge();
   if((state==='play'||state==='over'||state==='dying')&&!launchCut) hud();
 }
@@ -12566,7 +12807,8 @@ function hud(){
     ctx.fillText('BOSS RUSH — '+(rush.i+1)+' / '+SYSTEMS.length,W-24,52);
     ctx.fillStyle='#7d8bb0'; ctx.fillText(rush.t.toFixed(1)+'s'+(save.rushBest?'  ·  BEST '+save.rushBest.toFixed(1)+'s':''),W-24,70);
   }
-  if(mission){
+  if(rush){}                                 // a rush has its own two lines, above: no system, wave or credits
+  else if(mission){
     const M=mission;
     ctx.fillStyle=M.B?M.B.col:'#ffd24d';
     ctx.fillText(M.k==='boss'?'QUANTUM PORTAL — CLASSIFIED'
@@ -12700,6 +12942,7 @@ function frame(now){
   const raw=gearIsOpen() ? 0 : clamp((now-last)/1000,0,.033); last=now;
   timerStep(raw);                                  // scheduled beats keep real time
   if(slowT>0) slowT=Math.max(0,slowT-raw);
+  if(!paused) loadK=clamp(loadK+(rload?raw:-raw)*ROCKET_SLOW_IN,0,1);
   const stopped=stopT>0; if(stopped) stopT=Math.max(0,stopT-raw);
   const dt=stopped ? 0 : raw*timeScale();          // the world can be slowed, or stopped; the clock cannot
   frameDt=dt;
