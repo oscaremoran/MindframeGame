@@ -1261,13 +1261,10 @@
 </div></div>
 <div id="pauseSet"><div class="setCard">
   <button id="pauseSetX" class="ghost setX" aria-label="Close">&#x2715;</button>
+  <!-- mid-run: sound and effects only. Difficulty, MUSIC SYNC and the wipe
+       live in Settings on the menus, where a flight is not riding on them -->
   <div class="snd" id="sndPause"></div>
-  <div class="diff" id="diffPause"></div>
   <div class="diff" id="fxPause"></div>
-  <div class="diff" id="rhyPause"></div>
-  <div class="row">
-    <button id="btnPauseWipe" class="ghost danger">WIPE ALL PROGRESS</button>
-  </div>
 </div></div>
 <div id="quitAsk"><div class="setCard">
   <button id="quitAskX" class="ghost setX" aria-label="Close">&#x2715;</button>
@@ -1326,31 +1323,35 @@ const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
    ║  a fight.                                                            ║
    ║  See THE ARENAS below. Every row also needs a place in REGIONS.      ║
    ║                                                                      ║
+   ║  `form` is how wave 2's line units come in, all at once: 'wall',     ║
+   ║  'pincer', 'ring' or 'arrow' (see FORMATIONS). Wave 4 brings one     ║
+   ║  ELITE of `elite`, or of `adds` when it has none.                    ║
+   ║                                                                      ║
    ║  Add a sixth system by copying a block — waves, scaling, scoring     ║
    ║  and the campaign ending all adapt on their own.                     ║
    ╚══════════════════════════════════════════════════════════════════════╝ */
 const SYSTEMS=[
-  { id:'001', name:'EARTH', hp:1.00, spd:1.00, extra:0, haz:null },
+  { id:'001', name:'EARTH', hp:1.00, spd:1.00, extra:0, haz:null, form:'wall', elite:'heavy' },
 
-  { id:'002', name:'VENUS', hp:1.32, spd:1.05, extra:1, haz:'vents', adds:'tracker' },
+  { id:'002', name:'VENUS', hp:1.32, spd:1.05, extra:1, haz:'vents', adds:'tracker', form:'pincer' },
 
-  { id:'003', name:'JUPITER', hp:1.58, spd:1.10, extra:2, haz:'well', adds:'overseer' },
+  { id:'003', name:'JUPITER', hp:1.58, spd:1.10, extra:2, haz:'well', adds:'overseer', form:'ring' },
 
-  { id:'004', name:'SATURN', hp:1.78, spd:1.13, extra:2, haz:'rings', adds:'orbiter' },
+  { id:'004', name:'SATURN', hp:1.78, spd:1.13, extra:2, haz:'rings', adds:'orbiter', form:'arrow' },
 
-  { id:'005', name:'LUNA', hp:1.89, spd:1.145, extra:2, haz:'lowg', roster:'sol2',
+  { id:'005', name:'LUNA', hp:1.89, spd:1.145, extra:2, haz:'lowg', roster:'sol2', form:'wall', elite:'phantom',
     wave:{hp:1.6, dmg:1.5, rof:1.2, more:3, gap:.75, live:13} },
 
-  { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier',
+  { id:'006', name:'NEPTUNE', hp:1.95, spd:1.15, extra:3, haz:'storm', roster:'sol2', adds:'glacier', form:'pincer',
     wave:{hp:1.5, dmg:1.5, rof:1.2, more:3, gap:.75, live:13} },
 
-  { id:'007', name:'EUROPA', hp:2.25, spd:1.3, extra:3, haz:'geysers', roster:'sol2', adds:'cloner',
+  { id:'007', name:'EUROPA', hp:2.25, spd:1.3, extra:3, haz:'geysers', roster:'sol2', adds:'cloner', form:'ring',
     wave:{hp:2.1, dmg:1.7, rof:1.45, more:4, gap:.6, live:15} },
 
-  { id:'008', name:'SOL', hp:2.3, spd:1.35, extra:3, haz:'flares', roster:'sol2', adds:'corona',
+  { id:'008', name:'SOL', hp:2.3, spd:1.35, extra:3, haz:'flares', roster:'sol2', adds:'corona', form:'arrow',
     wave:{hp:2.25, dmg:1.4, rof:1.5, more:2, gap:.75, live:11} },
 
-  { id:'009', name:'ICARUS', hp:2.2, spd:1.16, extra:3, haz:'raiders', roster:'ica',
+  { id:'009', name:'ICARUS', hp:2.2, spd:1.16, extra:3, haz:'raiders', roster:'ica', form:'ring', elite:'crusher',
     wave:{more:1, live:13} },
 ];
 
@@ -2764,7 +2765,7 @@ function beginSystem(){
   bullets=[];ebullets=[];enemies=[];
   clearBuffs();
   worldStart(); sceneStart();
-  toast=''; toastT=0; crToastT=0;
+  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null};
   wave=0; nextWave();
   state='play';
   launchStart();
@@ -3231,9 +3232,61 @@ function systemCleared(){
   if(finaleArmed) after(1.0,startFinale);
 }
 
+/* ---- FORMATIONS and the ELITE ----
+   Wave 2 of every system brings its line units in together, in the shape its
+   SYSTEMS row names, from just off the screen, so they glide in as one. They
+   hold their fire for FORM_HOLD once they are in, and the rest of the wave
+   comes FORM_LATE after its usual time: a new shape, not a harder wave.
+     wall    a line along the edge farthest from you
+     pincer  two lines on opposite edges, the pair farthest from you
+     ring    spaced all the way round the arena
+     arrow   a V, point first, from the edge farthest from you
+   Wave 4 brings one ELITE: the system's own enemy with ELITE_HP its hull,
+   ELITE_DMG its damage, a gold outline round its own colours, and gold
+   rounds. The banner names both waves (WAVE_TAG).                           */
+// PROSE — what the wave banner adds for wave 2 and wave 4
+const WAVE_TAG={2:'FORMATION', 4:'ELITE'};
+const FORM_AT=1.0, FORM_HOLD=1.2, FORM_LATE=2.5, FORM_M=70;
+const ELITE_AT=5, ELITE_HP=2, ELITE_DMG=1.5, ELITE_COL='#ffd24d';
+// a point just off edge s (0 top, 1 right, 2 bottom, 3 left), u of the way along it, d further out
+function edgeAt(s,u,d){
+  const m=FORM_M+(d||0);
+  return s===0?{x:W*u,y:-m} : s===1?{x:W+m,y:H*u} : s===2?{x:W*u,y:H+m} : {x:-m,y:H*u};
+}
+// the edge whose far side the player is nearest, so a formation has room to be seen
+function farEdge(){
+  const P=player, d=[P.y, W-P.x, H-P.y, P.x];
+  return d.indexOf(Math.max(...d));
+}
+function formationAt(kind,n){
+  const out=[], s=farEdge(), along=k=>n<2?.5:.15+.7*k/(n-1);
+  if(kind==='wall') for(let k=0;k<n;k++) out.push(edgeAt(s,along(k)));
+  else if(kind==='pincer'){
+    const a=s%2, h=Math.ceil(n/2);          // top and bottom, or left and right
+    for(let k=0;k<n;k++){ const side=k<h?a:a+2, m=k<h?h:n-h, i=k<h?k:k-h;
+      out.push(edgeAt(side, m<2?.5:.2+.6*i/(m-1))); }
+  }else if(kind==='ring'){
+    for(let k=0;k<n;k++){
+      const a=k/n*TAU-Math.PI/2, cx=Math.cos(a), cy=Math.sin(a);
+      // out from the middle along a, to just past whichever edge it meets first
+      const t=Math.min(Math.abs((W/2)/(cx||1e-6)),Math.abs((H/2)/(cy||1e-6)));
+      out.push({x:W/2+cx*(t+FORM_M), y:H/2+cy*(t+FORM_M)});
+    }
+  }else{                                    // arrow: the leader in the middle, the arms trailing back
+    for(let k=0;k<n;k++){
+      const rank=Math.ceil(k/2), side=k%2?1:-1;
+      out.push(edgeAt(s, clamp(.5+side*rank*.09,.08,.92), rank*55));
+    }
+  }
+  return out;
+}
+
 /* ---- waves ---- */
+// a cleared wave's pay shows this long before the next wave comes in
+const WAVE_PAY_LEAD=.7;
+let payLead=null;
 function nextWave(){
-  wave++;
+  wave++; payLead=null;
   spawnQ=[]; 
   const push=(t,type)=>spawnQ.push({t,type});
   const S=SYS(), R=ROSTER();
@@ -3246,9 +3299,19 @@ function nextWave(){
           heavies=soft?[0,0,1,1][wave-1]+(S.extra>1?1:0)
                       :(wave<3?(sysIdx?1:0):wave-2+(S.extra>1?1:0))+(R.heavyMore||0);
     const gap=(soft&&wave<=2?1.8:1.15)*V.gap;               // they arrive one at a time early on
-    for(let i=0;i<Math.round(grunts*(R.lineK||1));i++) push(i*gap+(soft?1.4:.6),R.line);
-    for(let i=0;i<Math.round(darts*(R.ramK||1));i++) push(i*gap+(soft?4:2.6),R.ram);
-    for(let i=0;i<heavies;i++) push(i*6+4,R.heavy);
+    const nLine=Math.round(grunts*(R.lineK||1));
+    // wave 2: the line comes in as one, in the system's formation, and the rest a little later
+    const form=wave===2&&S.form, late=form?FORM_LATE:0;
+    if(form) formationAt(S.form,nLine).forEach(at=>spawnQ.push({t:FORM_AT, type:R.line, at, form:1}));
+    else for(let i=0;i<nLine;i++) push(i*gap+(soft?1.4:.6),R.line);
+    for(let i=0;i<Math.round(darts*(R.ramK||1));i++) push(i*gap+(soft?4:2.6)+late,R.ram);
+    for(let i=0;i<heavies;i++) push(i*6+4+late,R.heavy);
+    // wave 4: the system's own, once, as an elite
+    // (slotted in by its time: the queue goes in order, and the back of it is a long way off)
+    if(wave===4&&(S.elite||S.adds)){
+      const at=spawnQ.findIndex(q=>q.t>ELITE_AT);
+      spawnQ.splice(at<0?spawnQ.length:at,0,{t:ELITE_AT, type:S.elite||S.adds, elite:1});
+    }
     if(unlockedType('tracker'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*7+3.4,'tracker');
     if(unlockedType('overseer')&&wave>=2) for(let i=0;i<1+(wave>=4?1:0);i++) push(i*9+5.5,'overseer');
     if(unlockedType('orbiter'))  for(let i=0;i<1+(wave>=3?1:0);i++) push(i*8+4.6,'orbiter');
@@ -3267,7 +3330,8 @@ function nextWave(){
   waveTimer=0;
   worldWave();
   if(wave<5) SFX.wave();
-  banner = wave<5 ? 'WAVE '+wave+' / 5' : 'WAVE 5 / 5 — '+BOSS(sysIdx).n;
+  const tag=wave<5&&((wave===2&&S.form)||(wave===4&&(S.elite||S.adds)))?WAVE_TAG[wave]:'';
+  banner = wave<5 ? 'WAVE '+wave+' / 5'+(tag?' — '+tag:'') : 'WAVE 5 / 5 — '+BOSS(sysIdx).n;
   if(wave===1) banner=SYS().name;
   bannerT=2.4;
 }
@@ -3418,6 +3482,14 @@ function cloneTarget(e,P){
     x+=Math.cos(a)*CLONE_RING; y+=Math.sin(a)*CLONE_RING;
   }
   return {x:clamp(x,e.r+wallIn,W-e.r-wallIn), y:clamp(y,e.r+wallIn,H-e.r-wallIn)};
+}
+// a queued arrival: where it was told to be, holding fire if it came in a formation, an elite if marked
+function spawnQd(q){
+  const n0=enemies.length;
+  spawn(q.type,q.at);
+  const e=enemies.length>n0?enemies[enemies.length-1]:null; if(!e) return;
+  if(q.form&&e.cool!=null) e.cool+=FORM_HOLD;
+  if(q.elite){ e.elite=1; e.hp*=ELITE_HP; e.max*=ELITE_HP; }
 }
 function spawn(type,at,def){
   const ez=EASE(), D=DIFF();
@@ -3578,6 +3650,86 @@ let toast='', toastT=0, flash=0;
 // what a cleared wave paid, in gold, while the next one comes in
 let crToast='', crToastT=0;
 const CR_TOAST_T=2.4;
+
+/* ---- TITLE TEXT ----
+   The big words over the arena (wave banners, a boss's new phase, a wave's
+   pay) share one look: a tall condensed face set wide, lit
+   from white down into its colour with a glow, and decoding in from noise as
+   it arrives (`rev` 0..1, how much of it has resolved). Canvas letter-spacing
+   is not everywhere yet, so the spacing is done by hand. `rules` draws a thin
+   line out from each side. The face is the Mac's own; elsewhere it falls back
+   through the list to something narrow.                                      */
+const TITLE_FONT='"DIN Condensed","Avenir Next Condensed","Futura","Arial Narrow",Impact,sans-serif';
+const TITLE_NOISE='ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#/\\<>';
+function titleText(str,x,y,size,col,opts){
+  const o=opts||{}, sp=size*(o.wide!=null?o.wide:.16), rev=o.rev==null?1:o.rev;
+  ctx.save();
+  ctx.font=(o.weight||700)+' '+size+'px '+TITLE_FONT;
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  const ch=Array.from(str), shown=Math.floor(rev*ch.length+.001);
+  const ws=ch.map(c=>ctx.measureText(c).width), tw=ws.reduce((a,b)=>a+b,0)+sp*Math.max(0,ch.length-1);
+  let cx=x-tw/2;
+  if(o.rules){
+    const L=Math.min(W*.18,size*4), gap=size*.6, g1=ctx.createLinearGradient(cx-gap-L,0,cx-gap,0);
+    g1.addColorStop(0,'rgba(0,0,0,0)'); g1.addColorStop(1,col);
+    ctx.globalAlpha*=.8; ctx.strokeStyle=g1; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx-gap-L,y); ctx.lineTo(cx-gap,y); ctx.stroke();
+    const g2=ctx.createLinearGradient(cx+tw+gap,0,cx+tw+gap+L,0);
+    g2.addColorStop(0,col); g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.strokeStyle=g2; ctx.beginPath(); ctx.moveTo(cx+tw+gap,y); ctx.lineTo(cx+tw+gap+L,y); ctx.stroke();
+    ctx.globalAlpha/=.8;
+  }
+  const gr=ctx.createLinearGradient(0,y-size*.5,0,y+size*.5);
+  gr.addColorStop(0,'#ffffff'); gr.addColorStop(.55,'#ffffff'); gr.addColorStop(1,col);
+  ctx.shadowColor=col; ctx.shadowBlur=o.glow!=null?o.glow:size*.5;
+  for(let i=0;i<ch.length;i++){
+    let c=ch[i];
+    if(i>=shown&&c!==' ') c=TITLE_NOISE[Math.floor(Math.random()*TITLE_NOISE.length)];
+    ctx.fillStyle=i<shown?gr:col;
+    // the face sits a touch high in its box: nudge it onto the line
+    ctx.fillText(c,cx,y+size*.06);
+    cx+=ws[i]+sp;
+  }
+  ctx.restore();
+}
+
+/* COMBOS. Kills chained inside COMBO_GAP seconds of each other build a combo,
+   whatever made them: your fire, or a system's hazard you led them into.
+   Getting hit does not break it; only the gap does. At each step of
+   COMBO_TITLES a title pops over the arena and is gone in COMBO_POP; past the
+   last step, the last title comes back every COMBO_MORE kills. */
+const COMBO_GAP=1.7, COMBO_POP=1.1, COMBO_MORE=10;
+// PROSE — the titles, one a step: [kills, title]. A step with no title shows nothing.
+const COMBO_TITLES=[[3,'FINE'],[5,'GOOD'],[8,'GREAT'],[12,'SUPERB'],[16,'AMAZING'],[20,'LEGENDARY'],[25,'MASTERFUL'],[30,'GODLIKE']];
+// each step a little hotter than the last
+const COMBO_COLS=['#9fd0ff','#3fd8e0','#46e39b','#ffd24d','#ffb44d','#ff8a3c','#ff4d5e','#d9c6ff'];
+let combo={n:0, t:0, pop:null};
+function comboKill(){
+  combo.n = combo.t>0 ? combo.n+1 : 1; combo.t=COMBO_GAP;
+  const last=COMBO_TITLES.length-1, top=COMBO_TITLES[last][0];
+  let k=COMBO_TITLES.findIndex(q=>q[0]===combo.n);
+  if(k<0&&combo.n>top&&(combo.n-top)%COMBO_MORE===0) k=last;
+  if(k<0||!COMBO_TITLES[k][1]) return;
+  combo.pop={s:COMBO_TITLES[k][1], n:combo.n, col:COMBO_COLS[k], t:COMBO_POP};
+  if(k>=3) SFX.tier(); else SFX.ui();
+}
+// a title that lands on a wave change waits, unseen and unspent, for the banner to go
+function comboStep(dt){
+  if(combo.t>0){ combo.t-=dt; if(combo.t<=0) combo.n=0; }
+  if(combo.pop&&bannerT<=0){ combo.pop.t-=dt; if(combo.pop.t<=0) combo.pop=null; }
+}
+// the title: pops in a size too big, settles, and fades out over its last half
+function comboDraw(){
+  const c=combo.pop; if(!c||bannerT>0) return;
+  const age=COMBO_POP-c.t, sc=1+.35*Math.max(0,1-age/.12), a=clamp(c.t/(COMBO_POP*.5),0,1);
+  ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.translate(W/2,H*.24); ctx.scale(sc,sc);
+  ctx.fillStyle=c.col; ctx.shadowColor=c.col; ctx.shadowBlur=22;
+  ctx.font='700 34px Menlo,monospace'; ctx.fillText(c.s,0,0);
+  // the count it stands for, small under it
+  ctx.font='600 16px Menlo,monospace'; ctx.shadowBlur=10; ctx.fillText('\u00d7'+c.n,0,30);
+  ctx.restore();
+}
 
 
 /* ════════════════ SYSTEM BOSSES ════════════════
@@ -7038,9 +7190,7 @@ function phaseDraw(){
     ctx.save(); ctx.globalAlpha=ink*outK; ctx.textAlign='center';
     ctx.font='12px Menlo,monospace'; ctx.fillStyle=col;
     ctx.fillText(C.tag,W/2,y-36);
-    ctx.font='600 '+(28+(1-ink)*12).toFixed(1)+'px Menlo,monospace';
-    ctx.shadowColor=col; ctx.shadowBlur=28*ink; ctx.fillStyle='#dfe9ff';
-    ctx.fillText(C.name,W/2,y);
+    titleText(C.name,W/2,y,Math.round(38+(1-ink)*12),col,{rev:ink,rules:1,glow:28*ink});
     ctx.restore();
   }
 }
@@ -8087,8 +8237,9 @@ function update(dt){
   const maxLive = mission ? (mission.ward?12:10)
                 : sysIdx===0 ? (wave<=2?5:wave===3?5:wave===4?6:10) : WV().live;
   // fought to the music, hostiles come in on the beat, one a beat
+  // (a formation comes in together, so it does not wait a beat a member)
   while(spawnQ.length && !entrance && !phaseCut && spawnQ[0].t<=waveTimer && enemies.length<maxLive &&
-        (spawnQ[0].type==='boss'||RHY.gate('arrive',0,4))){ spawn(spawnQ.shift().type); }
+        (spawnQ[0].type==='boss'||spawnQ[0].form||RHY.gate('arrive',0,4))){ spawnQd(spawnQ.shift()); }
 
   const P=player, st=P.st;
   if(winScene){ winStep(dt); return; }      // a won side mission or a held system flying out
@@ -8150,6 +8301,7 @@ function update(dt){
   if(!held) for(const k in buffs) if(buffs[k]>0) buffs[k]=Math.max(0,buffs[k]-dt);
   if(toastT>0) toastT-=dt;
   if(crToastT>0) crToastT-=dt;
+  comboStep(dt);
 
   // pickups drift, get pulled in from close range, and expire
   for(let i=pickups.length-1;i>=0;i--){
@@ -8193,6 +8345,8 @@ function update(dt){
   // Holding the station, everything hunts the station, not you.
   const T = mission&&mission.ward ? mission.ward : P;
   for(const e of enemies){
+    const eb0=ebullets.length;              // what it fires this frame: an elite's is marked
+    try{
     // iced over by a geyser: it drifts off the kick and does nothing else
     if(e.frz>0){
       e.frz-=dt; e.x+=e.fvx*dt; e.y+=e.fvy*dt;
@@ -8351,7 +8505,7 @@ function update(dt){
           const ox=P.x-e.x, oy=P.y-e.y, al=clamp(ox*cx+oy*cy,e.r,GLAC_LEN);
           const qx=e.x+cx*al-P.x, qy=e.y+cy*al-P.y;
           if(qx*qx+qy*qy<(GLAC_W+13)*(GLAC_W+13)){
-            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour; P.inv=.5; killer=unitName(e); pilotHurt(P.x+qx,P.y+qy);
+            P.hp-=GLAC_DMG*EASE()*DIFF().dmgIn*P.st.armour*(e.elite?ELITE_DMG:1); P.inv=.5; killer=unitName(e); pilotHurt(P.x+qx,P.y+qy);
             // knocked off the arm, the way it is sweeping
             const sd=Math.sign(e.armV)||1; P.vx+=-cy*sd*240; P.vy+=cx*sd*240;
             burst(P.x,P.y,'#dff4ff',14,240);
@@ -8578,6 +8732,7 @@ function update(dt){
       const cx=W/2-e.x, cy=H/2-e.y, cd=Math.hypot(cx,cy)||1;
       e.x+=cx/cd*ENTER_V*dt; e.y+=cy/cd*ENTER_V*dt;
     }
+    }finally{ if(e.elite) for(let q=eb0;q<ebullets.length;q++){ const b=ebullets[q]; b.el=1; b.col=ELITE_COL; if(b.trail) b.trail=ELITE_COL; } }
   }
 
   /* --- bullets vs enemies --- */
@@ -8648,7 +8803,7 @@ function update(dt){
         flare(hp.x,hp.y, e.open>0?'#ffd24d':'#ffffff', e.open>0?14:9, .09);
         if(e.hp<=0){
           shake=Math.max(shake,e.t==='boss'?26:5);
-          if(e.t!=='boss') SFX.kill(HEAVY.has(e.t));
+          if(e.t!=='boss'){ SFX.kill(HEAVY.has(e.t)); comboKill(); }
           if(HEAVY.has(e.t)) hitstop();
           if(e.val&&!e.station) drop(e);          // an Omega wing falling drops nothing
           if(e.t==='boss') burst(e.x,e.y,ecolOf(e),90,520);
@@ -8750,7 +8905,7 @@ function update(dt){
     const rr=b.r+13;
     if(P.inv<=0&&!(b.ghost>0)&&dist2(b,P)<rr*rr){
       if(buffs.shield>0){ burst(b.x,b.y,'#3fd8e0',6,180); ebullets.splice(i,1); continue; }
-      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg; P.inv=.12;
+      P.hp-=b.dmg*DIFF().dmgIn*P.st.armour*WV().dmg*(b.el||(b.src&&b.src.elite)?ELITE_DMG:1); P.inv=.12;
       killer=b.src?unitName(b.src):'ENEMY FIRE'; hitTag=b.tag||''; pilotHurt(b.x-b.vx,b.y-b.vy);
       if(b.stun){ P.stun=STUN_T; P.dashT=0; burst(P.x,P.y,'#ffe45c',16,260); }
       if(b.rkt&&mission&&mission.k==='hunt') mission.rh++;
@@ -8768,7 +8923,7 @@ function update(dt){
         P.hp-= (e.t==='dart'?9:e.t==='boss'?15:e.t==='heavy'?20:e.t==='overseer'?13:e.t==='orbiter'?18:e.t==='splinter'?16
               :e.t==='meteor'?18:e.t==='lander'?24:e.t==='drone'?8:e.t==='glacier'?24:e.t==='cloner'?24:e.t==='corona'?18
               :e.t==='crusher'?26:e.t==='zapper'?9:10)
-               *DIFF().dmgIn*P.st.armour*WV().dmg;
+               *DIFF().dmgIn*P.st.armour*WV().dmg*(e.elite?ELITE_DMG:1);
         killer=unitName(e); pilotHurt(e.x,e.y);
         P.inv=.5;
         const a=Math.atan2(P.y-e.y,P.x-e.x);
@@ -8795,8 +8950,12 @@ function update(dt){
   if(!spawnQ.length && !enemies.length){
     if(wave>=5&&rush) rushCleared();
     else if(wave>=5){ credit(CREDITS_PER_WAVE(sysIdx)); winScene={sys:sysIdx}; winOut(systemCleared,true); }
-    else if(bannerT<=0){ const n=CREDITS_PER_WAVE(sysIdx); credit(n); crToast='+'+n+' CREDITS'; crToastT=CR_TOAST_T;
-      RHY.hit(4); nextWave(); }
+    // the pay comes up first, and the next wave WAVE_PAY_LEAD after it
+    else if(bannerT<=0){
+      if(payLead==null){ const n=CREDITS_PER_WAVE(sysIdx); credit(n); crToast='+'+n+' CREDITS'; crToastT=CR_TOAST_T;
+        RHY.hit(4); payLead=WAVE_PAY_LEAD; }
+      else if((payLead-=dt)<=0) nextWave();
+    }
   }
 }
 
@@ -8842,7 +9001,7 @@ function retryBoss(){
   hideAll();
   player.frz=player.thaw=0;
   worldStart(); sceneStart();
-  toast=''; toastT=0; crToastT=0;
+  toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null};
   wave=4; nextWave();
   state='play';
 }
@@ -9784,7 +9943,7 @@ function hazBossKill(e){
 // a tool, not a second gun
 function hazKill(e,j,col){
   killFx(e,col,e.t==='heavy'?36:20,320);
-  SFX.kill(HEAVY.has(e.t));
+  SFX.kill(HEAVY.has(e.t)); comboKill();
   enemies.splice(j,1);
 }
 
@@ -10854,7 +11013,7 @@ function startMission(kind){
   bullets=[];ebullets=[];enemies=[];parts=[];spawnQ=[];
   clearBuffs();
   player.x=W*.5; player.y=H-110; player.vx=player.vy=0; player.inv=1.6;
-  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; sceneStart();
+  waveTimer=0; paused=false; toast=''; toastT=0; crToastT=0; combo={n:0, t:0, pop:null}; sceneStart();
   mission={k:kind, t:0, pay, sys:i, done:false, first};
   launchStart();
   /* The Portal is somewhere else entirely and brings no weather with it. Every
@@ -11717,7 +11876,8 @@ function draw(){
   // the region cutscene is still: no shake, whatever the last fight left behind
   if(state==='regcut'){ if(rc) regCutDraw(); return; }
   ctx.save();
-  const sk=fxShake(); if(sk>0) ctx.translate(rand(-sk,sk),rand(-sk,sk));
+  // paused, the shake holds where it was rather than rattling the frozen frame
+  const sk=paused?0:fxShake(); if(sk>0) ctx.translate(rand(-sk,sk),rand(-sk,sk));
 
   for(const s of stars){ ctx.fillStyle='rgba(160,185,240,'+(s.z*.55)+')'; ctx.fillRect(s.x,s.y,s.s,s.s); }
 
@@ -12062,6 +12222,10 @@ function draw(){
           ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l); ctx.stroke();
         }
       }else{ ctx.fill(); ctx.stroke(); }
+      if(e.elite){                              // an elite: its own colours, ringed in gold
+        ctx.save(); ctx.strokeStyle=ELITE_COL; ctx.lineWidth=2.4; ctx.shadowColor=ELITE_COL; ctx.shadowBlur=16;
+        unitPath(ctx,unitKind(e),e.r+5,e.spin,e.morph); ctx.stroke(); ctx.restore();
+      }
       if(e.t==='boss'&&e.open>0){
         // dropped guard: a yellow shell that tightens as the window closes
         const ok=e.open/e.openMax, pu=.5+.5*Math.sin(performance.now()/70);
@@ -12363,13 +12527,12 @@ function hud(){
     ctx.globalAlpha=1; ctx.textAlign='left';
   }
 
+  comboDraw();
   // a cleared wave's pay: rises a little and fades
   if(crToastT>0){
     const age=CR_TOAST_T-crToastT, a=clamp(Math.min(age*5,crToastT*1.4),0,1);
-    ctx.save(); ctx.globalAlpha=a; ctx.textAlign='center';
-    ctx.font='700 30px Menlo,monospace'; ctx.fillStyle='#ffd24d';
-    ctx.shadowColor='#ffb44d'; ctx.shadowBlur=18;
-    ctx.fillText(crToast,W/2,H*.68-age*14);
+    ctx.save(); ctx.globalAlpha=a;
+    titleText(crToast,W/2,H*.68-age*14,34,'#ffd24d',{glow:18});
     ctx.restore();
   }
 
@@ -12416,14 +12579,24 @@ function hud(){
 
   // banner
   if(bannerT>0){
-    const a=clamp(bannerT>2?(2.4-bannerT)*4:bannerT,0,1);
-    ctx.globalAlpha=a; ctx.textAlign='center';
-    ctx.fillStyle='#dfe9ff'; ctx.font='600 44px Menlo,monospace';
-    ctx.fillText(banner,W/2,H/2-8);
-    ctx.globalAlpha=1;
+    // a new banner (or the same words set again) starts its decode over
+    if(banner!==bnLast||bannerT>bnT+.05){ bnLast=banner; bnAt=performance.now(); }
+    bnT=bannerT;
+    const a=clamp(bannerT>2?(2.4-bannerT)*4:bannerT,0,1), rev=clamp((performance.now()-bnAt)/1000/BANNER_DECODE,0,1);
+    const cut=banner.indexOf(' \u2014 '), main=cut<0?banner:banner.slice(0,cut), sub=cut<0?'':banner.slice(cut+3);
+    ctx.save(); ctx.globalAlpha=a;
+    titleText(main,W/2,H/2-14,58,'#9fd0ff',{rev,rules:1});
+    if(sub) titleText(sub,W/2,H/2+30,26,BANNER_SUB[sub]||'#c9b8ff',{rev:clamp(rev*1.4-.4,0,1),wide:.3,glow:14});
+    ctx.restore();
   }
   ctx.textAlign='left';
 }
+
+// the banner's decode: how long it takes, and what it last was
+const BANNER_DECODE=.35;
+let bnLast='', bnAt=0, bnT=0;
+// a second line's own colour (anything else, a boss's name, is violet)
+const BANNER_SUB={FORMATION:'#3fd8e0', ELITE:'#ffd24d'};
 
 /* ================= loop ================= */
 let last=performance.now();
@@ -13343,7 +13516,7 @@ $('btnRespec').onclick=()=>{
    bottom of the title screen in red, states exactly what it is about to
    destroy, and will not fire until it has been clicked twice.              */
 let wipeArmed=0;
-const WIPE_BTNS=['gearWipe','btnPauseWipe'];
+const WIPE_BTNS=['gearWipe'];
 function wipeClick(a){
   if(Date.now()>wipeArmed){
     wipeArmed=Date.now()+5000;
@@ -13837,15 +14010,12 @@ addEventListener('resize',()=>{
 });
 function closeGarage(){ state='menu'; refreshMenu(); show('menu'); }
 
-/* Difficulty, in the same two panels as the sound control and rebuilt the same
-   way. Switching is allowed at any time, including mid-level from the pause
-   menu — a pilot stuck on a boss should be able to drop a setting rather than
-   abandon the run — and it takes hold on the next thing that spawns or the
-   next attack a boss chooses, because every read of DIFF() is live. Nothing
-   already in the air changes, which is the honest behaviour: bullets on screen
-   were fired under the old setting. */
+/* Difficulty, in Settings and Extras, rebuilt the same way as the sound
+   control. It is set between flights only: the pause menu does not carry it
+   (nor MUSIC SYNC, nor the wipe), so a run is flown start to finish on the
+   setting it launched on. */
 function buildDiff(){
-  for(const id of ['diffGear','diffPause','diffExtras']){
+  for(const id of ['diffGear','diffExtras']){
     const box=$(id); if(!box) continue;
     const cur=clamp(save.diff|0,0,DIFFS.length-1);
     box.innerHTML='<span class="lab">DIFFICULTY</span><div class="seg">'+
@@ -13889,7 +14059,7 @@ function buildFx(){
 const RHY_WHY='Sync up boss battles and waves with the music for a better experience.';
 function buildMusic(){
   const on=RHY.on;
-  for(const id of ['rhyGear','rhyPause','rhyExtras']){
+  for(const id of ['rhyGear','rhyExtras']){
     const box=$opt(id); if(!box) continue;
     box.innerHTML='<span class="lab">MUSIC SYNC</span><div class="seg">'+
       '<button data-v="0" class="'+(on?'':'on')+'">OFF</button>'+
