@@ -8001,10 +8001,8 @@ const ROCKET_V0=240, ROCKET_ACC=2600, ROCKET_VMAX=1500, ROCKET_TURN=7, ROCKET_LI
 const ROCKET_LOAD=1, ROCKET_SWEET=1.15, ROCKET_BLOW=1.6, ROCKET_SOFT=.5;
 const ROCKET_LATE=CLONE_DMG*2;       // a little late: two Cloner rounds
 const ROCKET_MOUNT=24, ROCKET_MSC=.85; // where it builds, off the ship's nose, and how big
-// PROSE — the prompt while a rocket is ready. «WRITE:» it is held now, not tapped
-const ROCKET_ASK='ROCKET LAUNCH: TAP SPACE';
-// PROSE — «WRITE:» what the death screen names when a late rocket's backfire finishes you
-const ROCKET_KILLER='ROCKET';
+const ROCKET_ASK='ROCKET LAUNCH: HOLD SPACE AT THE RIGHT TIME';
+const ROCKET_KILLER='YOU HELD ROCKET FOR TOO LONG';
 let rockets=[], rload=null;           // rload: what is being built, {es, t, st}: a rocket for each exposed boss
 const ROCKET_SPLIT=13;                 // two at once (the Titans) sit this far either side of the ship's line
 const ROCKET_SLOW=.7, ROCKET_SLOW_IN=6;   // the slow-down while it loads (see rocketVignette)
@@ -13792,8 +13790,7 @@ const SKILL_STATS=[
   ['FIRE RATE',   s=>1/s.delay,               'pct'],
   ['SHOTS',       s=>s.shots,                 v=>v],
   ['PIERCE',      s=>s.pierce,                v=>v?v+' ENEMIES':'NONE'],
-  // «WRITE:» the label: this is the rocket's size now
-  ['EXPOSED HITS',s=>s.punish>PUNISH_MULT?ROCKET_SKILL:1, v=>'\u00d7'+v],
+  ['ROCKET HITS',s=>s.punish>PUNISH_MULT?ROCKET_SKILL:1, v=>'\u00d7'+v],
   ['REPAIR',      s=>s.regen,                 v=>v?v+' HP/s':'NONE'],
   ['DAMAGE TAKEN',s=>s.armour,                v=>Math.round(v*100)+'%'],
   ['SPEED',       s=>s.speed,                 'pct'],
